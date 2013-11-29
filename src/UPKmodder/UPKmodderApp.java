@@ -67,6 +67,8 @@ public class UPKmodderApp {
                 
         if(m_kModFile.openReadFile(kConfigData.m_mod_filename_input, kConfigData.m_bVerbose))
         {
+            m_kModFile.setReferenceChanges(kConfigData);
+
             m_kModFile.readFile();
             m_kModFile.closeReadFile();
 
@@ -82,7 +84,6 @@ public class UPKmodderApp {
             {
                 if(m_kModFile.openWriteFile(kConfigData.m_mod_filename_output, kConfigData.m_bVerbose))
                 {
-                    m_kModFile.setReferenceChanges(kConfigData);
                     m_kModFile.writeMirroredOutput(kConfigData.m_bVerbose);
                     m_kModFile.closeWriteFile();
                 }
