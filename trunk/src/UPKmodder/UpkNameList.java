@@ -77,14 +77,14 @@ public class UpkNameList
     public int findString(String sSearchString)
     {
         int iTemp = m_alNameListStrings.indexOf(sSearchString);
-        if(m_arrIsFunction[iTemp])
-        {
+//        if(m_arrIsFunction[iTemp])
+//        {
             return iTemp;
-        }
-        else
-        {
-            return -1;
-        }
+//        }
+//        else
+//        {
+//            return -1;
+//        }
     }
         
     public String getNamelistEntry(int iIndex)
