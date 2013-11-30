@@ -104,7 +104,7 @@ public class UpkParser {
 		
 		for (int i = 0; i < nameListSize; i++) {
 			entryList.add(readNameEntry());
-			raf.skipBytes(2);	// consume two extra flag bytes
+			raf.skipBytes(8);	// consume 8 extra flag bytes (2 words)
 		}
 		
 		return entryList;
@@ -116,7 +116,7 @@ public class UpkParser {
 	 * @throws IOException
 	 */
 	private NameEntry readNameEntry() throws IOException {
-		int strLen = this.raf.readInt();
+		int strLen = Integer.reverseBytes(this.raf.readInt());
 		byte[] strBuf = new byte[strLen];
 		this.raf.read(strBuf);
 		
@@ -134,7 +134,7 @@ public class UpkParser {
 		List<ObjectEntry> objectList = new ArrayList<ObjectEntry>(objectListSize);
 		
 		this.raf.seek(objectListPos);
-		
+		objectList.add(null);   // extra object so count starts at 1
 		for (int i = 0; i < objectListSize; i++) {
 			objectList.add(readObjectEntry());
 		}
@@ -168,7 +168,7 @@ public class UpkParser {
 		int[] ints = new int[numInts];
 		buf.asIntBuffer().get(ints);
 		
-		int extraInts = 6 + ints[numInts] / 4;
+		int extraInts = 6 + ints[numInts-1];
 
 		int[] data = new int[numInts + extraInts];
 		System.arraycopy(ints, 0, data, 0, ints.length);
@@ -190,7 +190,7 @@ public class UpkParser {
 		List<ImportEntry> importList = new ArrayList<ImportEntry>(importListSize);
 		
 		this.raf.seek(importListPos);
-		
+		importList.add(null);  // export import entry so count starts at 1
 		for (int i = 0; i < importListSize; i++) {
 			importList.add(readImportEntry());
 		}
