@@ -6,7 +6,7 @@ package io.model.upk;
  * @author XMS
  */
 // TODO: do namelist entries feature additional properties? if not, a simple List<String> will suffice for the name list, no need for this class
-public class NameEntry {
+public class NameEntry{
 	
 	/**
 	 * The name string of this entry.
