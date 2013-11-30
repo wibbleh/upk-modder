@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package UPKmodder;
+package parser.unrealhex;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,7 +26,7 @@ import java.nio.file.Paths;
  *
  * @author Amineri
  */
-public class ReferenceFinder 
+public class ReferenceParser 
 {
     String m_sInputString;
     String[] m_sTokens;
@@ -38,7 +38,7 @@ public class ReferenceFinder
     String m_sOpTablePath;
     Path m_kOpTableFile;
 
-   
+    @Deprecated
     public void setString(String sString)
     {
         m_sInputString = sString;
@@ -47,11 +47,18 @@ public class ReferenceFinder
         m_sOutputString = "";
     }
     
+    @Deprecated
     public String getString()
     {
         return m_sOutputString;
     }
 
+    public ReferenceParser(OperandTable kOpTable)
+    {
+        m_kOpTable = kOpTable;
+    }
+    
+    @Deprecated
     public void Init(String sOpTablePath, boolean bVerbose) throws IOException
     {
         m_sOpTablePath = sOpTablePath;
@@ -72,15 +79,20 @@ public class ReferenceFinder
         {
             System.out.println("caught exception: " + x);
         }
-
     }
 
-    public void parseString()
+    public String parseString(String sHex)
     {
+        m_sInputString = sHex;
+        m_sTokens = m_sInputString.split("\\s"); 
+        m_iInputPosition = 0;
+        m_sOutputString = "";
+
         while(m_iInputPosition < m_sTokens.length)
         {
             parseGenericObject();
         }
+        return m_sOutputString;
     }
     
     private void parseGenericObject()
