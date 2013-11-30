@@ -1,11 +1,9 @@
 package io.model.upk;
 
-import java.util.List;
-
 /**
  * Model class for an objectlist entry.
  * 
- * @author XMS
+ * @author XMS, Amineri
  */
 public class ObjectEntry {
 
@@ -17,98 +15,96 @@ public class ObjectEntry {
 	/**
 	 * The outer (or owner) Object. Is reference to an ObjectEntry.
 	 */
-        private int iOuter;
-        
+	private int iOuter;
+
 	/**
 	 * The name of this entry. Is reference to a NameEntry.
 	 */
-        private int iNamePtr;
-        
+	private int iNamePtr;
+
 	/**
 	 * The file position of the Entry. Measured in bytes.
 	 */
-        private int iUpkPos;
-        
+	private int iUpkPos;
+
 	/**
 	 * The file size of the Entry. Measured in bytes
 	 */
-        private int iUpkSize;
+	private int iUpkSize;
 
 	/**
 	 * The contextualized name of the Entry. String.
 	 */
-        private String sName;
+	private String sName;
 
-        public ObjectEntry(List<Integer> data) {
+	/**
+	 * Constructs an objectlist entry from the specified property identifier array.
+	 * @param data the array of objectlist entry property identifiers
+	 */
+	public ObjectEntry(int[] data) {
 		this.parseData(data);
 	}
 
 	/**
 	 * Parses a list of integers into their corresponding object entry properties.
-	 * @param data the list of object entry property identifiers
+	 * @param data the array of object entry property identifiers
 	 */
-	private void parseData(List<Integer> data) {
-		this.iType = data.get(0);
-                this.iOuter = data.get(2);
-                this.iNamePtr = data.get(3);
-                this.iUpkPos = data.get(9);
-                this.iUpkSize = data.get(8);
+	private void parseData(int[] data) {
+		this.iType = data[0];
+        this.iOuter = data[2];
+        this.iNamePtr = data[3];
+        this.iUpkSize = data[8];
+        this.iUpkPos = data[9];
 		// TODO: parse/store other values, create getters and other convenience methods (e.g. getNameListIndex(), etc.)
 	}
 
-        /**
-         * Sets the Entry's name
-         * @param name
-         */
-        public void setName(String name)
-        {
-            this.sName = name;
-        }
+    /**
+     * Sets the Entry's name
+     * @param name
+     */
+	public void setName(String name) {
+		this.sName = name;
+	}
 
-        /**
-         * Returns name of entry
-         * @return String
-         */
-        public String getName()
-        {
-            return this.sName;
-        }
+	/**
+	 * Returns name of entry
+	 * @return String
+	 */
+	public String getName() {
+		return this.sName;
+	}
 
-        /**
-         * Returns name of entry as index to namelist
-         * @return int
-         */
-        public int getNameIdx()
-        {
-            return this.iNamePtr;
-        }
+	/**
+	 * Returns name of entry as index to namelist
+	 * @return int
+	 */
+	public int getNameIdx() {
+		return this.iNamePtr;
+	}
 
-        /**
-         * Returns outer (or owner) of entry as index to objectlist
-         * @return int
-         */
-        public int getOuterIdx()
-        {
-            return this.iOuter;
-        }
-        
-        /**
-         * Returns upk file position of object entry describes
-         * @return int
-         */
-        public int getUpkPos()
-        {
-            return this.iUpkPos;
-        }
-        
-        /**
-         * Returns upk file size of object entry describes
-         * @return int
-         */
-        public int getUpkSize()
-        {
-            return this.iUpkSize;
-        }
+	/**
+	 * Returns outer (or owner) of entry as index to objectlist
+	 * @return int
+	 */
+	public int getOuterIdx() {
+		return this.iOuter;
+	}
+
+	/**
+	 * Returns upk file position of object entry describes
+	 * @return int
+	 */
+	public int getUpkPos() {
+		return this.iUpkPos;
+	}
+
+	/**
+	 * Returns upk file size of object entry describes
+	 * @return int
+	 */
+	public int getUpkSize() {
+		return this.iUpkSize;
+	}
 	
 	/**
 	 * Returns the object type of this entry.
