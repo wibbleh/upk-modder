@@ -146,6 +146,9 @@ public class MainFrame extends JFrame {
 		buttonPnl.add(new JButton("Update References"), CC.xy(4, 1));
 		buttonPnl.add(new JButton("Apply Hex Replacement"), CC.xy(6, 1));
 		
+		// TODO: add status bar containing status messages and progress bar
+		// TODO: add logging panel, insert logging hooks into processes
+		
 		// add components to content pane
 		contentPane.add(new JLabel("Source UPK"), CC.xyw(2, 2, 3));
 		contentPane.add(new JLabel("Destination UPK"), CC.xyw(6, 2, 3));

@@ -26,6 +26,8 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import model.upk.UpkHeader;
+
 /**
  *
  * @author Amineri
@@ -47,7 +49,7 @@ public class UpkObjectList
     
     public void Init(UpkHeader kHeader)
     {
-        setNumUpkObjectlistEntries(kHeader.getNumObjectlistEntries());
+        setNumUpkObjectlistEntries(kHeader.getObjectListSize());
         setObjectlistPosition(kHeader.getObjectlistPosition());
         setUpkName(kHeader.getUpkName());
         m_arrObjectlist = new int[m_iNumObjectlistEntries+1][INTEGERS_PER_OBJECT_ENTRY];
