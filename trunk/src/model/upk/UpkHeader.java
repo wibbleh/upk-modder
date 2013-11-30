@@ -19,6 +19,7 @@ package model.upk;
 
 import io.model.upk.NameEntry;
 import io.model.upk.ObjectEntry;
+import io.model.upk.ImportEntry;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -53,7 +54,22 @@ public class UpkHeader {
 	 * The byte position of the object list inside the *.upk file.
 	 */
 	private int objectListPos;
-	
+
+        /**
+	 * The importList of this UPK header.
+	 */
+	private List<ImportEntry> importList;
+
+	/**
+	 * The byte position of the import list inside the *.upk file.
+	 */
+	private int importListPos;
+
+	/**
+	 * The GUID (Global Unique ID).
+	 */
+	private byte[] aGUID = new byte[16];
+
 	@Deprecated
 	private String m_sUpkName;
 
@@ -62,13 +78,74 @@ public class UpkHeader {
 	}
 
 	public UpkHeader(List<NameEntry> nameList, int nameListPos,
-			List<ObjectEntry> objectList, int objectListPos) {
+			List<ObjectEntry> objectList, int objectListPos,
+                        List<ImportEntry> importList, int importListPos,
+                        byte[] aGUID) {
 		this.nameList = nameList;
 		this.nameListPos = nameListPos;
 		this.objectList = objectList;
 		this.objectListPos = objectListPos;
+                this.importList = importList;
+                this.importListPos = importListPos;
+                this.aGUID = aGUID;
+                constructImportNames(importList);
+                constructObjectNames(objectList);
 	}
 
+        private void constructObjectNames(List<ObjectEntry> list)
+        {
+            int iPrevOuterIndex, iOuterIndex;
+
+            for(int I = 1; I <= list.size(); I++)
+            {
+                String name;
+                iPrevOuterIndex = -1;
+                name = "";
+                name += nameList.get(list.get(I).getNameIdx()).getName();
+                iOuterIndex = list.get(I).getOuterIdx();
+                while(iOuterIndex <= list.size() && iOuterIndex > 0 && iOuterIndex != I && iPrevOuterIndex != iOuterIndex)
+                {
+                    name += "." + nameList.get(iOuterIndex).getName();
+                    iPrevOuterIndex = iOuterIndex;
+                    iOuterIndex = list.get(iOuterIndex).getOuterIdx();
+                }
+                list.get(I).setName(name);
+            }
+        }
+        
+        private void constructImportNames(List<ImportEntry> list)
+        {
+            int iPrevOuterIndex, iOuterIndex;
+
+            for(int I = 1; I <= list.size(); I++)
+            {
+                String name;
+                iPrevOuterIndex = -1;
+                if(list.get(I).getPackageIdx() != 0)
+                {
+                    name = nameList.get(-list.get(I).getPackageIdx()).getName() + ":";
+                }
+                else
+                {
+                    name = "";
+                }
+                name += nameList.get(list.get(I).getNameIdx()).getName();
+                iOuterIndex = -list.get(I).getOuterIdx();
+                while(iOuterIndex <= list.size() && iOuterIndex > 0 && iOuterIndex != I && iPrevOuterIndex != iOuterIndex)
+                {
+                    name += "." + nameList.get(iOuterIndex).getName();
+                    iPrevOuterIndex = iOuterIndex;
+                    iOuterIndex = -list.get(iOuterIndex).getOuterIdx();
+                }
+                list.get(I).setName(name);
+            }
+        }
+
+        public byte[] getGUID()
+        {
+            return this.aGUID;
+        }
+        
 	public int getNameListSize() {
 		return this.nameList.size();
 	}
