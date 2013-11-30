@@ -96,7 +96,7 @@ public class UpkHeader {
         {
             int iPrevOuterIndex, iOuterIndex;
 
-            for(int I = 1; I <= list.size(); I++)
+            for(int I = 1; I < list.size(); I++)
             {
                 String name;
                 iPrevOuterIndex = -1;
@@ -105,7 +105,7 @@ public class UpkHeader {
                 iOuterIndex = list.get(I).getOuterIdx();
                 while(iOuterIndex <= list.size() && iOuterIndex > 0 && iOuterIndex != I && iPrevOuterIndex != iOuterIndex)
                 {
-                    name += "." + nameList.get(iOuterIndex).getName();
+                    name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
                     iPrevOuterIndex = iOuterIndex;
                     iOuterIndex = list.get(iOuterIndex).getOuterIdx();
                 }
@@ -117,13 +117,13 @@ public class UpkHeader {
         {
             int iPrevOuterIndex, iOuterIndex;
 
-            for(int I = 1; I <= list.size(); I++)
+            for(int I = 1; I < list.size(); I++)
             {
                 String name;
                 iPrevOuterIndex = -1;
                 if(list.get(I).getPackageIdx() != 0)
                 {
-                    name = nameList.get(-list.get(I).getPackageIdx()).getName() + ":";
+                    name = nameList.get(list.get(I).getPackageIdx()).getName() + ":";
                 }
                 else
                 {
@@ -133,7 +133,7 @@ public class UpkHeader {
                 iOuterIndex = -list.get(I).getOuterIdx();
                 while(iOuterIndex <= list.size() && iOuterIndex > 0 && iOuterIndex != I && iPrevOuterIndex != iOuterIndex)
                 {
-                    name += "." + nameList.get(iOuterIndex).getName();
+                    name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
                     iPrevOuterIndex = iOuterIndex;
                     iOuterIndex = -list.get(iOuterIndex).getOuterIdx();
                 }
