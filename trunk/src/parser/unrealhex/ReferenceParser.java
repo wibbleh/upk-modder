@@ -100,17 +100,18 @@ public class ReferenceParser
             String[] sParseItems = sOpCodes.split("\\s",2)[1].split("\\s");
             for(String sParseItem : sParseItems)
             {
-                if(sParseItem.matches("[0-9]+"))
+                sParseItem = sParseItem.toUpperCase();
+                if(sParseItem.matches("[0-9]"))
                 {
                     mirrorTokens(Integer.parseInt(sParseItem));
                     continue;
                 }
-                if(sParseItem.equalsIgnoreCase("G"))
+                if(sParseItem.equals("G"))
                 {
                     parseGenericObject();
                     continue;
                 }
-                if(sParseItem.equalsIgnoreCase("P"))
+                if(sParseItem.equals("P"))
                 {
                     while(!m_sTokens[m_iInputPosition].equals("16"))
                     {
@@ -118,12 +119,12 @@ public class ReferenceParser
                     }
                     continue;
                 }
-                if(sParseItem.equalsIgnoreCase("R"))
+                if(sParseItem.equals("R"))
                 {
                     tagReference();   
                     continue;
                 }
-                if(sParseItem.equalsIgnoreCase("N"))
+                if(sParseItem.equals("N"))
                 {
                     while(!m_sTokens[m_iInputPosition].equals("00"))
                     {
@@ -132,7 +133,11 @@ public class ReferenceParser
                     mirrorTokens(1);
                     continue;
                 }
-                if(sParseItem.equalsIgnoreCase("C"))
+                if(sParseItem.startsWith("S") || sParseItem.equals("J"))
+                {
+                    mirrorTokens(2);
+                }
+                if(sParseItem.equals("C"))
                 {
                     if(m_sTokens[m_iInputPosition].equalsIgnoreCase("FF") && m_sTokens[m_iInputPosition+1].equalsIgnoreCase("FF"))
                     {
@@ -164,7 +169,7 @@ public class ReferenceParser
         {
             iReference += Integer.parseInt(m_sTokens[m_iInputPosition+I], 16) << (8*I);
         }
-        if(iReference > 0)
+        if(iReference != 0)
         {
             m_sOutputString += "{{ ";
             mirrorTokens(4);
