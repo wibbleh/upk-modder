@@ -2,10 +2,13 @@ package io.parser;
 
 import io.model.upk.NameEntry;
 import io.model.upk.ObjectEntry;
+import io.model.upk.ImportEntry;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+import static java.nio.file.AccessMode.READ;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,20 +48,32 @@ public class UpkParser {
 	 */
 	public UpkHeader parseHeader() throws IOException {
 		
-		this.raf = new RandomAccessFile(upkFile, "r");
+                this.raf = new RandomAccessFile(upkFile, "r");
 		this.raf.seek(0x19L);
 
-		int nameListSize = raf.readInt();
-		int nameListPos = raf.readInt();
-		int objectListSize = raf.readInt();
-		int objectListPos = raf.readInt();
-		
+                // TODO : raf reads big endian but data is little endian
+                
+		int nameListSize = raf.readInt();   // byte x19
+		int nameListPos = raf.readInt();    // byte x1D
+		int objectListSize = raf.readInt(); // byte x21
+		int objectListPos = raf.readInt();  // byte x25
+                int importListSize = raf.readInt(); // byte x29
+                int importListPos = raf.readInt();  // byte x2D
+                
 		List<NameEntry> nameList = this.parseNameList(nameListPos, nameListSize);
 		List<ObjectEntry> objectList = this.parseObjectList(objectListPos, objectListSize);
+                List<ImportEntry> importList = this.parseImportList(importListPos, importListSize);
+                
+                this.raf.seek(0x45L);
+                byte[] aGUID = new byte[16];
+                for(int I = 0; I < 16; I++)
+                {
+                    aGUID[I] = raf.readByte();
+                }
 		
 		this.raf.close();
 		
-		return new UpkHeader(nameList, nameListPos, objectList, objectListPos);
+		return new UpkHeader(nameList, nameListPos, objectList, objectListPos, importList, importListPos, aGUID);
 	}
 
 	/**
@@ -89,6 +104,8 @@ public class UpkParser {
 		int strLen = this.raf.readInt();
 		byte[] strBuf = new byte[strLen];
 		this.raf.read(strBuf);
+                this.raf.readInt(); // consume two extra flag bytes
+                this.raf.readInt();
 		
 		return new NameEntry(new String(strBuf));
 	}
@@ -129,6 +146,39 @@ public class UpkParser {
 		}
 		
 		return new ObjectEntry(data);
+	}
+	
+	/**
+	 * Parses the importlist entries located after the specified byte position. 
+	 * @param objectListPos the byte position of the importlist
+	 * @param objectListSize the expected number of importlist entries
+	 * @return the importlist
+	 * @throws IOException if an I/O error occurs
+	 */
+	private List<ImportEntry> parseImportList(int importListPos, int importListSize) throws IOException {
+		List<ImportEntry> importList = new ArrayList<ImportEntry>(importListSize);
+		
+		this.raf.seek(importListPos);
+		
+		for (int i = 0; i < importListSize; i++) {
+			importList.add(readImportEntry());
+		}
+		
+		return importList;
+	}
+
+	/**
+	 * Reads a single importlist entry at the reader's current position.
+	 * @return the importlist entry
+	 * @throws IOException if an I/O error occurs
+	 */
+	private ImportEntry readImportEntry() throws IOException {
+		List<Integer> data = new ArrayList<Integer>();
+		for (int i = 0; i < 7; i++) {
+			data.add(this.raf.readInt());
+		}
+		
+		return new ImportEntry(data);
 	}
 	
 }
