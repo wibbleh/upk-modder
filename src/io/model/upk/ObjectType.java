@@ -1,10 +1,11 @@
 package io.model.upk;
 
 /**
- * Enumeration holding
+ * Enumeration holding objectlist entry types.
  *  
  * @author XMS
  */
+// TODO: review whether this enumeration is actually useful to have ;)
 public enum ObjectType {
 	
 	CLASS(0),
@@ -21,6 +22,10 @@ public enum ObjectType {
 		this.identifier = identifier;
 	}
 	
+	/**
+	 * Returns the type identifier of this object type
+	 * @return the type identifier
+	 */
 	public int getIdentifier() {
 		return this.identifier;
 	}
