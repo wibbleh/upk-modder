@@ -15,21 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package UPKmodder;
+package io.parser;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Scanner;
+import parser.unrealhex.OperandTable;
 
 /**
  *
  * @author Amineri
  */
-public class OperandTable 
+public class OperandTableParser 
 {
-    String[] m_arrOperandDecodes = new String[256];
+    Path m_kOpTableFile;
     
     /**
      * Constructor for Operand Table using the configuration file. 
@@ -37,53 +38,35 @@ public class OperandTable
      * @param bVerbose
      * @throws IOException
      */
-    public OperandTable(Path file, boolean bVerbose) throws IOException
+    public OperandTableParser(Path file)
+    {
+        m_kOpTableFile = file;
+    }
+    public OperandTable parseFile() throws IOException
     {
         // Read the bytes with the proper encoding for this platform.  If
         // you skip this step, you might see something that looks like
         // Chinese characters when you expect Latin-style characters.
         String encoding = System.getProperty("file.encoding");
-        int iOpCount = 0;
-
-        try (Scanner kScanner = new Scanner(Files.newBufferedReader(file, Charset.forName(encoding))))
+        
+        OperandTable kOpTable = new OperandTable();
+        
+        try (Scanner kScanner = new Scanner(Files.newBufferedReader(m_kOpTableFile, Charset.forName(encoding))))
         {
             while(kScanner.hasNextLine())
             {
-                String currLine = kScanner.nextLine().split("//")[0];
+                String currLine = kScanner.nextLine().split(";")[0];
                 if(currLine.isEmpty()) 
                 {
                     continue;
                 }
-                int iOpIndex = Integer.parseInt(currLine.split("\\s")[0], 16);
-                if(m_arrOperandDecodes[iOpIndex] == null)
-                {
-                    m_arrOperandDecodes[iOpIndex] = currLine;
-                }
-                else
-                {
-                    System.out.println("Duplicate opcode " + iOpIndex );
-                    System.out.println(m_arrOperandDecodes[iOpIndex]);
-                    System.out.println(currLine);
-                    System.exit(1);
-                }
-                iOpCount++;
+                kOpTable.parseData(currLine);
             }
-            if(bVerbose)
-                System.out.println("Read " + iOpCount + " opcodes.");
         }
         catch (IOException x) 
         {
             System.out.println("caught exception: " + x);
         }
-    }
-    
-    /**
-     * Retrieves the decode string for the given operand
-     * @param sOpCode
-     * @return String
-     */
-    public String getOpString(String sOpCode)
-    {
-        return m_arrOperandDecodes[Integer.parseInt(sOpCode, 16)];
+        return kOpTable;
     }
 }

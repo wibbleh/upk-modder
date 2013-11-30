@@ -71,14 +71,7 @@ public class ReferenceParser
                 System.out.println("Found file: " + sOpTablePath); 
             }
         }
-        try
-        {
-            m_kOpTable = new OperandTable(m_kOpTableFile, bVerbose);
-        }
-        catch (IOException x) 
-        {
-            System.out.println("caught exception: " + x);
-        }
+        m_kOpTable = new OperandTable();
     }
 
     public String parseString(String sHex)
