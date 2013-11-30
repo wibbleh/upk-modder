@@ -17,7 +17,15 @@
 
 package UPKmodder;
 
+import io.parser.OperandTableParser;
+import parser.unrealhex.ReferenceParser;
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Scanner;
+import model.modfile.ModFile;
+import model.upk.UpkFile;
 
 import model.modfile.ModFile;
 
@@ -45,59 +53,96 @@ public class UPKmodderApp {
     {
         UpkConfigData kConfigData = new UpkConfigData();
         
-        if(args.length == 0)
+//        if(args.length == 0)
+//        {
+////            kConfigData.m_mod_filename_input = "C:/Games/sample_modfile_no_refs.txt";
+////            kConfigData.m_mod_filename_output = "C:/Games/test_compressed_out.txt";
+//        }
+//        else
+//        {
+//            CommandLineArgHandler kCLHandler = new CommandLineArgHandler();
+//            kConfigData = kCLHandler.Init(args, kConfigData);
+//        }
+        
+//        UpkFileHandler kUpkFileHandler = new UpkFileHandler();
+//        kUpkFileHandler.Init(kConfigData.m_sUpkConfig, kConfigData.m_bVerbose);
+        
+        
+        OperandTableParser kOpParser = new OperandTableParser(Paths.get(kConfigData.m_sOperandData));
+        ReferenceParser kRefParser = new ReferenceParser(kOpParser.parseFile());
+        
+        // reference parser test cases:
+        if(kRefParser.parseString("07 DA 01 9B 38 3A 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 38 3A 24 00 16 ").equals("07 DA 01 9B 38 3A 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 38 3A 24 00 16 "))
         {
-//            kConfigData.m_mod_filename_input = "C:/Games/sample_modfile_no_refs.txt";
-//            kConfigData.m_mod_filename_output = "C:/Games/test_compressed_out.txt";
+            System.out.println("Reference Parser : Test 1 passed");
         }
-        else
+        if(kRefParser.parseString("55 35 97 9F 00 00 98 9F 00 00 00 00 1A 00 10 A0 00 00 01 BF 9F 00 00 7D 00 1B 82 0D 00 00 00 00 00 00 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 35 33 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 16 16 ").equals("55 35 {{ 97 9F 00 00 }} {{ 98 9F 00 00 }} 00 00 1A 00 {{ 10 A0 00 00 }} 01 {{ BF 9F 00 00 }} 7D 00 1B {{ 82 0D 00 00 }} 00 00 00 00 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 35 {{ 33 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 16 16 "))
         {
-            CommandLineArgHandler kCLHandler = new CommandLineArgHandler();
-            kConfigData = kCLHandler.Init(args, kConfigData);
+            System.out.println("Reference Parser : Test 2 passed");
         }
+        if(kRefParser.parseString("07 45 03 19 19 2E FE 2C 00 00 19 12 20 4F FE FF FF 0A 00 D8 F9 FF FF 00 1C F6 FB FF FF 16 09 00 98 F9 FF FF 00 01 98 F9 FF FF 09 00 F0 2C 00 00 00 01 F0 2C 00 00 01 00 F0 2C 00 00 00 28 ").equals("07 45 03 19 19 2E {{ FE 2C 00 00 }} 19 12 20 {{ 4F FE FF FF }} 0A 00 {{ D8 F9 FF FF }} 00 1C {{ F6 FB FF FF }} 16 09 00 {{ 98 F9 FF FF }} 00 01 {{ 98 F9 FF FF }} 09 00 {{ F0 2C 00 00 }} 00 01 {{ F0 2C 00 00 }} 01 00 {{ F0 2C 00 00 }} 00 28 "))
+        {
+            System.out.println("Reference Parser : Test 3 passed");
+        }
+        UpkFile kUpkFile = new UpkFile(new File("C:/Games/XComGame_EU_patch4.upk"));
         
-        UpkFileHandler kUpkFileHandler = new UpkFileHandler();
-        kUpkFileHandler.Init(kConfigData.m_sUpkConfig, kConfigData.m_bVerbose);
+        String encoding = System.getProperty("file.encoding");
+        ModFile myfile = new ModFile();
+        try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("Larger_alien_pods_mod.upk_mod"), Charset.forName(encoding))))
+        {
+            while(s.hasNext())
+            {
+                myfile.addLine(s.nextLine());
+            }
+        }
+        catch (IOException x) 
+        {
+            System.out.println("caught exception: " + x);
+        }
+        System.out.println(myfile.getNumLines());
+        for(int i = 0; i < myfile.getNumLines(); i++)
+        {
+            if(myfile.getLine(i) != null)
+            {
+                System.out.println(i + " : " + myfile.getLine(i).asString());
+            }
+        }
+//        ModFile m_kModFile = new ModFile();
         
-        ReferenceFinder kRef = new ReferenceFinder();
-        kRef.Init(kConfigData.m_sOperandData, kConfigData.m_bVerbose);
-        
-        ModFile m_kModFile = new ModFile();
-        
-        m_kModFile.setReferenceFinder(kRef);
-        m_kModFile.setUpkHandler(kUpkFileHandler);
+//        m_kModFile.setReferenceFinder(kRefParser);
+//        m_kModFile.setUpkHandler(kUpkFileHandler);
                 
-        if(m_kModFile.openReadFile(kConfigData.m_mod_filename_input, kConfigData.m_bVerbose))
-        {
-            m_kModFile.setReferenceChanges(kConfigData);
-
-            m_kModFile.readFile();
-            m_kModFile.closeReadFile();
-
-            if(kConfigData.m_bCompressedOutput)
-            {
-                if(m_kModFile.openWriteFile(kConfigData.m_mod_filename_output, kConfigData.m_bVerbose))
-                {            
-                    m_kModFile.writeCompressedHex(kConfigData.m_bVerbose);
-                    m_kModFile.closeWriteFile();
-                }
-            }
-            else if(kConfigData.m_bMirroredOutput)
-            {
-                if(m_kModFile.openWriteFile(kConfigData.m_mod_filename_output, kConfigData.m_bVerbose))
-                {
-                    m_kModFile.writeMirroredOutput(kConfigData.m_bVerbose);
-                    m_kModFile.closeWriteFile();
-                }
-            }
-            else if(kConfigData.m_bWriteToUpks)
-            {
-                m_kModFile.writeUpks(kConfigData.m_bVerbose);
-            }
-            else if(kConfigData.m_bRevertUpks)
-            {
-                m_kModFile.revertUpks(kConfigData.m_bVerbose);
-            }
-        }        
+//        if(m_kModFile.openReadFile(kConfigData.m_mod_filename_input, kConfigData.m_bVerbose))
+//        {
+//            m_kModFile.setReferenceChanges(kConfigData);
+//
+//            m_kModFile.readFile();
+//            m_kModFile.closeReadFile();
+//
+//            if(kConfigData.m_bCompressedOutput)
+//            {
+//                if(m_kModFile.openWriteFile(kConfigData.m_mod_filename_output, kConfigData.m_bVerbose))
+//                {            
+//                    m_kModFile.writeCompressedHex(kConfigData.m_bVerbose);
+//                    m_kModFile.closeWriteFile();
+//                }
+//            }
+//            else if(kConfigData.m_bMirroredOutput)
+//            {
+//                if(m_kModFile.openWriteFile(kConfigData.m_mod_filename_output, kConfigData.m_bVerbose))
+//                {
+//                    m_kModFile.writeMirroredOutput(kConfigData.m_bVerbose);
+//                    m_kModFile.closeWriteFile();
+//                }
+//            }
+//            else if(kConfigData.m_bWriteToUpks)
+//            {
+//                m_kModFile.writeUpks(kConfigData.m_bVerbose);
+//            }
+//            else if(kConfigData.m_bRevertUpks)
+//            {
+//                m_kModFile.revertUpks(kConfigData.m_bVerbose);
+//            }
+//        }        
     }  
 }
