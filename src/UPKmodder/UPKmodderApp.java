@@ -19,6 +19,8 @@ package UPKmodder;
 
 import java.io.*;
 
+import model.modfile.ModFile;
+
 /**
  *
  * @author Amineri

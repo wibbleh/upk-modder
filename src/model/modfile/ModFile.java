@@ -15,23 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package UPKmodder;
+package model.modfile;
 
-import java.nio.file.Path;
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.Charset;
-import static java.nio.file.AccessMode.READ;
-import static java.nio.file.AccessMode.WRITE;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
+
+import UPKmodder.ReferenceFinder;
+import UPKmodder.UpkComparison;
+import UPKmodder.UpkConfigData;
+import UPKmodder.UpkFileHandler;
+import UPKmodder.UpkObjectList;
 
 /**
  *
@@ -299,15 +302,9 @@ public class ModFile
                         {
                             iOldReference += m_arrCurrReplaceReference[J] << (8*J);
                         }
-                        String sReferenceString;
-                        if(m_bFunctionReferenceContext)
-                        {
-                            sReferenceString = m_kUpkComparison.m_kNamelist_before.getNamelistEntry(iOldReference);
-                        }
-                        else
-                        {
-                            sReferenceString = m_kUpkComparison.m_kObjectlist_before.getObjectlistName(iOldReference);
-                        }
+                        String sReferenceString =
+                        		(m_bFunctionReferenceContext) ? m_kUpkComparison.getNameList(true).getNamelistEntry(iOldReference) :
+                        			m_kUpkComparison.getObjectList(true).getObjectlistName(iOldReference);
                         m_kWriter.write("||" + sReferenceString + "|| ");
                         if(bVerbose)
                             System.out.print("||" + sReferenceString + "|| ");
@@ -687,15 +684,9 @@ public class ModFile
                 if((m_bHexBeforeContext || m_bHexAfterContext) && token.startsWith("||") && token.endsWith("||"))
                 {
                     String sReference = token.substring(2, token.length()-2);
-                    int iReference;
-                    if(m_sLastToken.equalsIgnoreCase("1B"))
-                    {
-                        iReference = m_kUpkComparison.m_kNamelist_after.findString(sReference);
-                    }
-                    else
-                    {
-                        iReference = m_kUpkComparison.m_kObjectlist_after.findString(sReference);
-                    }
+                    int iReference = (m_sLastToken.equalsIgnoreCase("1B")) ?
+                    		m_kUpkComparison.getNameList(false).findString(sReference) :
+                    		m_kUpkComparison.getObjectList(false).findString(sReference);
                     printIntAsHexString(iReference);
                     continue;
                 }
@@ -715,13 +706,13 @@ public class ModFile
                         String sReferenceString;
                         if(m_bFunctionReferenceContext)
                         {
-                            sReferenceString = m_kUpkComparison.m_kNamelist_before.getNamelistEntry(iOldReference);
-                            iNewReference = m_kUpkComparison.m_kNamelist_after.findString(sReferenceString);
+                            sReferenceString = m_kUpkComparison.getNameList(true).getNamelistEntry(iOldReference);
+                            iNewReference = m_kUpkComparison.getNameList(false).findString(sReferenceString);
                         }
                         else
                         {
-                            sReferenceString = m_kUpkComparison.m_kObjectlist_before.getObjectlistName(iOldReference);
-                            iNewReference = m_kUpkComparison.m_kObjectlist_after.findString(sReferenceString);
+                            sReferenceString = m_kUpkComparison.getObjectList(true).getObjectlistName(iOldReference);
+                            iNewReference = m_kUpkComparison.getObjectList(false).findString(sReferenceString);
                         }
                         printIntAsHexString(iNewReference);
                     }
@@ -827,9 +818,10 @@ public class ModFile
         {
             // find possible destination
             m_kUpkComparison = m_kUpkFileHandler.getUpkComparison(m_alUpkContexts.get(I));
-            int objectRef = m_kUpkComparison.m_kObjectlist_after.findString(m_alFunctionContexts.get(I));
-            int filePos = m_kUpkComparison.m_kObjectlist_after.getObjectlistEntry(objectRef, 9);
-            int fileExtent = m_kUpkComparison.m_kObjectlist_after.getObjectlistEntry(objectRef, 8);
+            UpkObjectList objectList = m_kUpkComparison.getObjectList(false);
+			int objectRef = objectList.findString(m_alFunctionContexts.get(I));
+            int filePos = objectList.getObjectlistEntry(objectRef, 9);
+            int fileExtent = objectList.getObjectlistEntry(objectRef, 8);
 
             byte dataIn[] = convertIntArrayListToByteArray(FindHex.get(I));
             ByteBuffer fileBuf = ByteBuffer.allocate(dataIn.length);

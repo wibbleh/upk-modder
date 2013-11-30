@@ -20,6 +20,8 @@ package UPKmodder;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import model.upk.UpkHeader;
+
 /**
  *
  * @author Amineri
@@ -27,8 +29,8 @@ import java.nio.file.Path;
 public class UpkComparison 
 {
     UpkHeader m_kHeader_before = new UpkHeader();
-    UpkNameList m_kNamelist_before = new UpkNameList();
-    UpkObjectList m_kObjectlist_before = new UpkObjectList();
+    private UpkNameList m_kNamelist_before = new UpkNameList();
+    private UpkObjectList m_kObjectlist_before = new UpkObjectList();
     
     UpkHeader m_kHeader_after = new UpkHeader();
     UpkNameList m_kNamelist_after = new UpkNameList();
@@ -141,4 +143,13 @@ public class UpkComparison
 
         return true;
     }
+
+	public UpkNameList getNameList(boolean before) {
+		return (before) ? m_kNamelist_before : m_kNamelist_after;
+	}
+
+	public UpkObjectList getObjectList(boolean before) {
+		return (before) ? m_kObjectlist_before : m_kObjectlist_after;
+	}
+
 }
