@@ -9,18 +9,22 @@ package model.modfile;
 public class ModBlock
 {
     private ModChunk header;
+    private ModChunk hexHeader;
     private ModChunk code;
     
     private ModReplacement owner;
     
-    private boolean isHeaderContext;
+    private boolean isInHexHeader;
+    private boolean isInHeader;
     
     public ModBlock(ModReplacement replacement)
     {
         owner = replacement;
         header = new ModChunk(false, this);
+        hexHeader = new ModChunk(false, this);
         code = new ModChunk(true, this);
-        isHeaderContext = false;
+        isInHexHeader = false;
+        isInHeader = true;
     }
 
     public ModReplacement getOwner()
@@ -32,9 +36,14 @@ public class ModBlock
     {
         if(s.toUpperCase().contains("[HEADER]"))
         {
-            isHeaderContext = true;
+            isInHexHeader = true;
+            isInHeader = false;
         }
-        if(isHeaderContext)
+        if(isInHexHeader)
+        {
+            hexHeader.addLine(s);
+        }
+        else if(isInHeader)
         {
             header.addLine(s);
         }
@@ -44,23 +53,33 @@ public class ModBlock
         }
         if(s.toUpperCase().contains("[/HEADER]"))
         {
-            isHeaderContext = false;
+            isInHexHeader = false;
         }
     }
     
     public int getNumLines()
     {
-        return header.getNumLines() +
-                code.getNumLines();
+        return header.getNumLines() + hexHeader.getNumLines() + code.getNumLines();
     }
 
     public ModLine getLine(int index)
     {
-        if(index < header.getNumLines())
+        int iCount = index;
+        if(iCount < header.getNumLines())
         {
-            return header.getLine(index);
+            return header.getLine(iCount);
         }
-        return code.getLine(index- header.getNumLines());
+        iCount -= header.getNumLines();
+        if(iCount < hexHeader.getNumLines())
+        {
+            return hexHeader.getLine(iCount);
+        }
+        iCount -= hexHeader.getNumLines();
+        if(iCount < code.getNumLines())
+        {
+            return code.getLine(iCount);
+        }
+        return null;
     }
 
 }

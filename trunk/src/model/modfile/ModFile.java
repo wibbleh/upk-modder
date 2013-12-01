@@ -27,7 +27,7 @@ import java.util.ArrayList;
 
 public class ModFile 
 {
-    private ArrayList<ModLine> header;
+    private ModChunk header;
     private int headerCapacity = 10;
     private boolean inHeader;
     private ArrayList<ModUpk> upks;
@@ -35,7 +35,7 @@ public class ModFile
     
     public ModFile()
     {
-        header = new ArrayList<>(headerCapacity);
+        header = new ModChunk();
         upks = new ArrayList<>(capacity);
         inHeader = true;
     }
@@ -49,18 +49,13 @@ public class ModFile
                 capacity += 5;
                 upks.ensureCapacity(capacity);
             }
-            String name = s.split("\\s")[0];
+            String name = s.split("\\s")[0].split("=")[1];
             upks.add(new ModUpk(name, this));
             inHeader = false;
         }
         if(inHeader)
         {
-            if(header.size() == headerCapacity)
-            {
-                headerCapacity += 5;
-                header.ensureCapacity(headerCapacity);
-            }
-            header.add(new ModLine(s));
+            header.addLine(s);
         }
         else
         {
@@ -70,7 +65,7 @@ public class ModFile
     
     public int getNumLines()
     {
-        int numLines = header.size();
+        int numLines = header.getNumLines();
         for(ModUpk upk : upks)
         {
             numLines += upk.getNumLines();
@@ -80,13 +75,13 @@ public class ModFile
     
     public ModLine getLine(int index)
     {
-        if(index < header.size())
-        {
-            return header.get(index);
-        }
-        index -= header.size();
         if(index >=0 && index < getNumLines())
         {
+            if(index < header.getNumLines())
+            {
+                return header.getLine(index);
+            }
+            index -= header.getNumLines();
             int iCount = 0;
             for(ModUpk upk : upks)
             {
@@ -94,6 +89,7 @@ public class ModFile
                 {
                     return upk.getLine(index-iCount);
                 }
+                iCount += upk.getNumLines();
             }
         }
         return null;

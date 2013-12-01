@@ -41,6 +41,7 @@ public class ModLine
         line = s;
         indentation = s.lastIndexOf("\t");
         owner = null;
+//        System.out.println(s);
     }
 
     public ModLine(String s, ModChunk chunk)
@@ -48,6 +49,7 @@ public class ModLine
         line = s;
         indentation = s.lastIndexOf("\t");
         owner = chunk;
+//        System.out.println(s);
     }
     
     public ModChunk getOwner()

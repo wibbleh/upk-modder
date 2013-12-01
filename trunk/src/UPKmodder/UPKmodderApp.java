@@ -28,6 +28,7 @@ import model.modfile.ModFile;
 import model.upk.UpkFile;
 
 import model.modfile.ModFile;
+import model.modfile.ModLine;
 
 /**
  *
@@ -84,10 +85,11 @@ public class UPKmodderApp {
         {
             System.out.println("Reference Parser : Test 3 passed");
         }
-        UpkFile kUpkFile = new UpkFile(new File("C:/Games/XComGame_EU_patch4.upk"));
+//        UpkFile kUpkFile = new UpkFile(new File("C:/Games/XComGame_EU_patch4.upk"));
         
-        String encoding = System.getProperty("file.encoding");
         ModFile myfile = new ModFile();
+
+        String encoding = System.getProperty("file.encoding");
         try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("Larger_alien_pods_mod.upk_mod"), Charset.forName(encoding))))
         {
             while(s.hasNext())
@@ -102,9 +104,14 @@ public class UPKmodderApp {
         System.out.println(myfile.getNumLines());
         for(int i = 0; i < myfile.getNumLines(); i++)
         {
-            if(myfile.getLine(i) != null)
+            ModLine line = myfile.getLine(i);
+            if(line != null)
             {
-                System.out.println(i + " : " + myfile.getLine(i).asString());
+                System.out.println(line.asString());
+            }
+            else
+            {
+                System.out.println("Null");
             }
         }
 //        ModFile m_kModFile = new ModFile();

@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 public class ModUpk
 {
-    private ArrayList<ModLine> header;
+    private ModChunk header;
     private int headerCapacity = 10;
     private boolean inHeader;
     private ArrayList<ModFunction> functions;
@@ -24,7 +24,7 @@ public class ModUpk
     public ModUpk(String name, ModFile f)
     {
         owner = f;
-        header = new ArrayList<>(headerCapacity);
+        header = new ModChunk();
         functions = new ArrayList<>(capacity);
         inHeader = true;
         rootName = name;
@@ -44,7 +44,7 @@ public class ModUpk
                 capacity += 5;
                 functions.ensureCapacity(capacity);
             }
-            String name = s.split("\\s")[0];
+            String name = s.split("\\s")[0].split("=")[1];
             functions.add(new ModFunction(name, this));
             inHeader = false;
         }
@@ -54,12 +54,7 @@ public class ModUpk
         }
         if(inHeader)
         {
-            if(header.size() == headerCapacity)
-            {
-                headerCapacity += 5;
-                header.ensureCapacity(headerCapacity);
-            }
-            header.add(new ModLine(s));
+            header.addLine(s);
         }
         else
         {
@@ -69,7 +64,7 @@ public class ModUpk
     
     public int getNumLines()
     {
-        int numLines = header.size();
+        int numLines = header.getNumLines();
         for(ModFunction f:functions)
         {
             numLines += f.getNumLines();
@@ -81,6 +76,11 @@ public class ModUpk
     {
         if(index >=0 && index < getNumLines())
         {
+            if(index < header.getNumLines())
+            {
+                return header.getLine(index);
+            }
+            index -= header.getNumLines();
             int iCount = 0;
             for(ModFunction f : functions)
             {
@@ -88,6 +88,7 @@ public class ModUpk
                 {
                     return f.getLine(index-iCount);
                 }
+                iCount += f.getNumLines();
             }
         }
         return null;

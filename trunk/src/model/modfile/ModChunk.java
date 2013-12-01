@@ -17,17 +17,23 @@ public class ModChunk
     
     private int capacity = 20;
     
+    public ModChunk()
+    {
+        lines = new ArrayList<>(capacity);
+        chunkIsCode = false;
+    }
+    
     public ModChunk(ModBlock block)
     {
         owner = block;
-        initLines(capacity);
+        lines = new ArrayList<>(capacity);
         chunkIsCode = false;
     }
     
     public ModChunk(boolean isCode, ModBlock block)
     {
         owner = block;
-        initLines(capacity);
+        lines = new ArrayList<>(capacity);
         chunkIsCode = isCode;
     }
     
@@ -35,27 +41,15 @@ public class ModChunk
     {
         return owner;
     }
-
-    private void initLines(int size)
-    {
-        if(size > 0)
-        {
-            lines = new ArrayList<>(size);
-        }
-        else
-        {
-            lines = new ArrayList<>(50);
-        }
-    }
     
-    public void addLine(String line)
+    public void addLine(String s)
     {
         if(lines.size() == capacity)
         {
             capacity += 10;
             lines.ensureCapacity(capacity);
         }
-        lines.add(new ModLine(line, this));
+        lines.add(new ModLine(s, this));
     }
     
     public int getNumLines()
