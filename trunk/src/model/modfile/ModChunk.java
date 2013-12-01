@@ -49,7 +49,7 @@ public class ModChunk
             capacity += 10;
             lines.ensureCapacity(capacity);
         }
-        lines.add(new ModLine(s, this));
+        lines.add(new ModLine(s, this, chunkIsCode));
     }
     
     public int getNumLines()
