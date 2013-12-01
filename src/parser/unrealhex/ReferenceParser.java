@@ -124,6 +124,11 @@ public class ReferenceParser
                     tagReference();   
                     continue;
                 }
+                if(sParseItem.equals("NR"))
+                {
+                    tagVFReference();   
+                    continue;
+                }
                 if(sParseItem.equals("N"))
                 {
                     while(!m_sTokens[m_iInputPosition].equals("00"))
@@ -180,4 +185,24 @@ public class ReferenceParser
             mirrorTokens(4);
         }
     }
+    
+    public void tagVFReference()
+    {
+        int iReference = 0;
+        for(int I = 0; I < 4; I++)
+        {
+            iReference += Integer.parseInt(m_sTokens[m_iInputPosition+I], 16) << (8*I);
+        }
+        if(iReference != 0)
+        {
+            m_sOutputString += "<< ";
+            mirrorTokens(4);
+            m_sOutputString += ">> ";
+        }
+        else
+        {
+            mirrorTokens(4);
+        }
+    }
+
 }
