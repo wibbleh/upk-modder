@@ -19,7 +19,7 @@ package model.modfile;
 
 /**
  *
- * @author Administrator
+ * @author Amineri
  */
 
 
@@ -35,23 +35,39 @@ public class ModLine
     private int memoryPos;
     private int indentation;
     private LineType type;
+    
+    private boolean lineIsCode;
 
     public ModLine(String s)
     {
         line = s;
-        indentation = s.lastIndexOf("\t");
+        indentation = s.lastIndexOf("\t")+1;
         owner = null;
 //        System.out.println(s);
+        lineIsCode = false;
     }
 
     public ModLine(String s, ModChunk chunk)
     {
         line = s;
-        indentation = s.lastIndexOf("\t");
+        indentation = s.lastIndexOf("\t")+1;
         owner = chunk;
 //        System.out.println(s);
+        lineIsCode = false;
     }
     
+    public ModLine(String s, ModChunk chunk, boolean isCode)
+    {
+        line = s;
+        indentation = s.lastIndexOf("\t")+1;
+        owner = chunk;
+//        System.out.println(s);
+        if(isCode)
+        {
+            lineIsCode = !asHex().isEmpty();
+        }
+    }
+
     public ModChunk getOwner()
     {
         return owner;
@@ -84,7 +100,7 @@ public class ModLine
     public String asHex()
     {
         String outString = "";
-        String[] tokens = asString(true).split("\\s");
+        String[] tokens = asString(false).split("\\s");
         for(String token : tokens)
         {
             if(token.toUpperCase().matches("[0-9A-F][0-9A-F]"))
@@ -113,5 +129,10 @@ public class ModLine
     public int getIndentation()
     {
         return indentation;
+    }
+    
+    public boolean isCode()
+    {
+        return lineIsCode;
     }
 }
