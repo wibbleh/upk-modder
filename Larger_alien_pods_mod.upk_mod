@@ -10,7 +10,7 @@
 
 
 UPKFILE=XComGame.upk 
-FUNCTION=XGBattleDesc.InitAlienLoadoutInfos 
+FUNCTION=InitAlienLoadoutInfos.XGBattleDesc
 GUID=33 2E 29 6A A5 DD FC 40 B5 CC 57 A5 A7 AA 8C 41 // EU patch 4
 [BEFORE_HEX]
 // last 2 words of header

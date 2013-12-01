@@ -29,6 +29,7 @@ import model.upk.UpkFile;
 
 import model.modfile.ModFile;
 import model.modfile.ModLine;
+import parser.unrealhex.MemorySizeCalculator;
 
 /**
  *
@@ -72,12 +73,14 @@ public class UPKmodderApp {
         OperandTableParser kOpParser = new OperandTableParser(Paths.get(kConfigData.m_sOperandData));
         ReferenceParser kRefParser = new ReferenceParser(kOpParser.parseFile());
         
+        MemorySizeCalculator calc = new MemorySizeCalculator(kOpParser.parseFile());
+        
         // reference parser test cases:
         if(kRefParser.parseString("07 DA 01 9B 38 3A 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 38 3A 24 00 16 ").equals("07 DA 01 9B 38 3A 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 38 3A 24 00 16 "))
         {
             System.out.println("Reference Parser : Test 1 passed");
         }
-        if(kRefParser.parseString("55 35 97 9F 00 00 98 9F 00 00 00 00 1A 00 10 A0 00 00 01 BF 9F 00 00 7D 00 1B 82 0D 00 00 00 00 00 00 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 35 33 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 16 16 ").equals("55 35 {{ 97 9F 00 00 }} {{ 98 9F 00 00 }} 00 00 1A 00 {{ 10 A0 00 00 }} 01 {{ BF 9F 00 00 }} 7D 00 1B {{ 82 0D 00 00 }} 00 00 00 00 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 35 {{ 33 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 16 16 "))
+        if(kRefParser.parseString("55 35 97 9F 00 00 98 9F 00 00 00 00 1A 00 10 A0 00 00 01 BF 9F 00 00 7D 00 1B 82 0D 00 00 00 00 00 00 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 35 33 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 16 16 ").equals("55 35 {{ 97 9F 00 00 }} {{ 98 9F 00 00 }} 00 00 1A 00 {{ 10 A0 00 00 }} 01 {{ BF 9F 00 00 }} 7D 00 1B << 82 0D 00 00 >> 00 00 00 00 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 35 {{ 33 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 16 16 "))
         {
             System.out.println("Reference Parser : Test 2 passed");
         }
@@ -107,6 +110,15 @@ public class UPKmodderApp {
             ModLine line = myfile.getLine(i);
             if(line != null)
             {
+                if(line.isCode())
+                {
+                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.asHex())) + ": ");
+                }
+                else
+                {
+                    System.out.print(String.format("%3s",i) + ":      ");
+                }
+//                    System.out.println(line.asHex());
                 System.out.println(line.asString());
             }
             else
@@ -114,6 +126,30 @@ public class UPKmodderApp {
                 System.out.println("Null");
             }
         }
+        
+        for(int i = 0; i < myfile.getNumLines(); i++)
+        {
+            ModLine line = myfile.getLine(i);
+            if(line != null)
+            {
+                System.out.print(String.format("%3s", i) + ":  ");
+                if(line.isCode())
+                {
+                    for(int j=0;j<line.getIndentation();j++)
+                        System.out.print("\t");
+                    System.out.println(kRefParser.parseString(line.asHex()));
+                }
+                else
+                {
+                    System.out.println(line.asString());
+                }
+            }
+            else
+            {
+                System.out.println("Null");
+            }
+        }
+
 //        ModFile m_kModFile = new ModFile();
         
 //        m_kModFile.setReferenceFinder(kRefParser);
