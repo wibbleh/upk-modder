@@ -64,5 +64,17 @@ public class UpkFile {
 	public File getFile() {
 		return this.upkFile;
 	}
+        
+        public String getRefName(int ref)
+        {
+//            return upkHeader.getName(ref);
+            return "";
+        }
+        
+        public String getVFRefName(int ref)
+        {
+//            return upkHeader.getNameList.get(ref).getName();
+            return "";
+        }
 
 }
