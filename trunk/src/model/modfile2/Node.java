@@ -111,6 +111,21 @@ public class Node
         return num;
     }
     
+    protected int getMemorySizeBranches()
+    {
+        int num = 0;
+        for(Node branch : tokenbranches)
+        {
+            num += branch.getMemorySize();
+        }
+        return num;
+    }
+    
+    public int getMemorySize()
+    {
+        return data.split("\\s").length + getMemorySizeBranches();
+    }
+    
     public LineNode getLine()
     {
         return null; 

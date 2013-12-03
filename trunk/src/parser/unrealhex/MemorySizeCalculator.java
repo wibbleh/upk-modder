@@ -13,6 +13,7 @@ public class MemorySizeCalculator
     private String[] tokens;
     private int memorySize;
     private int stringPosition;
+    private boolean error;
     
     private OperandTable m_kOpTable;
 
@@ -23,6 +24,7 @@ public class MemorySizeCalculator
 
     public int parseString(String sHex)
     {
+        error = false;
         s = sHex;
         if(s.isEmpty())
             return 0;
@@ -35,7 +37,14 @@ public class MemorySizeCalculator
         {
             parseGenericObject();
         }
-        return memorySize;
+        if(error)
+        {
+            return -1;
+        }
+        else
+        {
+            return memorySize;
+        }
     }
 
     private void parseGenericObject()
@@ -44,6 +53,7 @@ public class MemorySizeCalculator
         if(!tokens[stringPosition].equalsIgnoreCase(sOpCodes.split("\\s",2)[0]))
         {
             System.out.println("/* opcode mismatch */");
+            error = true;
         }
         else
         {
@@ -56,12 +66,12 @@ public class MemorySizeCalculator
                     mirrorTokens(Integer.parseInt(sParseItem));
                     continue;
                 }
-                if(sParseItem.equals("G"))
+                else if(sParseItem.equals("G"))
                 {
                     parseGenericObject();
                     continue;
                 }
-                if(sParseItem.equals("P"))
+                else if(sParseItem.equals("P"))
                 {
                     while(!(tokens[stringPosition].equals("16") || tokens[stringPosition].equals("15")))
                     {
@@ -69,13 +79,13 @@ public class MemorySizeCalculator
                     }
                     continue;
                 }
-                if(sParseItem.equals("R"))
+                else if(sParseItem.equals("R"))
                 {
                     memorySize += 4;
                     mirrorTokens(4);
                     continue;
                 }
-                if(sParseItem.equals("N"))
+                else if(sParseItem.equals("N"))
                 {
                     while(!tokens[stringPosition].equals("00"))
                     {
@@ -84,16 +94,16 @@ public class MemorySizeCalculator
                     mirrorTokens(1);
                     continue;
                 }
-                if(sParseItem.equals("NR"))
+                else if(sParseItem.equals("NR"))
                 {
                     mirrorTokens(4);
                     continue;
                 }
-                if(sParseItem.startsWith("S") || sParseItem.equals("J"))
+                else if(sParseItem.startsWith("S") || sParseItem.equals("J"))
                 {
                     mirrorTokens(2);
                 }
-                if(sParseItem.equals("C"))
+                else if(sParseItem.equals("C"))
                 {
                     if(tokens[stringPosition].equalsIgnoreCase("FF") && tokens[stringPosition+1].equalsIgnoreCase("FF"))
                     {
@@ -105,6 +115,10 @@ public class MemorySizeCalculator
                         parseGenericObject();                        
                     }
                 }
+                else
+                {
+                    error = true;
+                }
             }
         }
     }
@@ -112,6 +126,8 @@ public class MemorySizeCalculator
     public void mirrorTokens(int iNum)
     {
         stringPosition += iNum;
+        if(stringPosition > tokens.length)
+            error = true;
         memorySize += iNum;
     }
 

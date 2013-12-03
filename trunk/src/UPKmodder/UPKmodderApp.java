@@ -111,18 +111,24 @@ public class UPKmodderApp {
             {
                 if(line.isCode())
                 {
-//                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.asHex())) + ": ");
+                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.asHex())) + ": ");
+                    for(int j=0;j<line.getIndentation();j++)
+                        System.out.print("\t");
+
+                    System.out.println(line.asHex());
                 }
                 else
                 {
-//                    System.out.print(String.format("%3s",i) + ":      ");
+                    System.out.print(String.format("%3s",i) + ":      ");
                 }
-//                    System.out.println(line.asHex());
                 if(line.isCode())
                 {
-//                    System.out.print("        ");
+                    System.out.print("    " + String.format("%4s", line.getMemorySize()) + ": ");
                     for(int j=0;j<line.getIndentation();j++)
                         System.out.print("\t");
+                }
+                if(line.isValidCode())
+                {
                     for(int j = 0; j < line.getNumTokens(); j++)
                     {
                         System.out.print(line.getToken(j).getData().trim() + " ");
@@ -140,6 +146,31 @@ public class UPKmodderApp {
             }
         }
         
+        // test iterating through references:
+        int iCount = 0;
+        for(int i = 0; i < myfile.getNumLines(); i++)
+        {
+            LineNode line = myfile.getLine(i);
+            if(line.isValidCode())
+            {
+                for(int j = 0; j < line.getNumTokens(); j++)
+                {
+                    OperandNode token = line.getToken(j);
+                    if(token.getClass().getSimpleName().equals("ReferenceNode"))
+                    {
+                        System.out.print(("Ref " + iCount++ + ": " + token.getData()));
+                        if(token.isFunctionRef())
+                        {
+                            System.out.println("  -- function");
+                        }
+                        else
+                        {
+                            System.out.println();
+                        }
+                    }
+                }
+            }
+        }
 //        for(int i = 0; i < myfile.getNumLines(); i++)
 //        {
 //            LineNode line = myfile.getLine(i);

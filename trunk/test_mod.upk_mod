@@ -63,10 +63,11 @@ FUNCTION=InitAlienLoadoutInfos@XGBattleDesc
 [/CODE]
 [/BEFORE_HEX]
 
+// line with parse error -- incorrect trailing 01 value
 [AFTER_HEX]
 [CODE]
-// PlayerIndex = 0;   PlayerIndex@InitAlienLoadout@XGBattleDesc
-0F 00 10 A0 00 00 25 
+// PlayerIndex = 1;   PlayerIndex@InitAlienLoadout@XGBattleDesc
+0F 00 10 A0 00 00 26 01
 [/CODE]
 [/AFTER_HEX]
 
