@@ -41,14 +41,14 @@ public class LineNode extends Node
     public void addLine(String s)
     {
         data = s;
-        inCode = inCode && !asHex().isEmpty();
+        inCode = inCode && !toHex().isEmpty();
         numLines++;
         indentation = s.lastIndexOf("\t")+1;
         if(opTable != null && isCode() && !s.isEmpty())
         {
             try
             {
-                String temp = asHex();
+                String temp = toHex();
                 while(!temp.isEmpty())
                 {
                     OperandNode newop = new OperandNode(owner);
@@ -124,12 +124,12 @@ public class LineNode extends Node
         return new OperandNode(this);
     }
 
-    public String asString()
+    public String toString()
     {
         return data;
     }
 
-    public String asString(boolean comments)
+    public String toString(boolean comments)
     {
         if(comments)
         {
@@ -148,10 +148,10 @@ public class LineNode extends Node
         }
     }
 
-    public String asHex()
+    public String toHex()
     {
         String outString = "";
-        String[] tokens = asString(false).split("\\s");
+        String[] tokens = toString(false).split("\\s");
         for(String token : tokens)
         {
             if(token.toUpperCase().matches("[0-9A-F][0-9A-F]"))

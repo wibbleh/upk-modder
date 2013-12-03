@@ -127,6 +127,11 @@ public class OperandNode extends Node
         return false;
     }
     
+    public int getOffset()
+    {
+        return -1;
+    }
+    
     class TokenNode extends OperandNode
     {
         public TokenNode(Node owner)
@@ -165,7 +170,8 @@ public class OperandNode extends Node
             return s;
         }
         
-        public int getValue()
+        @Override
+        public int getOffset()
         {
             return jumpoffset;
         }
@@ -190,7 +196,8 @@ public class OperandNode extends Node
             return s;
         }
         
-        public int getValue()
+        @Override
+        public int getOffset()
         {
             return jumpoffset;
         }
