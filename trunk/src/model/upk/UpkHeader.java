@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -64,6 +65,24 @@ public class UpkHeader {
 	 * The byte position of the import list inside the *.upk file.
 	 */
 	private int importListPos;
+        
+	/**
+	 * Searchable list of basic names.
+         * TODO : construct object that can be searched faster
+	 */
+	public ArrayList<String> nameListStrings;
+
+	/**
+	 * Searchable list of import names.
+         * TODO : construct object that can be searched faster
+	 */
+	public ArrayList<String> importListStrings;
+
+	/**
+	 * Searchable list of import names.
+         * TODO : construct object that can be searched faster
+	 */
+	public ArrayList<String> objectListStrings;
 
 	/**
 	 * The GUID (Global Unique ID).
@@ -87,53 +106,75 @@ public class UpkHeader {
 		this.importList = importList;
 		this.importListPos = importListPos;
 		this.aGUID = aGUID;
+		System.out.print("Constructing import names... ");
+		long startTime = System.currentTimeMillis();
 		constructImportNames(importList);
+		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nConstructing object names...");
+		startTime = System.currentTimeMillis();
 		constructObjectNames(objectList);
+		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nConstructing searchable basic names...");
+		startTime = System.currentTimeMillis();
+		constructNames(nameList);
+		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
 	}
 
-    private void constructObjectNames(List<ObjectEntry> list) {
-        int iPrevOuterIndex, iOuterIndex;
-
-        for(int i = 1; i < list.size(); i++) {
-            String name;
-            iPrevOuterIndex = -1;
-            name = "";
-            name += nameList.get(list.get(i).getNameIdx()).getName();
-            iOuterIndex = list.get(i).getOuterIdx();
-			while ((iOuterIndex <= list.size())
-					&& (iOuterIndex > 0)
-					&& (iOuterIndex != i)
-					&& (iPrevOuterIndex != iOuterIndex))  {
-                name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
-                iPrevOuterIndex = iOuterIndex;
-                iOuterIndex = list.get(iOuterIndex).getOuterIdx();
+        private void constructNames(List<NameEntry> list){
+            nameListStrings = new ArrayList<>(list.size());
+            for(int i = 0; i < list.size(); i++){
+                nameListStrings.add(nameList.get(i).getName());
             }
-            list.get(i).setName(name);
         }
-    }
+        
+        private void constructObjectNames(List<ObjectEntry> list) {
+            int iPrevOuterIndex, iOuterIndex;
+
+            objectListStrings = new ArrayList(list.size());
+            objectListStrings.add("");
+            for(int i = 1; i < list.size(); i++) {
+                String name;
+                iPrevOuterIndex = -1;
+                name = "";
+                name += nameList.get(list.get(i).getNameIdx()).getName();
+                iOuterIndex = list.get(i).getOuterIdx();
+                while ((iOuterIndex <= list.size())
+                                && (iOuterIndex > 0)
+                                && (iOuterIndex != i)
+                                && (iPrevOuterIndex != iOuterIndex))  {
+                    name += "@" + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
+                    iPrevOuterIndex = iOuterIndex;
+                    iOuterIndex = list.get(iOuterIndex).getOuterIdx();
+                }
+                objectListStrings.add(name);
+                list.get(i).setName(name);
+            }
+        }
         
 	private void constructImportNames(List<ImportEntry> list) {
 	    int iPrevOuterIndex, iOuterIndex;
 
-		for (int i = 1; i < list.size(); i++) {
-			String name;
-	        iPrevOuterIndex = -1;
-			if (list.get(i).getPackageIdx() != 0) {
-				name = nameList.get(list.get(i).getPackageIdx()).getName() + ":";
-			} else {
-				name = "";
-			}
-	        name += nameList.get(list.get(i).getNameIdx()).getName();
-	        iOuterIndex = -list.get(i).getOuterIdx();
-			while ((iOuterIndex <= list.size())
-					&& (iOuterIndex > 0)
-					&& (iOuterIndex != i)
-					&& (iPrevOuterIndex != iOuterIndex)) {
-	            name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
-	            iPrevOuterIndex = iOuterIndex;
-	            iOuterIndex = -list.get(iOuterIndex).getOuterIdx();
-	        }
-	        list.get(i).setName(name);
+            importListStrings = new ArrayList(list.size());
+            importListStrings.add("");
+            for (int i = 1; i < list.size(); i++) 
+            {
+                String name;
+                iPrevOuterIndex = -1;
+                if (list.get(i).getPackageIdx() != 0) {
+                    name = nameList.get(list.get(i).getPackageIdx()).getName() + ":";
+                } else {
+                    name = "";
+                }
+                name += nameList.get(list.get(i).getNameIdx()).getName();
+                iOuterIndex = -list.get(i).getOuterIdx();
+                while ((iOuterIndex <= list.size())
+                                    && (iOuterIndex > 0)
+                                    && (iOuterIndex != i)
+                                    && (iPrevOuterIndex != iOuterIndex)){
+                    name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
+                    iPrevOuterIndex = iOuterIndex;
+                    iOuterIndex = -list.get(iOuterIndex).getOuterIdx();
+                }
+                importListStrings.add(name);
+                list.get(i).setName(name);
 	    }
 	}
 
