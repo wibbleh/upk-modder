@@ -79,72 +79,75 @@ public class UpkHeader {
 
 	public UpkHeader(List<NameEntry> nameList, int nameListPos,
 			List<ObjectEntry> objectList, int objectListPos,
-                        List<ImportEntry> importList, int importListPos,
-                        byte[] aGUID) {
+			List<ImportEntry> importList, int importListPos, byte[] aGUID) {
 		this.nameList = nameList;
 		this.nameListPos = nameListPos;
 		this.objectList = objectList;
 		this.objectListPos = objectListPos;
-                this.importList = importList;
-                this.importListPos = importListPos;
-                this.aGUID = aGUID;
-                constructImportNames(importList);
-                constructObjectNames(objectList);
+		this.importList = importList;
+		this.importListPos = importListPos;
+		this.aGUID = aGUID;
+		constructImportNames(importList);
+		constructObjectNames(objectList);
 	}
 
-        private void constructObjectNames(List<ObjectEntry> list)
-        {
-            int iPrevOuterIndex, iOuterIndex;
+    private void constructObjectNames(List<ObjectEntry> list) {
+        int iPrevOuterIndex, iOuterIndex;
 
-            for(int I = 1; I < list.size(); I++)
-            {
-                String name;
-                iPrevOuterIndex = -1;
-                name = "";
-                name += nameList.get(list.get(I).getNameIdx()).getName();
-                iOuterIndex = list.get(I).getOuterIdx();
-                while(iOuterIndex <= list.size() && iOuterIndex > 0 && iOuterIndex != I && iPrevOuterIndex != iOuterIndex)
-                {
-                    name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
-                    iPrevOuterIndex = iOuterIndex;
-                    iOuterIndex = list.get(iOuterIndex).getOuterIdx();
-                }
-                list.get(I).setName(name);
+        for(int i = 1; i < list.size(); i++) {
+            String name;
+            iPrevOuterIndex = -1;
+            name = "";
+            name += nameList.get(list.get(i).getNameIdx()).getName();
+            iOuterIndex = list.get(i).getOuterIdx();
+			while ((iOuterIndex <= list.size())
+					&& (iOuterIndex > 0)
+					&& (iOuterIndex != i)
+					&& (iPrevOuterIndex != iOuterIndex))  {
+                name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
+                iPrevOuterIndex = iOuterIndex;
+                iOuterIndex = list.get(iOuterIndex).getOuterIdx();
             }
+            list.get(i).setName(name);
         }
+    }
         
-        private void constructImportNames(List<ImportEntry> list)
-        {
-            int iPrevOuterIndex, iOuterIndex;
+	private void constructImportNames(List<ImportEntry> list) {
+	    int iPrevOuterIndex, iOuterIndex;
 
-            for(int I = 1; I < list.size(); I++)
-            {
-                String name;
-                iPrevOuterIndex = -1;
-                if(list.get(I).getPackageIdx() != 0)
-                {
-                    name = nameList.get(list.get(I).getPackageIdx()).getName() + ":";
-                }
-                else
-                {
-                    name = "";
-                }
-                name += nameList.get(list.get(I).getNameIdx()).getName();
-                iOuterIndex = -list.get(I).getOuterIdx();
-                while(iOuterIndex <= list.size() && iOuterIndex > 0 && iOuterIndex != I && iPrevOuterIndex != iOuterIndex)
-                {
-                    name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
-                    iPrevOuterIndex = iOuterIndex;
-                    iOuterIndex = -list.get(iOuterIndex).getOuterIdx();
-                }
-                list.get(I).setName(name);
-            }
-        }
+		for (int i = 1; i < list.size(); i++) {
+			String name;
+	        iPrevOuterIndex = -1;
+			if (list.get(i).getPackageIdx() != 0) {
+				name = nameList.get(list.get(i).getPackageIdx()).getName() + ":";
+			} else {
+				name = "";
+			}
+	        name += nameList.get(list.get(i).getNameIdx()).getName();
+	        iOuterIndex = -list.get(i).getOuterIdx();
+			while ((iOuterIndex <= list.size())
+					&& (iOuterIndex > 0)
+					&& (iOuterIndex != i)
+					&& (iPrevOuterIndex != iOuterIndex)) {
+	            name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
+	            iPrevOuterIndex = iOuterIndex;
+	            iOuterIndex = -list.get(iOuterIndex).getOuterIdx();
+	        }
+	        list.get(i).setName(name);
+	    }
+	}
 
-        public byte[] getGUID()
-        {
-            return this.aGUID;
-        }
+	public byte[] getGUID() {
+		return this.aGUID;
+	}
+	
+	/**
+	 * Returns the namelist.
+	 * @return the namelist
+	 */
+	public List<NameEntry> getNameList() {
+		return this.nameList;
+	}
         
 	public int getNameListSize() {
 		return this.nameList.size();
@@ -153,6 +156,14 @@ public class UpkHeader {
 	public int getNamelistPosition() {
 		return this.nameListPos;
 	}
+	
+	/**
+	 * Returns the objectlist.
+	 * @return the objectlist
+	 */
+	public List<ObjectEntry> getObjectList() {
+		return this.objectList;
+	}
 
 	public int getObjectListSize() {
 		return this.objectList.size();
@@ -160,6 +171,14 @@ public class UpkHeader {
 
 	public int getObjectlistPosition() {
 		return this.objectListPos;
+	}
+	
+	/**
+	 * Returns the importlist.
+	 * @return the importlist
+	 */
+	public List<ImportEntry> getImportList() {
+		return this.importList;
 	}
 
 	@Deprecated

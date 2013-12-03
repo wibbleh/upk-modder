@@ -37,7 +37,6 @@ public class UpkParser {
 	 */
 	public UpkParser(File upkFile) {
 		this.upkFile = upkFile;
-		
 	}
 
 	/**
@@ -61,32 +60,23 @@ public class UpkParser {
 		int[] ints = new int[numInts];
 		buf.asIntBuffer().get(ints);
 		
-//		int nameListSize = raf.readInt();   // byte 0x19
-//		int nameListPos = raf.readInt();    // byte 0x1D
-//		int objectListSize = raf.readInt(); // byte 0x21
-//		int objectListPos = raf.readInt();  // byte 0x25
-//		int importListSize = raf.readInt(); // byte 0x29
-//		int importListPos = raf.readInt();  // byte 0x2D
-//
-//		List<NameEntry> nameList = this.parseNameList(nameListPos, nameListSize);
-//		List<ObjectEntry> objectList = this.parseObjectList(objectListPos, objectListSize);
-//		List<ImportEntry> importList = this.parseImportList(importListPos, importListSize);
-
+		long startTime = System.currentTimeMillis();
+		System.out.print("Parsing name list... ");
 		List<NameEntry> nameList = this.parseNameList(ints[1], ints[0]);
+		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nParsing object list...");
+		startTime = System.currentTimeMillis();
 		List<ObjectEntry> objectList = this.parseObjectList(ints[3], ints[2]);
+		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nParsing import list...");
+		startTime = System.currentTimeMillis();
 		List<ImportEntry> importList = this.parseImportList(ints[5], ints[4]);
+		System.out.println(" done, took " + (System.currentTimeMillis() - startTime) + "ms");
         
         this.raf.seek(0x45L);
         byte[] aGUID = new byte[16];
-//        for(int I = 0; I < 16; I++)
-//        {
-//            aGUID[I] = raf.readByte();
-//        }
         this.raf.read(aGUID);
 		
 		this.raf.close();
 
-//		return new UpkHeader(nameList, nameListPos, objectList, objectListPos, importList, importListPos, aGUID);
 		return new UpkHeader(nameList, ints[1], objectList, ints[3], importList, ints[5], aGUID);
 	}
 
@@ -101,7 +91,6 @@ public class UpkParser {
 		List<NameEntry> entryList = new ArrayList<NameEntry>(nameListSize);
 		
 		this.raf.seek(nameListPos);
-		
 		for (int i = 0; i < nameListSize; i++) {
 			entryList.add(readNameEntry());
 			raf.skipBytes(8);	// consume 8 extra flag bytes (2 words)
@@ -117,8 +106,9 @@ public class UpkParser {
 	 */
 	private NameEntry readNameEntry() throws IOException {
 		int strLen = Integer.reverseBytes(this.raf.readInt());
-		byte[] strBuf = new byte[strLen];
+		byte[] strBuf = new byte[strLen - 1];	// omit termination character 0x00
 		this.raf.read(strBuf);
+		this.raf.skipBytes(1);	// skip termination character
 		
 		return new NameEntry(new String(strBuf));
 	}
@@ -148,33 +138,29 @@ public class UpkParser {
 	 * @throws IOException if an I/O error occurs
 	 */
 	private ObjectEntry readObjectEntry() throws IOException {
-//		List<Integer> data = new ArrayList<Integer>();
-//		for (int i = 0; i < 11; i++) {
-//			data.add(this.raf.readInt());
-//		}
-//		int extraBytes = this.raf.readInt();
-//		data.add(extraBytes);
-//		for (int i = 0; i < 6 + extraBytes; i++) {
-//			data.add(this.raf.readInt());
-//		}
-		
-		int numInts = 11;
+		// read first 17 integers that are guaranteed to be there 
+		int numInts = 17;
 		byte[] bytes = new byte[numInts * 4];
 		raf.read(bytes);
-
+		// wrap read bytes in buffer
 		ByteBuffer buf = ByteBuffer.wrap(bytes);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
-
+		// extract little endian integers from buffer
 		int[] ints = new int[numInts];
 		buf.asIntBuffer().get(ints);
 		
-		int extraInts = 6 + ints[numInts-1];
-
-		int[] data = new int[numInts + extraInts];
-		System.arraycopy(ints, 0, data, 0, ints.length);
-		for (int i = 0; i < extraInts; i++) {
-			data[numInts + i] = Integer.reverseBytes(this.raf.readInt());
-		}
+		// eleventh item represents number of extra bytes to read
+		int numExtraInts = ints[10];
+		byte[] extraBytes = new byte[numExtraInts * 4];
+		raf.read(extraBytes);
+		// wrap read extra bytes in buffer
+		buf = ByteBuffer.wrap(extraBytes);
+		buf.order(ByteOrder.LITTLE_ENDIAN);
+		// init data array, copy the 17 guaranteed ints into it
+		int[] data = new int[numInts + numExtraInts];
+		System.arraycopy(ints, 0, data, 0, numInts);
+		// extract extra ints into data array tail
+		buf.asIntBuffer().get(data, numInts, numExtraInts);
 		
 		return new ObjectEntry(data);
 	}
@@ -212,7 +198,7 @@ public class UpkParser {
 		int numInts = 7;
 		byte[] bytes = new byte[numInts * 4];
 		raf.read(bytes);
-
+		
 		ByteBuffer buf = ByteBuffer.wrap(bytes);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 
