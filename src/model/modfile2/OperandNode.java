@@ -122,6 +122,11 @@ public class OperandNode extends Node
         return this;
     }
     
+    public boolean isFunctionRef()
+    {
+        return false;
+    }
+    
     class TokenNode extends OperandNode
     {
         public TokenNode(Node owner)
@@ -210,11 +215,24 @@ public class OperandNode extends Node
             return s;
         }
         
+        @Override
         public boolean isFunctionRef()
         {
             return isFunction;
         }
         
+        @Override
+        public int getMemorySize()
+        {
+            if(isFunctionRef())
+            {
+                return 4;
+            }
+            else
+            {
+                return 8;
+            }
+        }
     }
 
     class StringNode extends TokenNode

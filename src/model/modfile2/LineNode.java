@@ -55,6 +55,7 @@ public class LineNode extends Node
                     addToken(newop);
                     temp = newop.parseToken(temp);
                 }
+                validCode = true;
             }
             catch(Throwable x)
             {
@@ -96,6 +97,19 @@ public class LineNode extends Node
             iCount += branch.getNumTokens();
         }
         return null;
+    }
+    
+    @Override
+    public int getMemorySize()
+    {
+        if(validCode)
+        {
+            return super.getMemorySizeBranches();
+        }
+        else
+        {
+            return -1;
+        }
     }
     
     @Override
@@ -151,6 +165,11 @@ public class LineNode extends Node
     public boolean isCode()
     {
         return inCode;
+    }
+
+    public boolean isValidCode()
+    {
+        return validCode;
     }
 
     public boolean isHeader()
