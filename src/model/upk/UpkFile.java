@@ -75,14 +75,61 @@ public class UpkFile {
         
         public String getRefName(int ref)
         {
-//            return upkHeader.getName(ref);
-            return "";
+            String s = "";
+            if(ref > 0)
+            {
+                try
+                {
+                    s = upkHeader.getObjectList().get(ref).getName();
+                }
+                catch(Throwable x)
+                {
+                }
+            }
+            else if(ref < 0)
+            {
+                try
+                {
+                    s = upkHeader.getImportList().get(ref).getName();
+                }
+                catch(Throwable x)
+                {
+                }
+            }
+            return s;
         }
         
         public String getVFRefName(int ref)
         {
-//            return upkHeader.getNameList.get(ref).getName();
-            return "";
+            String s = "";
+            try {
+                s = upkHeader.getNameList().get(ref).getName();
+            }
+            catch(Throwable x) {
+            }
+            return s;
+        }
+        
+        public int findRefName(String name)
+        {
+            int index;
+            if(name.contains(":")) {
+                index = upkHeader.importListStrings.indexOf(name);
+            }
+            else{
+                index = upkHeader.objectListStrings.indexOf(name);
+            }
+            if(index <=0){
+                return 0;
+            }
+            else{
+                return index;
+            }
+        }
+        
+        public int findVFRefName(String name)
+        {
+            return upkHeader.nameListStrings.indexOf(name);
         }
 
 }
