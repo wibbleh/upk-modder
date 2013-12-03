@@ -22,7 +22,7 @@ public class UpkFile {
 	 * The header of this UPK file.
 	 */
 	private UpkHeader upkHeader;
-	
+
 	/**
 	 * Constructs a UPK file model class from the specified file.
 	 * @param upkFile the file descriptor pointing to the referenced *.upk file
@@ -45,6 +45,14 @@ public class UpkFile {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	/**
+	 * Returns the UPK header instance.
+	 * @return the UPK header
+	 */
+	public UpkHeader getHeader() {
+		return this.upkHeader;
 	}
 	
 	/**
