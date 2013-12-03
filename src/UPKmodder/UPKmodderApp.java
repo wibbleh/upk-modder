@@ -111,11 +111,11 @@ public class UPKmodderApp {
             {
                 if(line.isCode())
                 {
-                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.asHex())) + ": ");
+                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.toHex())) + ": ");
                     for(int j=0;j<line.getIndentation();j++)
                         System.out.print("\t");
 
-                    System.out.println(line.asHex());
+                    System.out.println(line.toHex());
                 }
                 else
                 {
@@ -137,7 +137,7 @@ public class UPKmodderApp {
                 }
                 else
                 {
-                    System.out.println(line.asString());
+                    System.out.println(line.toString());
                 }
             }
             else
