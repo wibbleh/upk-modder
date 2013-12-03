@@ -24,11 +24,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Scanner;
-import model.modfile.ModFile;
+//import model.modfile.ModFile;
 import model.upk.UpkFile;
 
-import model.modfile.ModFile;
-import model.modfile.ModLine;
+import model.modfile2.*;
 import parser.unrealhex.MemorySizeCalculator;
 
 /**
@@ -90,10 +89,10 @@ public class UPKmodderApp {
         }
 //        UpkFile kUpkFile = new UpkFile(new File("C:/Games/XComGame_EU_patch4.upk"));
         
-        ModFile myfile = new ModFile();
+        ModFile2 myfile = new ModFile2(kOpParser.parseFile());
 
         String encoding = System.getProperty("file.encoding");
-        try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("Larger_alien_pods_mod.upk_mod"), Charset.forName(encoding))))
+        try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test_mod.upk_mod"), Charset.forName(encoding))))
         {
             while(s.hasNext())
             {
@@ -107,37 +106,28 @@ public class UPKmodderApp {
         System.out.println(myfile.getNumLines());
         for(int i = 0; i < myfile.getNumLines(); i++)
         {
-            ModLine line = myfile.getLine(i);
+            LineNode line = myfile.getLine(i);
             if(line != null)
             {
                 if(line.isCode())
                 {
-                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.asHex())) + ": ");
+//                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.asHex())) + ": ");
                 }
                 else
                 {
-                    System.out.print(String.format("%3s",i) + ":      ");
+//                    System.out.print(String.format("%3s",i) + ":      ");
                 }
 //                    System.out.println(line.asHex());
-                System.out.println(line.asString());
-            }
-            else
-            {
-                System.out.println("Null");
-            }
-        }
-        
-        for(int i = 0; i < myfile.getNumLines(); i++)
-        {
-            ModLine line = myfile.getLine(i);
-            if(line != null)
-            {
-                System.out.print(String.format("%3s", i) + ":  ");
                 if(line.isCode())
                 {
+//                    System.out.print("        ");
                     for(int j=0;j<line.getIndentation();j++)
                         System.out.print("\t");
-                    System.out.println(kRefParser.parseString(line.asHex()));
+                    for(int j = 0; j < line.getNumTokens(); j++)
+                    {
+                        System.out.print(line.getToken(j).getData().trim() + " ");
+                    }
+                    System.out.println();
                 }
                 else
                 {
@@ -146,9 +136,32 @@ public class UPKmodderApp {
             }
             else
             {
-                System.out.println("Null");
+                System.out.println("Line is null");
             }
         }
+        
+//        for(int i = 0; i < myfile.getNumLines(); i++)
+//        {
+//            LineNode line = myfile.getLine(i);
+//            if(line != null)
+//            {
+//                System.out.print(String.format("%3s", i) + ":  ");
+//                if(line.isCode())
+//                {
+//                    for(int j=0;j<line.getIndentation();j++)
+//                        System.out.print("\t");
+//                    System.out.println(kRefParser.parseString(line.asHex()));
+//                }
+//                else
+//                {
+//                    System.out.println(line.asString());
+//                }
+//            }
+//            else
+//            {
+//                System.out.println("Null");
+//            }
+//        }
 
 //        ModFile m_kModFile = new ModFile();
         

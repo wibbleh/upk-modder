@@ -1,4 +1,4 @@
-
+ModFileVersion=1
   // Increase max pod size Mod
   // Author: Amineri 
   // Upks altered : XComGame.upk
@@ -6,19 +6,99 @@
 				// XGBattleDesc.InitAlienLoadoutInfos
 				// GetPodCharArray.XComAlienPodManager
 				// OvermindSpawn.XComAlienPodManager
- 
+//
+
+// examples of small hex changes that do not change an entire line
+UPKFILE=XComStrategyGame.upk
+GUID= A8 46 50 30 6F 48 84 42 AC 1A 72 B6 8D 2E 6D 23 // EU patch 4
+FUNCTION=GetAvailableBay@XGFacilityHanger
+// change value from 4 to 6
+[BEFORE_HEX]
+2B 00 00 2C 04 16 07
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+2B 00 00 2C 06 16 07
+[/AFTER_HEX]
+
+FUNCTION=GetFreeHangerSpots@XGFacilityHanger
+// change value from 4 to 6
+[BEFORE_HEX]
+04 93 2C 04 35
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+04 93 2C 06 35
+[/AFTER_HEX]
+
+// example of two small changes in a single function
+FUNCTION=UpdateData@UIShipList
+// change value from 4 to 6
+[BEFORE_HEX]
+38 53 2C 04 16 1F 29 00
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+38 53 2C 06 16 1F 29 00
+[/AFTER_HEX]
+
+// change another value from 4 to 6
+[BEFORE_HEX]
+2C 04 16 07 84 0A
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+2C 06 16 07 84 0A
+[/AFTER_HEX]
 
 
 UPKFILE=XComGame.upk 
-FUNCTION=InitAlienLoadoutInfos.XGBattleDesc
-GUID=33 2E 29 6A A5 DD FC 40 B5 CC 57 A5 A7 AA 8C 41 // EU patch 4
+GUID= 33 2E 29 6A A5 DD FC 40 B5 CC 57 A5 A7 AA 8C 41 // EU patch 4
+
+FUNCTION=InitAlienLoadoutInfos@XGBattleDesc
+[BEFORE_HEX]
+[CODE]
+// PlayerIndex = 0;   PlayerIndex@InitAlienLoadout@XGBattleDesc
+0F 00 10 A0 00 00 25 
+[/CODE]
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+[CODE]
+// PlayerIndex = 0;   PlayerIndex@InitAlienLoadout@XGBattleDesc
+0F 00 10 A0 00 00 25 
+[/CODE]
+[/AFTER_HEX]
+
+FUNCTION=ApplyActionCost@XGAbilityTree
+// example of changing a single line within a function
+[BEFORE_HEX]
+[CODE] // parsable unrealhex -- corresponds to full lines of code -- allows operand decoding
+//iCost = XComGameReplicationInfo(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kGameCore.GetAmmoCost(kAbility.m_kWeapon.GameplayType(), kAbility.GetType(), kAbility.m_kUnit.GetPlayer().HasFoundryHistory(10), kAbility.m_kUnit.GetCharacter().m_kChar, kAbility.m_bReactionFire); (259 file, 379 virtual bytes -- 120 extra)
+0F 00 C3 7E 00 00 19 19 2E FE 2C 00 00 19 12 20 4F FE FF FF 0A 00 D8 F9 FF FF 00 1C F6 FB FF FF 16 09 00 98 F9 FF FF 00 01 98 F9 FF FF 09 00 F0 2C 00 00 00 01 F0 2C 00 00 13 01 42 10 00 00 00 1B 16 31 00 00 00 00 00 00 38 3A 19 19 00 C4 7E 00 00 09 00 E8 BB 00 00 00 01 E8 BB 00 00 0A 00 E8 9B 00 00 00 1B 92 30 00 00 00 00 00 00 16 19 00 C4 7E 00 00 0A 00 1C 7C 00 00 00 1B 1E 35 00 00 00 00 00 00 16 19 19 19 00 C4 7E 00 00 09 00 E6 7B 00 00 00 01 E6 7B 00 00 0A 00 EB B2 00 00 00 1B 0A 34 00 00 00 00 00 00 16 0C 00 9E 94 00 00 00 1B 7A 36 00 00 00 00 00 00 24 0A 16 19 19 19 00 C4 7E 00 00 09 00 E6 7B 00 00 00 01 E6 7B 00 00 0A 00 63 B4 00 00 00 1B 7B 31 00 00 00 00 00 00 16 09 00 C3 A2 00 00 00 01 C3 A2 00 00 19 00 C4 7E 00 00 0A 00 D2 7B 00 00 00 2D 01 D2 7B 00 00 16 
+[/CODE]
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+[CODE]
+// iCost = kAbility.GraduatedOdds(0, kAbility, kAbility.m_kUnit.GetPlayer().HasFoundryHistory(10)); (92 file, 128 virtual bytes -- 36 extra)
+0F 00 C3 7E 00 00 19 00 C4 7E 00 00 61 00 B9 7C 00 00 00 1B E1 35 00 00 00 00 00 00 2C 00 00 C4 7E 00 00 19 19 19 00 C4 7E 00 00 09 00 E6 7B 00 00 00 01 E6 7B 00 00 0A 00 EB B2 00 00 00 1B 0A 34 00 00 00 00 00 00 16 0C 00 9E 94 00 00 00 1B 7A 36 00 00 00 00 00 00 24 0A 16 16 
+
+// null-ops
+0B 0B 0B 0B 0B 0B 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 00 C3 7E 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+[/CODE]
+[/AFTER_HEX]
+
+// complete function replacement
+FUNCTION=InitAlienLoadoutInfos@XGBattleDesc
 [BEFORE_HEX]
 // last 2 words of header
-[HEADER]
+[HEADER] // only used when performing full function replacments -- allows for future addition of jump offset updater
 CC 04 00 00 18 03 00 00 
 [/HEADER] 
 
-// PlayerIndex = 0;
+[CODE]
+// PlayerIndex = 0;   PlayerIndex@InitAlienLoadout@XGBattleDesc
 0F 00 10 A0 00 00 25 
 
 // if(PlayerIndex < 4)
@@ -39,7 +119,7 @@ CC 04 00 00 18 03 00 00
 			// m_arrTeamLoadoutInfos[PlayerIndex].m_eTeam = 16;
 			0F 35 96 9F 00 00 98 9F 00 00 00 01 1A 00 10 A0 00 00 01 BF 9F 00 00 24 10 
 
-			// if(!m_bUseAlienInfo)
+			// if(!m_bUseAlienInfo)  m_bUseAlienInfo@XGBattleDesc
 			07 BF 03 81 2D 01 A3 9F 00 00 16 
 
 				// iAlienPods = 0;
@@ -98,6 +178,7 @@ CC 04 00 00 18 03 00 00
 
 // endofscript
 53 
+[/CODE]
 [/BEFORE_HEX]
 
 
@@ -107,6 +188,7 @@ CC 04 00 00 18 03 00 00
 A8 04 00 00 18 03 00 00
 [/HEADER]
 
+[CODE]
 // PlayerIndex = 0;
 0F 00 10 A0 00 00 25 
 
@@ -224,19 +306,20 @@ A8 04 00 00 18 03 00 00
 
 // endofscript
 53 
-
+[/CODE]
 [/AFTER_HEX]
 // END XGBattleDesc.InitAlienLoadoutInfos
 
 
-
-FUNCTION=GetPodCharArray.XComAlienPodManager 
+// complete function replacement
+FUNCTION=GetPodCharArray@XComAlienPodManager 
 [BEFORE_HEX]
 // last 2 words of header
 [HEADER]
 80 01 00 00 F4 00 00 00 
 [/HEADER] 
 
+[CODE]
 // if(kPod.eMain != 0)
 07 50 00 9B 38 3A 35 36 00 00 00 38 00 00 00 00 00 48 70 3B 00 00 38 3A 24 00 16 
 
@@ -267,11 +350,12 @@ FUNCTION=GetPodCharArray.XComAlienPodManager
 // return arrEnemies;
 04 00 6D 3B 00 00 
 
-//return ReturnValue;   
+//return ReturnValue;   ReturnValue@GetPodCharArray@XComAlienPodManager   ReturnValue@BuildAbilities@XGUnitNativeBase   ReturnValue@BuildAbilities@XGItemTree
 04 3A 6E 3B 00 00 
 
 // endofscript
 53 
+[/CODE]
 [/BEFORE_HEX]
 
 
@@ -281,6 +365,7 @@ FUNCTION=GetPodCharArray.XComAlienPodManager
 7C 01 00 00 F4 00 00 00 
 [/HEADER] 
 
+[CODE]
 // if(kPod.eMain1 > 0) (24 bytes)
 07 4D 00 97 38 3A 35 36 00 00 00 38 00 00 00 00 00 48 70 3B 00 00 25 16 
 
@@ -328,21 +413,22 @@ FUNCTION=GetPodCharArray.XComAlienPodManager
 
 // endofscript
 53 
-
+[CODE]
 [/AFTER_HEX]
 // END GetPodCharArray.XComAlienPodManager
 
 
 
-
+// complete function replacement
 // Rewrite function to call DebugAnims.XGUnit with leader info
-FUNCTION=OvermindSpawn.XComAlienPodManager 
+FUNCTION=OvermindSpawn@XComAlienPodManager 
 [BEFORE_HEX] // hex from EU patch 4
 //final 2 words of header (function memory/file size)
 [HEADER]
 13 08 00 00 5F 05 00 00  
 [/HEADER] 
 
+[CODE]
 // if((iSpawn >= m_arrSpawnList.Length) || iSpawn < 0)
 07 2B 00 84 99 00 8E 3B 00 00 36 01 AA 3A 00 00 16 18 0D 00 96 00 8E 3B 00 00 25 16 16 
 
@@ -373,7 +459,7 @@ FUNCTION=OvermindSpawn.XComAlienPodManager
 		// kPod.SetItemType(kSpawn.ePodDevice);
 		19 00 85 3B 00 00 26 00 00 00 00 00 00 1B 32 62 00 00 00 00 00 00 35 77 3B 00 00 7B 3B 00 00 00 00 00 84 3B 00 00 16 
 
-	// if(XComGameReplicationInfo(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kGameCore.false)
+	// if(XComGameReplicationInfo(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kGameCore.false)   
 	07 45 03 19 19 2E FE 2C 00 00 19 12 20 4F FE FF FF 0A 00 D8 F9 FF FF 00 1C F6 FB FF FF 16 09 00 98 F9 FF FF 00 01 98 F9 FF FF 09 00 F0 2C 00 00 00 01 F0 2C 00 00 01 00 F0 2C 00 00 00 28 
 
 		// if(class'XGGameData'.static.MapCharacterToPawn(arrPodMembers[1]) == 41)
@@ -504,6 +590,7 @@ FUNCTION=OvermindSpawn.XComAlienPodManager
 
 //return ReturnValue; endofscript
 04 3A 8D 3B 00 00 53 
+[/CODE]
 [/BEFORE_HEX] 
 
 
@@ -513,6 +600,7 @@ FUNCTION=OvermindSpawn.XComAlienPodManager
 77 07 00 00 5F 05 00 00 
 [/HEADER] 
 
+[CODE]
 // if((iSpawn >= m_arrSpawnList.Length) || iSpawn < 0)
 07 2B 00 84 99 00 8E 3B 00 00 36 01 AA 3A 00 00 16 18 0D 00 96 00 8E 3B 00 00 25 16 16 
 
@@ -660,7 +748,7 @@ FUNCTION=OvermindSpawn.XComAlienPodManager
 
 //return ReturnValue; endofscript
 04 3A 8D 3B 00 00 53 
-
+[/CODE]
 
 [/AFTER_HEX] 
 
