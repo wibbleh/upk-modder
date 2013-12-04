@@ -39,7 +39,7 @@ public class UpkConfigData
 //    public String m_mod_filename_output = "C:/Games/test_mirrored_out.txt";
     public String m_sVersion;
 
-    public String m_sUpkConfig;
+    public String upkConfig;
     public String m_sOperandData;
     
     public String m_sHelpText;
@@ -63,7 +63,7 @@ public class UpkConfigData
         this.m_mod_filename_input = "";
         this.m_mod_filename_output = "";
         this.m_sVersion = "XComModTool v 0.11";
-        this.m_sUpkConfig = "upk_config.ini";
+        this.upkConfig = "upk_config.ini";
         this.m_sOperandData = "operand_data.ini";
         this.m_sHelpText = "XCOMMOD helper tool \n"
                 + "Usage: XComModTool <options> -i <InputFile> -o <OutputFile>\n"
