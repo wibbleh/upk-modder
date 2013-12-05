@@ -132,7 +132,7 @@ public class OperandNode extends Node
         return -1;
     }
     
-    class TokenNode extends OperandNode
+    static class TokenNode extends OperandNode
     {
         public TokenNode(Node owner)
         {

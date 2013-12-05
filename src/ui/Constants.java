@@ -52,5 +52,19 @@ public class Constants {
 			return (f.isDirectory() || f.getName().endsWith(".upk"));
 		}
 	};
+
+	/**
+	 * File filter for *.xml files.
+	 */
+	public static final FileFilter XML_FILE_FILTER = new FileFilter() {
+		@Override
+		public String getDescription() {
+			return "Extensible Markup Language File (*.xml)";
+		}
+		@Override
+		public boolean accept(File f) {
+			return (f.isDirectory() || f.getName().endsWith(".xml"));
+		}
+	};
 	
 }

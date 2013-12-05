@@ -1,6 +1,7 @@
 package model.modfile2;
 
 import java.util.ArrayList;
+
 import parser.unrealhex.OperandTable;
 
 /**
