@@ -178,4 +178,30 @@ public class Node
         return null;
     }
     
+    public String getGUID()
+    {
+        String c = getClass().getSimpleName();
+        if(c.equals("RootNode")) {
+            return "";
+        }
+        if(c.equals("UpkNode")) {
+            return getGUID();
+        } else {
+            return owner.getGUID();
+        }
+    }
+    
+    public String getUpkFile()
+    {
+        String c = getClass().getSimpleName();
+        if(c.equals("RootNode")) {
+            return "";
+        }
+        if(c.equals("UpkNode")) {
+            return getUpkFile();
+        } else {
+            return owner.getUpkFile();
+        }
+    }
+    
 }
