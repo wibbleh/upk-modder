@@ -44,4 +44,15 @@ public class UpkNode extends Node
         return new FunctionNode(this);
     }
 
+    @Override
+    public String getGUID()
+    {
+        return GUID;
+    }
+    
+    @Override
+    public String getUpkFile()
+    {
+        return rootName;
+    }
 }
