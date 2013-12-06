@@ -1,12 +1,9 @@
 package model.moddocument3;
 
 import java.util.ArrayList;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.UndoableEditListener;
+import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
-import javax.swing.text.Position;
+import javax.swing.text.PlainDocument;
 import javax.swing.text.Segment;
 import model.modelement3.*;
 import parser.unrealhex.OperandTable;
@@ -17,14 +14,22 @@ import parser.unrealhex.OperandTable;
  */
 
 
-public class ModDocument implements Document
+public class ModDocument extends PlainDocument
 {
     private ModPosition currPosition;  // maintains current position
     private ModPosition endPosition; // maintains size of file in characters
 
     private ModRootElement rootElement;
-    private ModRootElement[] rootElements = new ModRootElement[1];
+    private final ModRootElement[] rootElements = new ModRootElement[1];
     
+    // context identifiers used when reorganizing
+    public boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
+
+    public int fileVersion;
+    public String upkName;
+    public String guid;
+    public String functionName;
+
     ArrayList<Object> docProperties;
     ArrayList<Object> propertyKeys;
     
@@ -32,69 +37,93 @@ public class ModDocument implements Document
 
     public ModDocument()
     {
+        super();
         opTable = null;
-        currPosition = new ModPosition(0);
-        endPosition = new ModPosition(0);
+//        currPosition = new ModPosition(0);
+//        endPosition = new ModPosition(0);
         
     }
 
     public ModDocument(OperandTable table)
     {
+        super();
         opTable = table;
-        currPosition = new ModPosition(0);
-        endPosition = new ModPosition(0);
+//        currPosition = new ModPosition(0);
+//        endPosition = new ModPosition(0);
     }
     
-    public void createDefaultRoot()
+    public void createRoot()
     {
         if(rootElement == null){
-            rootElement = new ModRootElement();
+            rootElement = new ModRootElement(this);
             rootElement.setDocument(this);
             rootElement.setOpTable(opTable);
             rootElements[0] = rootElement;
         }
     }
     
+    @Override
+    public void insertUpdate(AbstractDocument.DefaultDocumentEvent chng, AttributeSet attr)
+    {
+        if(rootElement != null)
+            rootElement.reorganizeAfterInsertion();
+    }
+    
+    @Override
+    public void removeUpdate(AbstractDocument.DefaultDocumentEvent chng)
+    {
+        if(rootElement != null)
+            rootElement.reorganizeAfterDeletion();
+    }
+    
     /**
      * Updates the document as the result of a text insertion or deletion.
      * Called internally automatically on any insertion/deletion.
      */
-    public void reorganize()
-    {
-        if(rootElement != null)
-            rootElement.reorganize();
-    }
+//    @Deprecated
+//    public void reorganize()
+//    {
+//        if(rootElement != null)
+//            rootElement.reorganize();
+//    }
     
-    @Override
-    public void addDocumentListener(DocumentListener dl)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    
+    
+//    @Override
+//    public void addDocumentListener(DocumentListener dl)
+//    {
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//    }
 
-    @Override
-    public void removeDocumentListener(DocumentListener dl)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+//    @Override
+//    public void removeDocumentListener(DocumentListener dl)
+//    {
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//    }
 
-    @Override
-    public void addUndoableEditListener(UndoableEditListener ul)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+//    @Override
+//    public void addUndoableEditListener(UndoableEditListener ul)
+//    {
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//    }
 
-    @Override
-    public void removeUndoableEditListener(UndoableEditListener ul)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+//    @Override
+//    public void removeUndoableEditListener(UndoableEditListener ul)
+//    {
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//    }
 
-    @Override
-    public void render(Runnable r)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+//    @Override
+//    public void render(Runnable r)
+//    {
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//    }
 
+    /**
+     * Updates the document as the result of a text insertion or deletion.Called internally automatically on any insertion/deletion.
+     * @return
+     */
+    
     @Override
     public int getLength()
     {
@@ -103,26 +132,26 @@ public class ModDocument implements Document
         return rootElement.getEndOffset();
     }
 
-    @Override
-    public Object getProperty(Object o)
-    {
-        if(docProperties == null)
-            return null;
-        return docProperties.get(propertyKeys.indexOf(o));
-    }
+//    @Override
+//    public Object getProperty(Object o)
+//    {
+//        if(docProperties == null)
+//            return null;
+//        return docProperties.get(propertyKeys.indexOf(o));
+//    }
 
-    @Override
-    public void putProperty(Object o, Object o1)
-    {
-        if(docProperties == null || propertyKeys == null) {
-            docProperties = new ArrayList<>(5);
-            propertyKeys = new ArrayList<>(5);
-        }
-        docProperties.ensureCapacity(docProperties.size()+5);
-        propertyKeys.ensureCapacity(docProperties.size()+5);
-        docProperties.add(o1);
-        propertyKeys.add(o);
-    }
+//    @Override
+//    public final void putProperty(Object o, Object o1)
+//    {
+//        if(docProperties == null || propertyKeys == null) {
+//            docProperties = new ArrayList<>(5);
+//            propertyKeys = new ArrayList<>(5);
+//        }
+//        docProperties.ensureCapacity(docProperties.size()+5);
+//        propertyKeys.ensureCapacity(docProperties.size()+5);
+//        docProperties.add(o1);
+//        propertyKeys.add(o);
+//    }
 
     @Override
     public void remove(int offset, int length)
@@ -131,7 +160,8 @@ public class ModDocument implements Document
             return;
         }
         rootElement.remove(offset, length);
-        reorganize();
+//        rootElement.reorganizeAfterDeletion();
+//        removeUpdate(null);
     }
 
     @Override
@@ -141,7 +171,8 @@ public class ModDocument implements Document
             return;
         }
         rootElement.insertString(offset, string, as);
-        reorganize();
+//        rootElement.reorganizeAfterInsertion();
+//        insertUpdate(null, as);
     }
 
     public OperandTable getOpTable()
@@ -167,28 +198,28 @@ public class ModDocument implements Document
         rootElement.getText(offset, length, segment);
     }
 
-    @Override
-    public Position getStartPosition()
-    {
-        return new ModPosition(0);
-    }
+//    @Override
+//    public Position getStartPosition()
+//    {
+//        return new ModPosition(0);
+//    }
 
-    @Override
-    public Position getEndPosition()
-    {
-        if(rootElement == null)
-            return new ModPosition(0);
-        endPosition.setPosition(rootElement.getEndOffset());
-        return endPosition;
-    }
+//    @Override
+//    public Position getEndPosition()
+//    {
+//        if(rootElement == null)
+//            return new ModPosition(0);
+//        endPosition.setPosition(rootElement.getEndOffset());
+//        return endPosition;
+//    }
 
-    @Override
-    public Position createPosition(int i) throws BadLocationException
-    {
-        
-        currPosition.setPosition(i);
-        return currPosition;
-    }
+//    @Override
+//    public Position createPosition(int i) throws BadLocationException
+//    {
+//        
+//        currPosition.setPosition(i);
+//        return currPosition;
+//    }
 
     @Override
     public ModElement[] getRootElements()

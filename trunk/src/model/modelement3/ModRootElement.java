@@ -1,5 +1,7 @@
 package model.modelement3;
 
+import model.moddocument3.ModDocument;
+
 
 /**
  *
@@ -10,9 +12,9 @@ package model.modelement3;
 public class ModRootElement extends ModElement
 {
 
-    public ModRootElement()
+    public ModRootElement(ModDocument d)
     {
-        super();
+        super(d);
         this.parent = null;
         name = "ModRootElement";
         addElement(new ModElement(this, true));
@@ -24,9 +26,15 @@ public class ModRootElement extends ModElement
      * Re-computes contexts for all elements and tokens.
      * Re-parses any modified unrealhex.
      */
-    public void reorganize()
+    public void reorganizeAfterInsertion()
     {
         resetContexts();
+        splitElementsOnNewline();
+        buildContextsParseUnreal();
+    }
+    
+    private void splitElementsOnNewline()
+    {
         // iterate through array of lines and break into lines
         int count = 0;
         int numbranches = branches.size();
@@ -35,28 +43,78 @@ public class ModRootElement extends ModElement
             count ++;
             if(branch.isSimpleString) {
                 if(!branch.toString().isEmpty()) {
-                    if(branch.toString().contains("\n")){
-                        numbranches++;
+                    if(branch.toString().contains("\n") && (count <= numbranches)){
                         String[] strings = branch.toString().split("\n",2);
-                        strings[0] += "\n";
-                        branch.branches.get(0).setString(strings[0]);
-                        int oldEndOffset = branch.endOffset;
-                        branch.endOffset -= strings[1].length();
-                        branch.branches.get(0).endOffset -= strings[1].length();
-                        ModElement newElement = new ModElement(getParentElement(), true);
-                        ModToken newToken = new ModToken(newElement, strings[1], true);
-                        addElement(count, newElement);
-                        newElement.addElement(newToken);
-                        newElement.startOffset = branch.endOffset;
-                        newElement.endOffset = oldEndOffset;
-                        newToken.startOffset = branch.endOffset;
-                        newToken.endOffset = oldEndOffset;
+                        if(!strings[1].isEmpty()) {
+                            strings[0] += "\n";
+                            numbranches++;
+                            branch.branches.get(0).setString(strings[0]);
+                            int oldEndOffset = branch.endOffset;
+                            branch.endOffset -= strings[1].length();
+                            branch.branches.get(0).endOffset -= strings[1].length();
+                            ModElement newElement = new ModElement(getParentElement(), true);
+                            ModToken newToken = new ModToken(newElement, strings[1], true);
+                            addElement(count, newElement);
+                            newElement.addElement(newToken);
+                            newElement.startOffset = branch.endOffset;
+                            newElement.endOffset = oldEndOffset;
+                            newToken.startOffset = branch.endOffset;
+                            newToken.endOffset = oldEndOffset;
+                        }
                     }
                 }
             }
         } while(count < numbranches);
+    }
+    
+    /**
+     * Glues together lines not separated by newlines.
+     * Re-computes contexts for all elements and tokens.
+     * Re-parses any modified unrealhex.
+     */
+    public void reorganizeAfterDeletion()
+    {
+        resetContexts();
+        glueElementsWithoutNewline();
+        buildContextsParseUnreal();
+    }
+
+    private void glueElementsWithoutNewline()
+    {
+        // iterate through array of lines and break into lines
+        int count = 0;
+        int numbranches = branches.size();
+        do {
+            ModElement branch = branches.get(count);
+            if(branch.isSimpleString) {
+                if(!branch.toString().isEmpty()) {
+                    if(!branch.toString().contains("\n") && count +1 < numbranches){
+                        numbranches--;
+                        String gluedString = branch.toString() + branches.get(count+1).toString();
+                        branch.branches.get(0).setString(gluedString);
+                        branch.endOffset += gluedString.length();
+                        branch.branches.get(0).endOffset += gluedString.length();
+                        branches.remove(count+1);
+                    }
+                    else {
+                        count++;
+                    }
+                } else { // handle empty string removal
+                    if(document.getDefaultRootElement().getEndOffset() == 0){ // if document is empty exit out
+                        count ++;
+                    } else {  // otherwise remove the element with the empty leaf
+                        numbranches --;
+                        branches.remove(count);
+                    }
+                }
+            }
+        } while(count < numbranches);
+    }
+
+    private void buildContextsParseUnreal()
+    {
         // iterate through array of lines 
-        inFileHeaderContext = true;
+        getDocument().inFileHeaderContext = true;
         for(ModElement b : branches) {
             // update contexts
             b.updateContexts();
@@ -76,5 +134,7 @@ public class ModRootElement extends ModElement
             // isCode and not isSimple String means it was not update
             // !isCode and isSimple string does not need reconsolidating
         }
+
     }
+    
 }

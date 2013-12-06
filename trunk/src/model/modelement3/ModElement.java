@@ -2,7 +2,6 @@ package model.modelement3;
 
 import java.util.ArrayList;
 import javax.swing.text.AttributeSet;
-import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.Segment;
 import model.moddocument3.ModDocument;
@@ -28,26 +27,31 @@ public class ModElement implements Element
     
     protected String name;
 
-    protected String datad;
-    
     protected int startOffset;
     protected int endOffset;
     
-    //static context identifiers used when reorganizing
-    protected static boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
+//    //static context identifiers used when reorganizing
+//    protected static boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
 
     // local tags to identify types of elements
     boolean isCode, isValidCode, isSimpleString, isHeader, isInBeforeBlock, isInAfterBlock, isInFileHeader;
     
     protected AttributeSet attributes = null;
 
-    protected static int fileVersion;
-    protected static String upkName;
-    protected static String guid;
-    protected static String functionName;
+//    protected static int fileVersion;
+//    protected static String upkName;
+//    protected static String guid;
+//    protected static String functionName;
+    
     
     public ModElement()
     {
+        
+    }
+    
+    public ModElement(ModDocument d)
+    {
+        document = d;
         this.init();
     }
     
@@ -67,10 +71,10 @@ public class ModElement implements Element
     private void init()
     {
         this.branches = new ArrayList<>(capacity);
-        inCodeContext = false;
-        inHeaderContext = false;
-        inBeforeBlockContext = false;
-        inAfterBlockContext = false;
+        getDocument().inCodeContext = false;
+        getDocument().inHeaderContext = false;
+        getDocument().inBeforeBlockContext = false;
+        getDocument().inAfterBlockContext = false;
         
         this.isCode = false;
         this.isValidCode = false;
@@ -82,15 +86,15 @@ public class ModElement implements Element
     
     protected void resetContexts()
     {
-        inCodeContext = false;
-        inHeaderContext = false;
-        inBeforeBlockContext = false;
-        inAfterBlockContext = false;
-        inFileHeaderContext = true;
-        fileVersion = -1;
-        upkName = "";
-        guid = "";
-        functionName = "";
+        getDocument().inCodeContext = false;
+        getDocument().inHeaderContext = false;
+        getDocument().inBeforeBlockContext = false;
+        getDocument().inAfterBlockContext = false;
+        getDocument().inFileHeaderContext = true;
+        getDocument().fileVersion = -1;
+        getDocument().upkName = "";
+        getDocument().guid = "";
+        getDocument().functionName = "";
     }
     
     public void setDocument(ModDocument p)
@@ -99,7 +103,7 @@ public class ModElement implements Element
     }
 
     @Override
-    public Document getDocument()
+    public ModDocument getDocument()
     {
         return document;
     }
@@ -132,29 +136,61 @@ public class ModElement implements Element
      */
     protected void parseUnrealHex() 
     {
-        ArrayList<ModElement> oldElements = this.branches;
+        if(!isValidHexLine())
+        {
+            return;
+        }
+        int currStart = this.startOffset;
+        String oldString = toString();
         String[] linebreak;
         try
             {
                 linebreak = toHexStringArray();
                 String s = linebreak[1];
                 branches.clear();
-                this.addElement(new ModToken(this, linebreak[0], true));
+                if(!linebreak[0].isEmpty()) {
+                    ModToken newToken = new ModToken(this, linebreak[0], true);
+                    newToken.startOffset = currStart;
+                    newToken.endOffset = oldString.length();
+                    currStart = newToken.endOffset;
+                    this.addElement(newToken);
+                }
                 while(!s.isEmpty())
                 {
+                    String old_s = s;
                     ModOperandElement newop = new ModOperandElement(this);
                     addElement(newop);
+                    newop.startOffset = currStart;
                     s = newop.parseUnrealHex(s);
+                    newop.endOffset = newop.startOffset + old_s.length() - s.length();
                 }
-                this.addElement(new ModToken(this, linebreak[2], true));
+                ModToken newToken = new ModToken(this, linebreak[2], true);
+                newToken.startOffset = currStart;
+                newToken.endOffset = oldString.length();
+                currStart = newToken.endOffset;
+                this.addElement(newToken);
                 isValidCode = true;
+                isSimpleString = false;
             }
             catch(Throwable x)
             {
                 isValidCode = false;
-                branches = oldElements;
+                branches.clear();
+                ModToken newToken = new ModToken(this, oldString, true);
+                addElement(newToken);
                 System.out.println("Token parsing failed : " + x.getStackTrace());
             }
+    }
+    
+    protected boolean isValidHexLine()
+    {
+        String[] tokens = toString().split("//")[0].trim().split("\\s");
+        for(String token : tokens) {
+            if(!token.matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
+                return false;
+            }
+        }
+        return true;
     }
     
     protected String[] toHexStringArray()
@@ -162,6 +198,10 @@ public class ModElement implements Element
         String in = toString();
         String outString[] = new String[3];
         
+        outString[0] = "";
+        outString[1] = "";
+        outString[2] = "";
+
         String[] tokens = in.split("//")[0].split("\\s");
         for(String token : tokens)
         {
@@ -174,7 +214,7 @@ public class ModElement implements Element
         int first = in.indexOf(tokens[0]);
         outString[0] = in.substring(0, first);
 
-        int last = in.lastIndexOf(tokens[tokens.length]);
+        int last = in.lastIndexOf(tokens[tokens.length-1]);
         if (last + 3 < in.length()) {
             outString[2] = in.substring(last+3, in.length());
         }
@@ -215,40 +255,40 @@ public class ModElement implements Element
     {
         if(this.isSimpleString){
             if (toString().startsWith("UPKFILE=")) {
-                upkName = getTag();
+                getDocument().upkName = getTag();
             } else if (toString().startsWith("FUNCTION=")) {
-                functionName = getTag();
+                getDocument().functionName = getTag();
             } else if (toString().startsWith("GUID=")) {
-                guid = getTag();
-            } else  if (toString().startsWith("MODFILEVERSION")) {
-                fileVersion = Integer.parseInt(getTag());
+                getDocument().guid = getTag();
+            } else if (toString().startsWith("MODFILEVERSION")) {
+                getDocument().fileVersion = Integer.parseInt(getTag());
             }
         }
         if(foundHeader()) {
-            inFileHeaderContext = false;
+            getDocument().inFileHeaderContext = false;
         }
-        if(!inFileHeaderContext) {
+        if(!getDocument().inFileHeaderContext) {
             if(toString().startsWith("[BEFORE_HEX]")) {
-                inBeforeBlockContext = true ;                
+                getDocument().inBeforeBlockContext = true ;                
             } else if(toString().startsWith("[/BEFORE_HEX]")) {
-                inBeforeBlockContext = false ;                
+                getDocument().inBeforeBlockContext = false ;                
             } else if(toString().startsWith("[AFTER_HEX]")) {
-                inAfterBlockContext = true;
+                getDocument().inAfterBlockContext = true;
             } else if(toString().startsWith("[/AFTER_HEX]")) {
-                inAfterBlockContext = false;
+                getDocument().inAfterBlockContext = false;
             } else if(toString().startsWith("[CODE]")) {
-                inCodeContext = true;
+                getDocument().inCodeContext = true;
             } else if(toString().startsWith("[/CODE]")) {
-                inCodeContext = false;
+                getDocument().inCodeContext = false;
             } else if(toString().startsWith("[HEADER]")) {
-                inHeaderContext = true;
+                getDocument().inHeaderContext = true;
             } else if(toString().startsWith("[/HEADER]")) {
-                inHeaderContext = false;
+                getDocument().inHeaderContext = false;
             }
-            this.isCode = inCodeContext;
-            this.isInBeforeBlock = inBeforeBlockContext;
-            this.isInAfterBlock = inAfterBlockContext;
-            this.isHeader = inHeaderContext;
+            this.isCode = getDocument().inCodeContext;
+            this.isInBeforeBlock = getDocument().inBeforeBlockContext;
+            this.isInAfterBlock = getDocument().inAfterBlockContext;
+            this.isHeader = getDocument().inHeaderContext;
             this.isInFileHeader = false;
         } else {
             this.isCode = false;
@@ -259,9 +299,9 @@ public class ModElement implements Element
         }
     }
     
-    protected static boolean foundHeader()
+    protected boolean foundHeader()
     {
-        return !(upkName.isEmpty() || functionName.isEmpty() || guid.isEmpty() || (fileVersion > 0));
+        return !getDocument().upkName.isEmpty() && !getDocument().functionName.isEmpty() && !getDocument().guid.isEmpty() && (getDocument().fileVersion > 0);
     }
     
     protected String getTag()
@@ -277,6 +317,7 @@ public class ModElement implements Element
      */
     public void remove(int offset, int length)
     {
+        boolean removeInBranches = !isLeaf();
         if(length == 0)
             return;
         int rs = offset;
@@ -298,7 +339,6 @@ public class ModElement implements Element
                 if(isLeaf()) { // remove middle part of data string for leaf
                     setString(getString().substring(0, rs-s) + getString().substring(e-re, getString().length()));
                 }
-                startOffset -= length;
                 endOffset -= length;
             }
         } else { // removal end happens after element end -- cases 4, 5, 6
@@ -307,7 +347,7 @@ public class ModElement implements Element
                     setString("");
                 }
                 endOffset = startOffset;
-                removeModElement();
+//                removeModElement();
             } else if(rs < e) { // remove start happens in middle of element -- case 4
                 if(isLeaf()) { // remove end part of data string for leaf
                     setString(getString().substring(0, e-rs));
@@ -315,10 +355,13 @@ public class ModElement implements Element
                 endOffset -= e - rs;
             } else { // removal is after element -- case 5
                 // no update needed
+                removeInBranches = false;
             }
         }
-        for(ModElement branch : branches) {
-            branch.remove(offset, length);
+        if(removeInBranches) {
+            for(ModElement branch : branches) {
+                branch.remove(offset, length);
+        }
         }
     }
     
@@ -459,11 +502,11 @@ public class ModElement implements Element
         int e = endOffset;
         // adjust start and end offsets for element / leaf
         if(re < e) { // retrieval end occurs prior to element end -- cases 1, 2, 3
-            if(re < s) { // retrieval entirely before current element -- case 1
+            if(re <= s) { // retrieval entirely before current element -- case 1
                 // retrieve no text
             } else if (rs < s ) { // retrieval start occurs prior to element start -- case 2
                 if(isLeaf()) { // retrieve early part of data string for leaf
-                    returnString = getString().substring(0, re-s-1);
+                    returnString = getString().substring(0, re-s);
                 } else {
                     retrieveBranches = true;
                 }
@@ -475,7 +518,7 @@ public class ModElement implements Element
                 }
             }
         } else { // retrieval end happens after element end -- cases 4, 5, 6
-            if(rs < s) { // retrieve start occurs prior to element start -- case 6
+            if(rs <= s) { // retrieve start occurs prior to element start -- case 6
                 if(isLeaf()) { // retrieve entire string
                     returnString = getString();
                 } else {
@@ -483,7 +526,7 @@ public class ModElement implements Element
                 }
             } else if(rs < e) { // retrieve start happens in middle of element -- case 4
                 if(isLeaf()) { // retrieve end part of data string for leaf
-                    return getString().substring(e-rs, getString().length()-1);
+                    return getString().substring(rs-s, getString().length());
                 } else {
                     retrieveBranches = true;
                 }
