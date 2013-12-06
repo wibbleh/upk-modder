@@ -1,7 +1,6 @@
 package ui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -28,15 +27,18 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 import javax.swing.filechooser.FileFilter;
-import javax.swing.text.DefaultEditorKit;
-import javax.swing.text.Document;
+import javax.swing.text.Element;
 import javax.swing.text.PlainDocument;
+import javax.xml.stream.events.XMLEvent;
 
 import org.bounce.text.LineNumberMargin;
 import org.bounce.text.ScrollableEditorPanel;
 import org.bounce.text.xml.XMLEditorKit;
 import org.bounce.text.xml.XMLFoldingMargin;
+import org.bounce.text.xml.XMLScanner;
 import org.bounce.text.xml.XMLStyleConstants;
 
 /**
@@ -56,6 +58,11 @@ public class MainFrame extends JFrame {
 	 * The XML editor instance.
 	 */
 	private JEditorPane xmlEditor;
+
+	/**
+	 * The modfile editor instance.
+	 */
+	private JEditorPane modEditor;
 	
 	/**
 	 * Constructs the application's main frame.
@@ -112,7 +119,7 @@ public class MainFrame extends JFrame {
 		XMLEditorKit xmlKit = new XMLEditorKit();
 		xmlKit.setAutoIndentation(true);
 		xmlKit.setTagCompletion(true);
-        
+		
 //		xmlKit.setAutoIndentation(true);
 		xmlEditor.setEditorKit(xmlKit);
 		xmlEditor.setEditable(false);
@@ -129,10 +136,9 @@ public class MainFrame extends JFrame {
 		rowHeader.add(new LineNumberMargin(xmlEditor), BorderLayout.WEST);
 		xmlPane.setRowHeaderView(rowHeader);
 		
-		// create and configure right-hand modfile editor
-		JEditorPane modEditor = new JEditorPane();
+		modEditor = new JEditorPane();
+		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 		// TODO: insert custom editor kit for modfile format
-		modEditor.setEditorKit(new DefaultEditorKit());
 		
 		JScrollPane modPane = new JScrollPane(modEditor);
 		modPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
@@ -145,72 +151,6 @@ public class MainFrame extends JFrame {
 		contentPane.add(splitPane);
 	}
 	
-	/**
-     * Main method...
-     * 
-     * @param args
-     */
-	public static void main(String[] args) {
-		if (args.length != 1) {
-			System.err.println("need filename argument");
-			System.exit(1);
-		}
-
-		try {
-			JEditorPane editor = new JEditorPane();
-
-			// Instantiate a XMLEditorKit
-			XMLEditorKit kit = new XMLEditorKit();
-
-			editor.setEditorKit(kit);
-
-			File file = new File(args[0]);
-			editor.read(new FileReader(file), file);
-
-			// Set the font style.
-			editor.setFont(new Font("Courier", Font.PLAIN, 12));
-
-			// Set the tab size
-            editor.getDocument().putProperty(PlainDocument.tabSizeAttribute, 
-                                              new Integer(2));
-
-            // Enable auto indentation.
-            kit.setAutoIndentation(true);
-
-            // Enable tag completion.
-            kit.setTagCompletion(true);
-            
-            // Enable error highlighting.
-            editor.getDocument().putProperty(XMLEditorKit.ERROR_HIGHLIGHTING_ATTRIBUTE, new Boolean(true));
-
-            // Set a style
-            kit.setStyle(XMLStyleConstants.ATTRIBUTE_NAME, new Color(255, 0, 0), 
-                          Font.BOLD);
-            
-            // Put the editor in a panel that will force it to resize, when a different 
-            // view is choosen.
-            ScrollableEditorPanel editorPanel = new ScrollableEditorPanel(editor);
-
-            JScrollPane scroller = new JScrollPane( editorPanel);
-
-            // Add the number margin and folding margin as a Row Header View
-            JPanel rowHeader = new JPanel(new BorderLayout());
-            rowHeader.add(new XMLFoldingMargin(editor), BorderLayout.EAST);
-            rowHeader.add(new LineNumberMargin(editor), BorderLayout.WEST);
-            scroller.setRowHeaderView(rowHeader);
-
-            JFrame f = new JFrame( "XmlEditorKitTest: " + args[0]);
-            f.getContentPane().setLayout(new BorderLayout());
-            f.getContentPane().add(scroller, BorderLayout.CENTER);
-
-            f.setSize(600, 600);
-            f.setVisible(true);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            System.exit( 1);
-        }
-    }
-
 	/**
 	 * Creates and configures the main frame's menu bar.
 	 * @return the menu bar
@@ -247,12 +187,70 @@ public class MainFrame extends JFrame {
 					JEditorPane xmlEditor = MainFrame.this.xmlEditor;
 					xmlEditor.read(new FileReader(file), file);
 					
-					Document xmlDocument = xmlEditor.getDocument();
-					xmlDocument.putProperty(PlainDocument.tabSizeAttribute, 
-                            new Integer(2));
+					final PlainDocument xmlDocument = (PlainDocument) xmlEditor.getDocument();
+					xmlDocument.putProperty(PlainDocument.tabSizeAttribute, 2);
 					xmlDocument.putProperty(XMLEditorKit.ERROR_HIGHLIGHTING_ATTRIBUTE, new Boolean(true));
 					
+					xmlEditor.addCaretListener(new CaretListener() {
+						@Override
+						public void caretUpdate(CaretEvent evt) {
+							int dot = evt.getDot();
+							Element line = xmlDocument.getParagraphElement(dot);
+
+							XMLScanner scanner;
+							try {
+								scanner = new XMLScanner(line.getDocument());
+								scanner.setRange(line.getStartOffset(), line.getEndOffset());
+								
+								while (scanner.getEventType() != XMLEvent.END_ELEMENT) {
+									scanner.scan();
+
+									int startOffset = scanner.getStartOffset();
+									int endOffset = scanner.getEndOffset();
+									String text = xmlDocument.getText(startOffset, endOffset - startOffset);
+									
+									if (XMLStyleConstants.ELEMENT_NAME.equals(scanner.token)) {
+										if (!"file".equals(text)) {
+											break;
+										}
+									} else if (XMLStyleConstants.ATTRIBUTE_NAME.equals(scanner.token)) {
+										if (!"name".equals(text)) {
+											break;
+										}
+									} else if (XMLStyleConstants.ATTRIBUTE_VALUE.equals(scanner.token)) {
+										JEditorPane modEditor = MainFrame.this.modEditor;
+										// clear modfile editor
+										modEditor.setText(null);
+										// trim leading/trailing quotation marks
+										String filename = text.replaceAll("^\"|\"$", "");
+										// create file descriptor
+										File file = new File(filename);
+										// check whether file actually exists
+										if (file.exists()) {
+											// parse file into editor
+											modEditor.read(new FileReader(file), file);
+										} else {
+											// show error text
+											modEditor.setText("ERROR: File \'" + filename + "\' could not be found.");
+										}
+										// re-apply styling
+										modEditor.getDocument().putProperty(PlainDocument.tabSizeAttribute, 2);
+										
+										break;
+									}
+								}
+								
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+						
+					});
+					
 					xmlEditor.setEditable(true);
+					// repaint parent (or rather great-grandparent) scroll pane to update row header
+					xmlEditor.getParent().getParent().getParent().repaint();
+					
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
