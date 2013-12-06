@@ -24,7 +24,7 @@ public class ModReferenceToken extends ModToken
         value = 0;
         String[] tokens = s.split("\\s");
         for(int i = 0; i < 4 ; i ++) {
-            value += Integer.parseInt(tokens[i], 16) * 2^(8*i);
+            value += Integer.parseInt(tokens[i], 16) <<(8*i);
         } 
         return super.parseUnrealHex(s, 4);
     }

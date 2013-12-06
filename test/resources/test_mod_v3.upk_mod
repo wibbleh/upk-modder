@@ -2,17 +2,23 @@ MODFILEVERSION=3
 UPKFILE=XComGame.upk 
 GUID= 33 2E 29 6A A5 DD FC 40 B5 CC 57 A5 A7 AA 8C 41 // EU patch 4
 FUNCTION=ApplyActionCost@XGAbilityTree
+// Increase max pod size Mod
+// Author: Amineri 
+[BEFORE_HEX]
+[CODE]
+// PlayerIndex = 0;   PlayerIndex@InitAlienLoadout@XGBattleDesc
+0F 00 10 A0 00 00 25 
+[/CODE]
+[/BEFORE_HEX]
 
-  // Increase max pod size Mod
-  // Author: Amineri 
-  // Upks altered : XComGame.upk
-  // Functions altered :
-				// XGBattleDesc.InitAlienLoadoutInfos
-				// GetPodCharArray.XComAlienPodManager
-				// OvermindSpawn.XComAlienPodManager
-//
+// line with parse error -- incorrect trailing 01 value
+[AFTER_HEX]
+[CODE]
+// PlayerIndex = 1;   PlayerIndex@InitAlienLoadout@XGBattleDesc
+0F 00 10 A0 00 00 26 01
+[/CODE]
+[/AFTER_HEX]
 
-// example of changing a single line within a function
 
 [BEFORE_HEX]
 [CODE] // parsable unrealhex -- corresponds to full lines of code -- allows operand decoding

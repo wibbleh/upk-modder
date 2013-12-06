@@ -1,5 +1,12 @@
 package model.moddocument3;
 
+import UPKmodder.UpkConfigData;
+import io.parser.OperandTableParser;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Scanner;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditListener;
 import javax.swing.text.AttributeSet;
@@ -52,11 +59,11 @@ public class ModDocumentTest
      * Test of createDefaultRoot method, of class ModDocument.
      */
     @Test
-    public void testCreateDefaultRoot()
+    public void testCreateRoot()
     {
         System.out.println("createDefaultRoot");
         ModDocument instance = new ModDocument();
-        instance.createDefaultRoot();
+        instance.createRoot();
     }
 
     /**
@@ -67,79 +74,82 @@ public class ModDocumentTest
     {
         System.out.println("reorganize");
         ModDocument instance = new ModDocument();
-        instance.reorganize();
-        instance.createDefaultRoot();
-        instance.reorganize();
+//        instance.reorganize();
+        instance.createRoot();
+//        instance.reorganize();
     }
 
     /**
      * Test of addDocumentListener method, of class ModDocument.
      */
-    @Ignore("Not yet implemented") @Test
+//    @Ignore("Not yet implemented")
+    @Test
     public void testAddDocumentListener()
     {
         System.out.println("addDocumentListener");
         DocumentListener dl = null;
         ModDocument instance = new ModDocument();
         instance.addDocumentListener(dl);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
 
     /**
      * Test of removeDocumentListener method, of class ModDocument.
      */
-    @Ignore("Not yet implemented") @Test
+//    @Ignore("Not yet implemented") 
+    @Test
     public void testRemoveDocumentListener()
     {
         System.out.println("removeDocumentListener");
         DocumentListener dl = null;
         ModDocument instance = new ModDocument();
         instance.removeDocumentListener(dl);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
 
     /**
      * Test of addUndoableEditListener method, of class ModDocument.
      */
-    @Ignore("Not yet implemented") @Test
+//    @Ignore("Not yet implemented") 
+    @Test
     public void testAddUndoableEditListener()
     {
         System.out.println("addUndoableEditListener");
         UndoableEditListener ul = null;
         ModDocument instance = new ModDocument();
         instance.addUndoableEditListener(ul);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
 
     /**
      * Test of removeUndoableEditListener method, of class ModDocument.
      */
-    @Ignore("Not yet implemented") @Test
+//    @Ignore("Not yet implemented") 
+    @Test
     public void testRemoveUndoableEditListener()
     {
         System.out.println("removeUndoableEditListener");
         UndoableEditListener ul = null;
         ModDocument instance = new ModDocument();
         instance.removeUndoableEditListener(ul);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
 
     /**
      * Test of render method, of class ModDocument.
      */
-    @Ignore("Not yet implemented") @Test
+//    @Ignore("Not yet implemented") 
+    @Test
     public void testRender()
     {
         System.out.println("render");
-        Runnable r = null;
+        Runnable r = new Runnable()
+        {
+
+            @Override
+            public void run()
+            {
+//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        };
         ModDocument instance = new ModDocument();
         instance.render(r);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
 
     /**
@@ -153,36 +163,26 @@ public class ModDocumentTest
         int expResult = 0;
         int result = instance.getLength();
         assertEquals(expResult, result);
-        instance.createDefaultRoot();
+        instance.createRoot();
         result = instance.getLength();
         assertEquals(expResult, result);
     }
 
     /**
-     * Test of getProperty method, of class ModDocument.
-     */
-    @Test
-    public void testGetProperty()
-    {
-        System.out.println("getProperty");
-        Object o = null;
-        ModDocument instance = new ModDocument();
-        Object expResult = null;
-        Object result = instance.getProperty(o);
-        assertEquals(expResult, result);
-    }
-
-    /**
-     * Test of putProperty method, of class ModDocument.
+     * Test of putProperty and getProperty methods, of class ModDocument.
      */
     @Test
     public void testPutProperty()
     {
         System.out.println("putProperty");
-        Object o = null;
-        Object o1 = null;
+        String key = "bar";
+        String value = "foo";
         ModDocument instance = new ModDocument();
-        instance.putProperty(o, o1);
+        instance.putProperty(key, value);
+        System.out.println("getProperty");
+        String expResult = value;
+        Object result = instance.getProperty(key);
+        assertEquals(expResult, result);
     }
 
     /**
@@ -195,8 +195,9 @@ public class ModDocumentTest
         int offset = 0;
         int length = 0;
         ModDocument instance = new ModDocument();
-        instance.createDefaultRoot();
+        instance.createRoot();
         instance.remove(offset, length);
+        instance.removeUpdate(null);
     }
 
     /**
@@ -211,14 +212,18 @@ public class ModDocumentTest
         AttributeSet as = null;
         ModDocument instance = new ModDocument();
         instance.insertString(offset, string, as);
-        instance.createDefaultRoot();
+        instance.createRoot();
         instance.insertString(offset, string, as);
         instance.insertString(offset, "test", as);
         instance.insertString(offset, "line1 \n line2", as);
+        instance.insertUpdate(null, as);
     }
 
+    /**
+     * Test of multiple insertions and deletions.
+     */
     @Test
-    public void testInsertGetDelete()
+    public void testInsertGetRemove()
     {
         System.out.println("Insert, Get, Delete");
         int offset = 0;
@@ -226,16 +231,73 @@ public class ModDocumentTest
         String expected = "st1";
         AttributeSet as = null;
         ModDocument instance = new ModDocument();
-        instance.createDefaultRoot();
+        instance.createRoot();
         instance.insertString(offset, string, as);
+        instance.insertUpdate(null, as);
         String result = instance.getText(2, 3);
         assertEquals(expected, result);
         String string2 = "foo\nbarsnafu";
         instance.insertString(7, string2, as);
+        instance.insertUpdate(null, as);
         expected = "test1stfoo\nbarsnafuring";
         expected = "rsnaf";
         result = instance.getText(13, 5);
         assertEquals(expected, result);
+        instance.remove(14, 3);
+        instance.removeUpdate(null);
+        expected = "test1stfoo\nbarfuring";
+        result = instance.getText(11, 4);
+        expected = "barf";
+        assertEquals(expected, result);
+    }   
+    
+    /**
+     * Test actually reading a upk_mod file.
+     * @throws java.io.IOException
+     */
+    @Test
+    public void testReadUpkModFile() throws IOException
+    {
+        System.out.println("Read test_mod_v3.upk_mod");
+        AttributeSet as = null;
+        UpkConfigData kConfigData = new UpkConfigData();
+        OperandTableParser kOpParser = new OperandTableParser(Paths.get(kConfigData.m_sOperandData));
+        ModDocument myDoc = new ModDocument(kOpParser.parseFile());
+        myDoc.createRoot();
+        String encoding = System.getProperty("file.encoding");
+        long startTime = System.currentTimeMillis();
+        try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_v3.upk_mod"), Charset.forName(encoding))))
+        {
+            System.out.print("Reading modfile... ");
+            while(s.hasNext())
+            {
+                myDoc.insertString(myDoc.getLength(), s.nextLine() + "\n", as);
+            }
+            startTime = System.currentTimeMillis();
+            System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nParsing modfile... ");
+            myDoc.insertUpdate(null, as);
+            System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+        }
+        catch (IOException x) 
+        {
+            System.out.println("caught exception: " + x);
+        }
+        String result = myDoc.getText(57, 10);
+        System.out.println(myDoc.getLength());
+//        System.out.print(myDoc.getDefaultRootElement().toString());
+        result = myDoc.getText(892, 900);
+        String expResult;
+        expResult = "19 19 2E FE 2C 00 00 19 12 20 4F FE FF FF 0A 00 D8 F9 FF FF 00 1C F6 FB FF FF 16 09 00 98 F9 FF FF 00 01 98 F9 FF FF 09 00 F0 2C 00 00 00 01 F0 2C 00 00 13 01 42 10 00 00 00 1B 16 31 00 00 00 00 00 00 38 3A 19 19 00 C4 7E 00 00 09 00 E8 BB 00 00 00 01 E8 BB 00 00 0A 00 E8 9B 00 00 00 1B 92 30 00 00 00 00 00 00 16 19 00 C4 7E 00 00 0A 00 1C 7C 00 00 00 1B 1E 35 00 00 00 00 00 00 16 19 19 19 00 C4 7E 00 00 09 00 E6 7B 00 00 00 01 E6 7B 00 00 0A 00 EB B2 00 00 00 1B 0A 34 00 00 00 00 00 00 16 0C 00 9E 94 00 00 00 1B 7A 36 00 00 00 00 00 00 24 0A 16 19 19 19 00 C4 7E 00 00 09 00 E6 7B 00 00 00 01 E6 7B 00 00 0A 00 63 B4 00 00 00 1B 7B 31 00 00 00 00 00 00 16 09 00 C3 A2 00 00 00 01 C3 A2 00 00 19 00 C4 7E 00 00 0A 00 D2 7B 00 00 00 2D 01 D2 7B 00 00 16 \n" +
+                "[/CODE]\n" +
+                "[/BEFORE_HEX]\n" +
+                "\n" +
+                "[AFTER_HEX]\n" +
+                "[CODE]\n" +
+                "// iCost = kAbility.GraduatedOdds(0, kAbility, kAbility.m_kUnit.GetPlayer().HasFoundryHistory(10))";
+//        System.out.print(myDoc.getText(0, myDoc.getLength()));
+//        System.out.println(myDoc.getDefaultRootElement().toString());
+        assertEquals(900, result.length());
+//        assertEquals(expResult, result);
     }   
     
     /**
@@ -264,7 +326,7 @@ public class ModDocumentTest
         String expResult = "";
         String result = instance.getText(offset, length);
         assertEquals(expResult, result);
-        instance.createDefaultRoot();
+        instance.createRoot();
         result = instance.getText(offset, length);
         assertEquals(expResult, result);
     }
@@ -281,7 +343,7 @@ public class ModDocumentTest
         Segment segment = new Segment();
         ModDocument instance = new ModDocument();
         instance.getText(offset, length, segment);
-        instance.createDefaultRoot();
+        instance.createRoot();
         instance.getText(offset, length, segment);
         assertEquals(segment.count, 0);
         assertEquals(segment.offset, 0);
@@ -308,7 +370,7 @@ public class ModDocumentTest
     {
         System.out.println("getEndPosition");
         ModDocument instance = new ModDocument();
-        Position expResult = new ModPosition(0);
+        Position expResult = new ModPosition(1);
         Position result = instance.getEndPosition();
         assertEquals(expResult.getOffset(), result.getOffset());
     }
@@ -326,7 +388,7 @@ public class ModDocumentTest
         Position expResult = new ModPosition(0);
         Position result = instance.createPosition(i);
         assertEquals(expResult.getOffset(), result.getOffset());
-        instance.createDefaultRoot();
+        instance.createRoot();
         result = instance.createPosition(i);
         assertEquals(expResult.getOffset(), result.getOffset());
     }
@@ -342,7 +404,7 @@ public class ModDocumentTest
         ModElement[] expResult = new ModElement[1];
         ModElement[] result = instance.getRootElements();
         assertArrayEquals(expResult, result);
-        instance.createDefaultRoot();
+        instance.createRoot();
         result = instance.getRootElements();
         assertNotNull(result);
     }
@@ -358,7 +420,7 @@ public class ModDocumentTest
         ModElement expResult = null;
         ModElement result = instance.getDefaultRootElement();
         assertEquals(expResult, result);
-        instance.createDefaultRoot();
+        instance.createRoot();
         result = instance.getDefaultRootElement();
         assertNotNull(result);
     }

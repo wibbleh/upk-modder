@@ -34,10 +34,10 @@ public class ModToken extends ModElement
     {
         this.branches = null;
         this.parent = o;
-        inCodeContext = false;
-        inHeaderContext = false;
-        inBeforeBlockContext = false;
-        inAfterBlockContext = false;
+        getDocument().inCodeContext = false;
+        getDocument().inHeaderContext = false;
+        getDocument().inBeforeBlockContext = false;
+        getDocument().inAfterBlockContext = false;
         this.isCode = isCode();
         this.isValidCode = false;
         this.isSimpleString = false;
@@ -78,6 +78,7 @@ public class ModToken extends ModElement
     {
         for(int i = 0; i < num; i++)
         {
+            this.endOffset += 3;
             data += s.split("\\s", 2)[0] + " ";
             s = s.split("\\s", 2)[1];
         }
