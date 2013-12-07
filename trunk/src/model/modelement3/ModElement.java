@@ -1,311 +1,380 @@
 package model.modelement3;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Element;
 import javax.swing.text.Segment;
+
 import model.moddocument3.ModDocument;
-import parser.unrealhex.OperandTable;
-import static model.modelement3.ModContextType.*;
+import model.modelement3.ModContext.ModContextType;
 
 /**
- *
+ * Basic <code>Element</code> implementation used in structuring <code>ModDocument</code> contents.
  * @author Amineri
+ * @see {@link ModDocument}
  */
-
-
-public class ModElement implements Element
-{
-    protected ArrayList<ModElement> branches;
-    protected int numBranches;
-    protected int capacity = 5;
-    protected int deltaCapacity = 5;
-
-    protected static OperandTable opTable;
-    
-    protected ModElement parent;
-    protected static ModDocument document;
-    
-    protected String name;
-
-    protected int startOffset;
-    protected int endOffset;
-    
-    private boolean[] localContexts;
-    
-//    //static context identifiers used when reorganizing
-//    protected static boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
-
-    // local tags to identify types of elements
-//    boolean isCode, isValidCode, isSimpleString, isHeader, isInBeforeBlock, isInAfterBlock, isInFileHeader;
-    
-    boolean isSimpleString;
-    
-    protected AttributeSet attributes = null;
-
-//    protected static int fileVersion;
-//    protected static String upkName;
-//    protected static String guid;
-//    protected static String functionName;
-    
-    
-    public ModElement()
-    {
-        
-    }
-    
-    public ModElement(ModDocument d)
-    {
-        document = d;
-        this.init();
-    }
-    
-    public ModElement(ModElement o)
-    {
-        this.parent = o;
-        this.init();
-    }
-    
-    public ModElement(ModElement o, boolean isSimple)
-    {
-        this.parent = o;
-        this.init();
-        this.isSimpleString = isSimple;
-    }
-    
-    private void init()
-    {
-        this.branches = new ArrayList<>(capacity);
-        localContexts = new boolean[NUMCONTEXTS.getIndex()];
-        setLocalContext(CODE, false);
-        setLocalContext(HEADER, false);
-        setLocalContext(BEFOREHEX, false);
-        setLocalContext(AFTERHEX, false);
-        setLocalContext(VALIDCODE, false);
-
-        this.isSimpleString = false;
-        name = "ModElement";
-    }
-    
-    protected void setLocalContext(ModContextType type, boolean val)
-    {
-        localContexts[type.getIndex()] = val;
-    }
-    
-    public boolean inLocalContext(ModContextType type)
-    {
-        return localContexts[type.getIndex()];
-    }
-    
-    protected void resetContexts()
-    {
-        setContext(CODE, false);
-        setContext(HEADER, false);
-        setContext(BEFOREHEX, false);
-        setContext(AFTERHEX, true);
-        setContext(FILEHEADER, true);
-        getDocument().setFileVersion(-1);
-        getDocument().setUpkName("");
-        getDocument().setGuid("");
-        getDocument().setFunctionName("");
-    }
-    
-    @Override
-    public ModDocument getDocument()
-    {
-        return document;
-    }
-    
-    protected void setOpTable(OperandTable table)
-    {
-        opTable = table;
-    }
-            
-    protected OperandTable getOpTable()
-    {
-        return opTable;
-    }
-    
-    protected boolean isCode()
-    {
-        if(getParentElement() == null){
-            return false;
-        } else if  (inLocalContext(CODE)) {
-            return true;
-        } else {
-            return getParentElement().isCode();
-        }
-    }
-    
+public class ModElement implements Element {
+	
+	/**
+	 * The list of child elements.
+	 */
+    private List<ModElement> children;
     
     /**
-     * Invokes method to break code lines into tokens based on operand.
-     * Operates at the line level.
+     * The reference to the parent element. Is <code>null</code> if this element is the root element.
      */
-    protected void parseUnrealHex() 
-    {
-        if(opTable == null || !isValidHexLine())
-        {
-            return;
-        }
-        int currStart = this.startOffset;
-        String oldString = toString();
-        String[] linebreak;
-        try
-            {
-                linebreak = toHexStringArray();
-                String s = linebreak[1];
-                branches.clear();
-                if(!linebreak[0].isEmpty()) {
-                    ModToken newToken = new ModToken(this, linebreak[0], true);
-                    newToken.startOffset = currStart;
-                    newToken.endOffset = oldString.length();
-                    currStart = newToken.endOffset;
-                    this.addElement(newToken);
-                }
-                while(!s.isEmpty())
-                {
-                    String old_s = s;
-                    ModOperandElement newop = new ModOperandElement(this);
-                    addElement(newop);
-                    newop.startOffset = currStart;
-                    s = newop.parseUnrealHex(s);
-                    newop.endOffset = newop.startOffset + old_s.length() - s.length();
-                }
-                ModToken newToken = new ModToken(this, linebreak[2], true);
-                newToken.startOffset = currStart;
-                newToken.endOffset = oldString.length();
-//                currStart = newToken.endOffset;
-                this.addElement(newToken);
-                setLocalContext(VALIDCODE, true);
-                isSimpleString = false;
-            }
-            catch(Throwable x)
-            {
-                setLocalContext(VALIDCODE, false);
-                branches.clear();
-                ModToken newToken = new ModToken(this, oldString, true);
-                addElement(newToken);
-//                System.out.println("Token parsing failed : " + x.getStackTrace());
-            }
-    }
+    protected ModElement parent;
     
-    protected boolean isValidHexLine()
-    {
-        String[] tokens = toString().split("//")[0].trim().split("\\s");
-        for(String token : tokens) {
-            if(!token.matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
-                return false;
-            }
-        }
-        return true;
-    }
+    /**
+     * Flag denoting whether this element contains pure textual data.
+     */
+    protected boolean isSimpleString;
     
-    protected String[] toHexStringArray()
-    {
-        String in = toString();
-        String outString[] = new String[3];
-        
-        outString[0] = "";
-        outString[1] = "";
-        outString[2] = "";
+    /**
+     * The name of this element.
+     */
+    protected String name;
 
-        String[] tokens = in.split("//")[0].split("\\s");
-        for(String token : tokens)
-        {
-            if(token.toUpperCase().matches("[0-9A-Fa-f][0-9A-Fa-f]"))
-            {
-                outString[1] += token + " ";
-            }
-        }
-        
-        int first = in.indexOf(tokens[0]);
-        outString[0] = in.substring(0, first);
+    /**
+     * The start offset of this element in the document.
+     */
+    private int startOffset;
+    
+    /**
+     * The end offset of this element in the document.
+     */
+    private int endOffset;
+    
+    /**
+     * The context flag container instance.
+     */
+    protected ModContext context;
+    
+    /**
+     * The style attributes of this element.
+     */
+    protected AttributeSet attributes;
 
-        int last = in.lastIndexOf(tokens[tokens.length-1]);
-        if (last + 3 < in.length()) {
-            outString[2] = in.substring(last+3, in.length());
-        }
-        return outString;
-    }
-    
-    protected void addElement(ModElement e)
-    {
-        if(capacity < branches.size()+1)
-        {
-            capacity += 5;
-            branches.ensureCapacity(capacity);
-        }
-        branches.add(e);
-    }
+    /**
+     * Constructs a mod element from the specified parent element.
+     * @param parent the parent element
+     */
+	public ModElement(ModElement parent) {
+		this(parent, false);
+	}
 
-    protected void addElement( int index, ModElement e)
-    {
-        if(capacity < branches.size()+1)
-        {
-            capacity += 5;
-            branches.ensureCapacity(capacity);
-        }
-        branches.add(index, e);
-    }
+	/**
+	 * Constructs a mod element from the specified parent element and a flag
+	 * denoting whether it contains pure textual data (i.e. non-parseable code).
+	 * @param parent the parent element 
+	 * @param isSimpleString <code>true</code> if this element contains only textual data,
+	 *  <code>false</code> otherwise
+	 */
+	public ModElement(ModElement parent, boolean isSimpleString) {
+		this.parent = parent;
+		this.isSimpleString = isSimpleString;
+
+		// init properties
+		this.children = new ArrayList<>();
+		this.context = new ModContext();
+		this.name = "ModElement";
+	}
+
+	/**
+	 * Set the boolean flag associated with the specified context type.
+	 * @param type the context type
+	 * @param value the value to set
+	 */
+	public void setContextFlag(ModContextType type, boolean value) {
+		this.context.setContextFlag(type, value);
+	}
+	
+	/**
+	 * Returns the boolean flag associated with the specified context type.
+	 * @param type the context type
+	 * @return either <code>true</code> or <code>false</code> 
+	 */
+	public boolean getContextFlag(ModContextType type) {
+		return this.context.getContextFlag(type);
+	}
     
-    protected void updateContexts()
-    {
-        if(this.isSimpleString){
-            if (toString().startsWith("UPKFILE=")) {
-                getDocument().setUpkName(getTag());
-            } else if (toString().startsWith("FUNCTION=")) {
-                getDocument().setFunctionName(getTag());
-            } else if (toString().startsWith("GUID=")) {
-                getDocument().setGuid(getTag());
-            } else if (toString().startsWith("MODFILEVERSION")) {
-                getDocument().setFileVersion(Integer.parseInt(getTag()));
-            }
-        }
-        if(foundHeader()) {
-            setContext(FILEHEADER, false);
-        }
-        if(inContext(FILEHEADER)) {
-            setLocalContext(CODE, false);
-            setLocalContext(BEFOREHEX, false);
-            setLocalContext(AFTERHEX, false);
-            setLocalContext(HEADER, false);
-            setLocalContext(FILEHEADER, true);
-        } else {
-            if(toString().startsWith("[BEFORE_HEX]")) {
-                setContext(BEFOREHEX, true);
-            } else if(toString().startsWith("[/BEFORE_HEX]")) {
-                setContext(BEFOREHEX, false);
-            } else if(toString().startsWith("[AFTER_HEX]")) {
-                setContext(AFTERHEX, true);
-            } else if(toString().startsWith("[/AFTER_HEX]")) {
-                setContext(AFTERHEX, false);
-            } else if(toString().startsWith("[CODE]")) {
-                setContext(CODE, true);
-            } else if(toString().startsWith("[/CODE]")) {
-                setContext(CODE, false);
-            } else if(toString().startsWith("[HEADER]")) {
-                setContext(HEADER, true);
-            } else if(toString().startsWith("[/HEADER]")) {
-                setContext(HEADER, false);
-            }
-            setLocalContext(CODE, inContext(CODE));
-            setLocalContext(BEFOREHEX, inContext(BEFOREHEX));
-            setLocalContext(AFTERHEX, inContext(AFTERHEX));
-            setLocalContext(HEADER, inContext(HEADER)); 
-            setLocalContext(FILEHEADER, false);
-        }
-    }
+	/**
+	 * Resets the context flags to their default values (<code>false</code>).
+	 */
+	protected void resetContextFlags() {
+		this.context = new ModContext();
+		// TODO: @Amineri why is any basic element capable of resetting values in the underlying document? Shouldn't only the root node be allowed to do this?
+//		 getDocument().setFileVersion(-1);
+//		 getDocument().setUpkName("");
+//		 getDocument().setGuid("");
+//		 getDocument().setFunctionName("");
+	}
     
-    protected boolean foundHeader()
-    {
-        return !getDocument().getUpkName().isEmpty() && !getDocument().getFunctionName().isEmpty() && !getDocument().getGuid().isEmpty() && (getDocument().getFileVersion() > 0);
-    }
+	@Override
+	public ModDocument getDocument() {
+		// fetch document from parent, only the root node carries the actual
+		// reference to the document instance
+		return this.parent.getDocument();
+	}
+	
+	/**
+	 * Returns the child element at the specified position.
+	 * @param index the child element's position
+	 * @return the child element or <code>null</code> if the position is out of range
+	 */
+	public ModElement getChildElementAt(int index) {
+		// obligatory range check
+		if ((index >= 0) && (index < this.children.size())) {
+			return this.children.get(index);
+		}
+		return null;
+	}
+	
+	/**
+	 * Removes the child element at the specified position.
+	 * @param index the position of the element to remove
+	 * @return the removed element or <code>null</code> if the position is out of range
+	 */
+	public ModElement removeChildElementAt(int index) {
+		// obligatory range check
+		if ((index >= 0) && (index < this.children.size())) {
+			return this.children.remove(index);
+		}
+		return null;
+	}
+	
+	/**
+	 * Removes all child elements of this element.
+	 */
+	public void removeAllChildElements() {
+		this.children.clear();
+	}
+	
+	/**
+	 * Returns the number of child elements of this element.
+	 * @return the child element count
+	 */
+	public int getChildElementCount() {
+		return this.children.size();
+	}
+
+	/**
+	 * Returns whether this element contains parseable UnrealScript byte code.
+	 * @return <code>true</code> if this element or its parent contains code, <code>false</code> otherwise
+	 */
+	protected boolean isCode() {
+		if (this.getParentElement() == null) {
+			// this element is the root element which never contains code
+			return false;
+		} else {
+			// if this element is not flagged as containing hex code pass check on to parent element
+			return this.getContextFlag(ModContextType.HEX_CODE) || getParentElement().isCode();
+		}
+	}
+	
+	/**
+	 * Sets the offset range of this element in the document.
+	 * @param startOffset the start offset of this element in the document
+	 * @param endOffset the end offset of this element in the document
+	 */
+	public void setRange(int startOffset, int endOffset) {
+		this.startOffset = startOffset;
+		this.endOffset = endOffset;
+	}
+
+	/**
+	 * Invokes method to break code lines into tokens based on operand.<br>
+	 * Operates at the line level.
+	 */
+	protected void parseUnrealHex() {
+		if (!this.isValidHexLine()) {
+			return;
+		}
+		try {
+			// remove all children
+			this.children.clear();
+			
+			// start parsing the document from the beginning of this element
+			int currOffset = this.startOffset;
+			// extract initial string representation of this element
+			String oldString = this.toString();
+			
+			String[] linebreak = this.toHexStringArray();
+			String prefix = linebreak[0];
+			if (!prefix.isEmpty()) {
+				// wrap leading text data in plain token
+				ModToken leadToken = new ModToken(this, linebreak[0], true);
+				leadToken.setRange(currOffset, currOffset + oldString.length());
+				this.addElement(leadToken);
+				// move offset to end of new token
+				currOffset = leadToken.getEndOffset();
+			}
+			String hex = linebreak[1];
+			while (!hex.isEmpty()) {
+				// cache length
+				int oldLength = hex.length();
+				// create operand token
+				ModOperandElement opElem = new ModOperandElement(this);
+				hex = opElem.parseUnrealHex(hex);
+				opElem.setRange(currOffset, currOffset + oldLength - hex.length());
+				this.addElement(opElem);
+				// TODO: @Amineri move offset?
+				
+			}
+			String suffix = linebreak[2];
+			// wrap trailing text data in plain token
+			ModToken trailToken = new ModToken(this, suffix, true);
+			trailToken.setRange(currOffset, currOffset + suffix.length());
+			// currStart = newToken.endOffset;
+			this.addElement(trailToken);
+			this.setContextFlag(ModContextType.VALID_CODE, true);
+			this.isSimpleString = false;
+		} catch (Exception e) {
+			// something went wrong, set error flag...
+			setContextFlag(ModContextType.VALID_CODE, false);
+			// ... remove any child elements that may have been inserted... 
+			this.children.clear();
+			// ... insert text data as plain mod token
+			this.addElement(new ModToken(this, this.toString(), true));
+		}
+	}
     
-    protected String getTag()
-    {
-        return toString().split("//",2)[0].split("=",2)[1].trim();
-    }
+	/**
+	 * Returns whether this element wraps hex string data.
+	 * @return <code>true</code> if this element contains valid hex data, <code>false</code> otherwise
+	 */
+	protected boolean isValidHexLine() {
+		String[] tokens = toString().split("//")[0].trim().split("\\s");
+		for (String token : tokens) {
+			if (!token.matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
+				return false;
+			}
+		}
+		return true;
+	}
+    
+    /**
+     * Returns an array containing a concatenated hex tokens and leading/trailing line contents.
+     * @return a 3-element array containing hex tokens in its middle element
+     */
+	protected String[] toHexStringArray() {
+		// get initial string representation of this element
+		String in = this.toString();
+
+		// pre-allocate result array
+		String outString[] = new String[3];
+		Arrays.fill(outString, "");
+
+		// tokenize string representation
+		String[] tokens = in.split("//")[0].split("\\s");
+		for (String token : tokens) {
+			if (token.toUpperCase().matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
+				// concatenate hex tokens with whitespace delimiter
+				outString[1] += token + " ";
+			}
+		}
+
+		// extract prefix string
+		int first = in.indexOf(tokens[0]);
+		outString[0] = in.substring(0, first);
+
+		// extract suffix string
+		int last = in.lastIndexOf(tokens[tokens.length - 1]);
+		if ((last + 3) < in.length()) {
+			outString[2] = in.substring(last + 3, in.length());
+		}
+		
+		return outString;
+	}
+    
+    /**
+     * Appends the specified element to the list of child elements.
+     * @param element the element to append
+     */
+	protected void addElement(ModElement element) {
+		this.addElement(this.children.size(), element);
+	}
+
+	/**
+	 * Inserts the specified element at the specified position into the list of
+	 * child elements.
+	 * @param index the position index
+	 * @param element the element to insert
+	 */
+	protected void addElement(int index, ModElement element) {
+		this.children.add(index, element);
+	}
+    
+	protected void updateContexts() {
+		String content = this.toString().toUpperCase();
+		if (this.isSimpleString) {
+			ModDocument document = getDocument();
+			String tagValue = this.getTagValue();
+			if (content.startsWith("UPKFILE=")) {
+				document.setUpkName(tagValue);
+			} else if (content.startsWith("FUNCTION=")) {
+				document.setFunctionName(tagValue);
+			} else if (content.startsWith("GUID=")) {
+				document.setGuid(tagValue);
+			} else if (content.startsWith("MODFILEVERSION=")) {
+				document.setFileVersion(Integer.parseInt(tagValue));
+			}
+		}
+		if (this.foundHeader()) {
+			this.setContextFlag(ModContextType.FILE_HEADER, false);
+		}
+		if (getContextFlag(ModContextType.FILE_HEADER)) {
+			this.setContextFlag(ModContextType.HEX_CODE, false);
+			this.setContextFlag(ModContextType.BEFORE_HEX, false);
+			this.setContextFlag(ModContextType.AFTER_HEX, false);
+			this.setContextFlag(ModContextType.HEX_HEADER, false);
+			this.setContextFlag(ModContextType.FILE_HEADER, true);
+		} else {
+			if (content.startsWith("[BEFORE_HEX]")) {
+				this.setContextFlag(ModContextType.BEFORE_HEX, true);
+			} else if (content.startsWith("[/BEFORE_HEX]")) {
+				this.setContextFlag(ModContextType.BEFORE_HEX, false);
+			} else if (content.startsWith("[AFTER_HEX]")) {
+				this.setContextFlag(ModContextType.AFTER_HEX, true);
+			} else if (content.startsWith("[/AFTER_HEX]")) {
+				this.setContextFlag(ModContextType.AFTER_HEX, false);
+			} else if (content.startsWith("[CODE]")) {
+				this.setContextFlag(ModContextType.HEX_CODE, true);
+			} else if (content.startsWith("[/CODE]")) {
+				this.setContextFlag(ModContextType.HEX_CODE, false);
+			} else if (content.startsWith("[HEADER]")) {
+				this.setContextFlag(ModContextType.HEX_HEADER, true);
+			} else if (content.startsWith("[/HEADER]")) {
+				this.setContextFlag(ModContextType.HEX_HEADER, false);
+			}
+			this.setContextFlag(ModContextType.FILE_HEADER, false);
+		}
+	}
+    
+	/**
+	 * Returns whether this element wraps header-type content.
+	 * @return <code>true</code> 
+	 */
+	// TODO: this method would probably better belong in the document itself, i.e. getDocument().hasValidHeader() or somesuch
+	protected boolean foundHeader() {
+		ModDocument document = getDocument();
+		return !document.getUpkName().isEmpty()
+				&& !document.getFunctionName().isEmpty()
+				&& !document.getGuid().isEmpty()
+				&& (document.getFileVersion() > 0);
+	}
+
+	/**
+	 * Returns the value of a 'NAME=VALUE' tag.
+	 * @return the tag value
+	 */
+	protected String getTagValue() {
+		// trim comments ("//"), split at tag name/value delimiter ("="), trim whitespace from value
+		return this.toString().split("//", 2)[0].split("=", 2)[1].trim();
+	}
         
     /**
      * Removes length characters at offset (measured from beginning of model)
@@ -357,7 +426,7 @@ public class ModElement implements Element
             }
         }
         if(removeInBranches) {
-            for(ModElement branch : branches) {
+            for(ModElement branch : children) {
                 branch.remove(offset, length);
         }
         }
@@ -369,9 +438,9 @@ public class ModElement implements Element
     protected void removeModElement()
     {
         int count = 0;
-        for(ModElement branch : getParentElement().branches) { // scan through parent's branches
+        for(ModElement branch : getParentElement().children) { // scan through parent's branches
             if(branch.equals(this)) {  // found current element
-                getParentElement().branches.remove(count); // unlink element
+                getParentElement().children.remove(count); // unlink element
                 return;
             }
             count++;
@@ -401,7 +470,7 @@ public class ModElement implements Element
             if(offset < startOffset) {
                 startOffset += length;
             }
-            for(ModElement branch : branches) {
+            for(ModElement branch : children) {
                 branch.insertString(offset, string, as);
             }
         }
@@ -420,7 +489,7 @@ public class ModElement implements Element
         } else {
             ModElement lineParent = getLineParent();
             String newSimpleString = lineParent.toString();
-            lineParent.branches.clear();
+            lineParent.children.clear();
             lineParent.addElement(new ModToken(lineParent, newSimpleString, true));
             
         }
@@ -434,11 +503,10 @@ public class ModElement implements Element
         // placeholder for overriding function
     }
     
-    protected String getString()
-    {
-        throw new InternalError("Attempted to get string for Element of type: " + getName()); 
-//        return "";
-    }
+	protected String getString() {
+		throw new InternalError("Attempted to get string for Element of type: " + getName());
+		// return "";
+	}
     
     protected ModElement getLineParent()
     {
@@ -450,21 +518,22 @@ public class ModElement implements Element
     }
     
     /**
-     * Returns the text data of the element or token as a string.
-     * For elements returns the concatenation of all child elements/tokens.
+     * Returns the text data of the element or token as a string.<br>
+     * For elements returns the concatenation of all child elements/tokens.<br>
      * For tokens returns the current token string data.
-     * @return
+     * @return the contents of this element in text form
      */
     @Override
     public String toString()
     {
-        if(branches == null)
-            return getString();
-        String newString = "";
-        for(ModElement branch : branches) {
-            newString += branch.toString();
-        }
-        return newString;
+		if (this.children == null) {
+			return this.getString();
+		}
+		String newString = "";
+		for (ModElement branch : children) {
+			newString += branch.toString();
+		}
+		return newString;
     }
     
     /**
@@ -533,7 +602,7 @@ public class ModElement implements Element
             }
         }
         if(retrieveBranches) {
-            for(ModElement branch : branches) {
+            for(ModElement branch : children) {
                 returnString += branch.getText(offset, length);
             }
         }
@@ -561,30 +630,25 @@ public class ModElement implements Element
     }
 
     /**
-     * Returns element's parent element, or null for root node.
-     * IMPLEMENTED
-     * @return
+     * Returns this element's parent element.
+     * @return the parent or <code>null</code> if this element is the root element
      */
-    @Override
-    public final ModElement getParentElement()
-    {
-        return this.parent;
-    }
-
-    /**
-     * Returns true if element is leaf node (eg "token" ).
-     * IMPLEMENTED
-     * @return
-     */
-    @Override
-    public boolean isLeaf()
-    {
-        return false;
-    }
+	@Override
+	public final ModElement getParentElement() {
+		return this.parent;
+	}
+	
+	/**
+	 * Returns whether this element is a leaf node (e.g. a "token").
+	 * @return <code>true</code> if this element is a leaf node, <code>false</code> otherwise
+	 */
+	@Override
+	public boolean isLeaf() {
+		return false;
+	}
 
     /**
      * Returns string name of element.
-     * IMPLEMENTED
      * @return
      */
     @Override
@@ -593,38 +657,30 @@ public class ModElement implements Element
         return name;
     }
 
-    /**
-     * Returns attributes of element
-     * TODO -- FIGURE OUT HOW TO SET ATTRIBUTES
-     * @return
-     */
-    @Override
-    public AttributeSet getAttributes()
-    {
-        return attributes;
-    }
+    // TODO -- FIGURE OUT HOW TO SET ATTRIBUTES
+	// TODO: @Amineri, see StyleConstants class, contains lots of convenience setters for various attributes
+	@Override
+	public AttributeSet getAttributes() {
+		return attributes;
+	}
 
     /**
-     * Returns start offset (in characters) of current element, measured from start of file.
-     * IMPLEMENTED
-     * @return
+     * Returns the start offset (in characters) of current element, measured from the start of the document.
+     * @return the start offset
      */
-    @Override
-    public int getStartOffset()
-    {
-        return startOffset;
-    }
+	@Override
+	public int getStartOffset() {
+		return this.startOffset;
+	}
 
     /**
-     * Returns end offset (in characters) of current element, measured from start of file.
-     * IMPLEMENTED
-     * @return
+     * Returns the end offset (in characters) of this element, measured from the start of the document.
+     * @return the end offset
      */
-    @Override
-    public int getEndOffset()
-    {
-        return endOffset;
-    }
+	@Override
+	public int getEndOffset() {
+		return this.endOffset;
+	}
 
     /**
      * Returns the child elements closest to offset (measured in characters from start of file).
@@ -635,13 +691,13 @@ public class ModElement implements Element
     @Override
     public int getElementIndex(int offset)
     {
-        if(branches.get(0).getStartOffset() > offset) {
+        if(children.get(0).getStartOffset() > offset) {
             return 0;
-        } else if(branches.get(branches.size()-1).getEndOffset() < offset) {
-            return branches.size()-1;
+        } else if(children.get(children.size()-1).getEndOffset() < offset) {
+            return children.size()-1;
         } else {
             int index = 0;
-            while(branches.get(index).getEndOffset() < offset) {
+            while(children.get(index).getEndOffset() < offset) {
                 index++;
             }
             return index;
@@ -659,7 +715,7 @@ public class ModElement implements Element
         if(isLeaf()) {
             return 0;
         } else {
-            return branches.size();
+            return children.size();
         }
     }
 
@@ -672,27 +728,17 @@ public class ModElement implements Element
     @Override
     public ModElement getElement(int n)
     {
-        if(n < branches.size()) {
-            return branches.get(n);
+        if(n < children.size()) {
+            return children.get(n);
         } else {
             return null;
         }
     }
 
-    protected boolean inContext(ModContextType type)
-    {
-        return getDocument().getDefaultRootElement().inContext(type);
-    }
-    
-    protected void setContext(ModContextType type, boolean val)
-    {
-        getDocument().getDefaultRootElement().setContext(type, val);
-    }
-    
     public int getMemorySize()
     {
         int num = 0;
-        for(ModElement branch : branches)
+        for(ModElement branch : children)
         {
             num += branch.getMemorySize();
         }

@@ -1,6 +1,6 @@
 package model.modelement3;
 
-import static model.modelement3.ModContextType.*;
+import model.modelement3.ModContext.ModContextType;
 
 /**
  *
@@ -19,18 +19,17 @@ public class ModReferenceToken extends ModToken
         this.isVFFunction = vf;
         name = "ModReferenceToken";
         isSimpleString = false;
-        setLocalContext(VALIDCODE, true);
+        setContextFlag(ModContextType.VALID_CODE, true);
     }
 
-    String parseUnrealHex(String s)
-    {
-        value = 0;
-        String[] tokens = s.split("\\s");
-        for(int i = 0; i < 4 ; i ++) {
-            value += Integer.parseInt(tokens[i], 16) <<(8*i);
-        } 
-        return super.parseUnrealHex(s, 4);
-    }
+	protected String parseUnrealHex(String s) {
+		value = 0;
+		String[] tokens = s.split("\\s");
+		for (int i = 0; i < 4; i++) {
+			value += Integer.parseInt(tokens[i], 16) << (8 * i);
+		}
+		return super.parseUnrealHex(s, 4);
+	}
     
     @Override
     public boolean isVFFunctionRef()

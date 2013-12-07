@@ -22,7 +22,7 @@ public class OperandNode extends Node
         {
             return "ERROR";
         }
-        String sOpCodes = opTable.getOpString(data);
+        String sOpCodes = opTable.getOperandString(data);
         if(!data.equalsIgnoreCase(sOpCodes.split("\\s",2)[0]))
         {
             System.out.println("/* opcode mismatch */");

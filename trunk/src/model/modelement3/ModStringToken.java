@@ -1,6 +1,6 @@
 package model.modelement3;
 
-import static model.modelement3.ModContextType.*;
+import model.modelement3.ModContext.ModContextType;
 
 /**
  *
@@ -16,21 +16,18 @@ public class ModStringToken extends ModToken
         super(o);
         name = "ModStringToken";
         isSimpleString = false;
-        setLocalContext(VALIDCODE, true);
+        setContextFlag(ModContextType.VALID_CODE, true);
     }
 
-    String parseUnrealHex(String s)
-    {
-            while(!s.split("\\s",2)[0].equals("00"))
-            {
-                s = super.parseUnrealHex(s, 1);
-                if(s.isEmpty())
-                {
-                    return "ERROR";
-                }
-            }
-            s = super.parseUnrealHex(s, 1);
-            return s;
-    }
+	protected String parseUnrealHex(String s) {
+		while (!s.split("\\s", 2)[0].equals("00")) {
+			s = super.parseUnrealHex(s, 1);
+			if (s.isEmpty()) {
+				return "ERROR";
+			}
+		}
+		s = super.parseUnrealHex(s, 1);
+		return s;
+	}
     
 }
