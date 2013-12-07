@@ -2,11 +2,13 @@ package model.modelement3;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Element;
 import javax.swing.text.Segment;
+import javax.swing.tree.TreeNode;
 
 import model.moddocument3.ModDocument;
 import model.modelement3.ModContext.ModContextType;
@@ -17,7 +19,7 @@ import static model.modelement3.ModContext.ModContextType.*;
  * @author Amineri
  * @see {@link ModDocument}
  */
-public class ModElement implements Element {
+public class ModElement implements Element, TreeNode {
 	
 	/**
 	 * The list of child elements.
@@ -781,5 +783,42 @@ public class ModElement implements Element {
     {
         return -1;
     }
+
+	@Override
+	public TreeNode getChildAt(int i) {
+		return getChildElementAt(i);
+	}
+
+	@Override
+	public int getChildCount() {
+		return getChildElementCount();
+	}
+
+	@Override
+	public TreeNode getParent() {
+		return getParentElement();
+	}
+
+	@Override
+	public int getIndex(TreeNode tn) {
+		int count = 0;
+		for(ModElement e : children) {
+			if(e.equals(tn)) {
+				return count;
+			}
+			count ++;
+		} 
+		return -1;
+	}
+
+	@Override
+	public boolean getAllowsChildren() {
+		return !isLeaf();
+	}
+
+	@Override
+	public Enumeration children() {
+		return (Enumeration) children;
+	}
         
 }
