@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.Scanner;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditListener;
+import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Position;
 import javax.swing.text.Segment;
@@ -297,22 +298,14 @@ public class ModDocumentTest
 //        System.out.print(myDoc.getText(0, myDoc.getLength()));
 //        System.out.println(myDoc.getDefaultRootElement().toString());
         assertEquals(900, result.length());
-//        assertEquals(expResult, result);
+        startTime = System.currentTimeMillis();
+        System.out.print("Re-parsing modfile... ");
+        myDoc.insertUpdate(null, as);
+        System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+        result = myDoc.getText(892, 900);
+        assertEquals(900, result.length());
     }   
     
-    /**
-     * Test of getOpTable method, of class ModDocument.
-     */
-    @Test
-    public void testGetOpTable()
-    {
-        System.out.println("getOpTable");
-        ModDocument instance = new ModDocument();
-        OperandTable expResult = null;
-        OperandTable result = instance.getOpTable();
-        assertEquals(expResult, result);
-    }
-
     /**
      * Test of getText method, of class ModDocument.
      */
@@ -424,5 +417,34 @@ public class ModDocumentTest
         result = instance.getDefaultRootElement();
         assertNotNull(result);
     }
+
+    /**
+     * Test of insertUpdate method, of class ModDocument.
+     */
+    @Test
+    public void testInsertUpdate()
+    {
+        System.out.println("insertUpdate");
+        AbstractDocument.DefaultDocumentEvent chng = null;
+        AttributeSet attr = null;
+        ModDocument instance = new ModDocument();
+        instance.insertUpdate(chng, attr);
+        instance.createRoot();
+        instance.insertUpdate(chng, attr);
+    }
+
+    /**
+     * Test of removeUpdate method, of class ModDocument.
+     */
+    @Test
+    public void testRemoveUpdate()
+    {
+        System.out.println("removeUpdate");
+        AbstractDocument.DefaultDocumentEvent chng = null;
+        ModDocument instance = new ModDocument();
+        instance.removeUpdate(chng);
+        instance.createRoot();
+        instance.removeUpdate(chng);
+   }
     
 }
