@@ -22,46 +22,73 @@ public class ModDocument extends PlainDocument
     private ModRootElement rootElement;
     private final ModRootElement[] rootElements = new ModRootElement[1];
     
-    // context identifiers used when reorganizing
-    public boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
+//    // context identifiers used when updating after insert or remove operation
+//    private boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
 
-    public int fileVersion;
-    public String upkName;
-    public String guid;
-    public String functionName;
+    private int fileVersion;
+    private String upkName;
+    private String guid;
+    private String functionName;
 
     ArrayList<Object> docProperties;
     ArrayList<Object> propertyKeys;
     
     protected OperandTable opTable;
 
+    /**
+     * Creates a new ModDocument.
+     */
     public ModDocument()
     {
         super();
         opTable = null;
-//        currPosition = new ModPosition(0);
-//        endPosition = new ModPosition(0);
-        
+        initVars();
     }
 
+    /**
+     * Creates a new ModDocument with attached OperandTable table.
+     * OperandTable is used to perform unreal bytecode parsing.
+     * @param table
+     */
     public ModDocument(OperandTable table)
     {
         super();
         opTable = table;
-//        currPosition = new ModPosition(0);
-//        endPosition = new ModPosition(0);
+        initVars();
     }
     
+    private void initVars()
+    {
+//        inCodeContext = false;
+//        inHeaderContext = false;
+//        inBeforeBlockContext = false;
+//        inAfterBlockContext = false;
+//        inFileHeaderContext = false;
+
+        fileVersion = -1;
+        upkName = "";
+        guid = "";
+        functionName = "";
+    }
+    
+    /**
+     * Creates and initializes the root element of the document.
+     */
     public void createRoot()
     {
         if(rootElement == null){
-            rootElement = new ModRootElement(this);
-            rootElement.setDocument(this);
-            rootElement.setOpTable(opTable);
+            rootElement = new ModRootElement(this, opTable);
+//            rootElement.setOpTable(opTable);
             rootElements[0] = rootElement;
         }
     }
     
+    /**
+     * Refreshes contexts and re-parses tokens after an insert operation.
+     * Parameters chng and attr currently unused.
+     * @param chng
+     * @param attr
+     */
     @Override
     public void insertUpdate(AbstractDocument.DefaultDocumentEvent chng, AttributeSet attr)
     {
@@ -69,61 +96,23 @@ public class ModDocument extends PlainDocument
             rootElement.reorganizeAfterInsertion();
     }
     
+    /**
+     * Refreshes contexts and re-parses tokens after a remove operation.
+     * Parameter chng currently unused.
+     * @param chng
+     */
     @Override
     public void removeUpdate(AbstractDocument.DefaultDocumentEvent chng)
     {
         if(rootElement != null)
             rootElement.reorganizeAfterDeletion();
     }
-    
-    /**
-     * Updates the document as the result of a text insertion or deletion.
-     * Called internally automatically on any insertion/deletion.
-     */
-//    @Deprecated
-//    public void reorganize()
-//    {
-//        if(rootElement != null)
-//            rootElement.reorganize();
-//    }
-    
-    
-    
-//    @Override
-//    public void addDocumentListener(DocumentListener dl)
-//    {
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//    }
-
-//    @Override
-//    public void removeDocumentListener(DocumentListener dl)
-//    {
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//    }
-
-//    @Override
-//    public void addUndoableEditListener(UndoableEditListener ul)
-//    {
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//    }
-
-//    @Override
-//    public void removeUndoableEditListener(UndoableEditListener ul)
-//    {
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//    }
-
-//    @Override
-//    public void render(Runnable r)
-//    {
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//    }
 
     /**
-     * Updates the document as the result of a text insertion or deletion.Called internally automatically on any insertion/deletion.
+     * Returns length of document.
+     * Measured in characters.
      * @return
      */
-    
     @Override
     public int getLength()
     {
@@ -132,27 +121,12 @@ public class ModDocument extends PlainDocument
         return rootElement.getEndOffset();
     }
 
-//    @Override
-//    public Object getProperty(Object o)
-//    {
-//        if(docProperties == null)
-//            return null;
-//        return docProperties.get(propertyKeys.indexOf(o));
-//    }
-
-//    @Override
-//    public final void putProperty(Object o, Object o1)
-//    {
-//        if(docProperties == null || propertyKeys == null) {
-//            docProperties = new ArrayList<>(5);
-//            propertyKeys = new ArrayList<>(5);
-//        }
-//        docProperties.ensureCapacity(docProperties.size()+5);
-//        propertyKeys.ensureCapacity(docProperties.size()+5);
-//        docProperties.add(o1);
-//        propertyKeys.add(o);
-//    }
-
+    /**
+     * Removes length characters, starting at position offset.
+     * Offset is measured from the beginning of the document.
+     * @param offset
+     * @param length
+     */
     @Override
     public void remove(int offset, int length)
     {
@@ -160,10 +134,17 @@ public class ModDocument extends PlainDocument
             return;
         }
         rootElement.remove(offset, length);
-//        rootElement.reorganizeAfterDeletion();
-//        removeUpdate(null);
     }
 
+    /**
+     * Inserts string at position offset.
+     * AttributeSet as currently is unused.
+     * Does not reset contexts or parse unreal bytecode.
+     * Require insertUpdate call to reset contexts and parse unreal bytecode.
+     * @param offset
+     * @param string
+     * @param as
+     */
     @Override
     public void insertString(int offset, String string, AttributeSet as)
     {
@@ -171,17 +152,15 @@ public class ModDocument extends PlainDocument
             return;
         }
         rootElement.insertString(offset, string, as);
-//        rootElement.reorganizeAfterInsertion();
-//        insertUpdate(null, as);
     }
 
-    public OperandTable getOpTable()
-    {
-        if(opTable == null)
-            return null;
-        return opTable;
-    }
-
+    /**
+     * Retrieves String of length starting at position offset.
+     * Returns String.
+     * @param offset
+     * @param length
+     * @return
+     */
     @Override
     public String getText(int offset, int length)
     {
@@ -190,6 +169,13 @@ public class ModDocument extends PlainDocument
         return rootElement.getText(offset, length);
     }
 
+    /**
+     * Retrieves String of length starting at position offset.
+     * String returned through parameter segment.
+     * @param offset
+     * @param length
+     * @param segment
+     */
     @Override
     public void getText(int offset, int length, Segment segment)
     {
@@ -221,16 +207,91 @@ public class ModDocument extends PlainDocument
 //        return currPosition;
 //    }
 
+    /**
+     * Returns array of root elements.
+     * For ModDocument this will always be length 1 array.
+     * @return
+     */
+    
     @Override
     public ModElement[] getRootElements()
     {
         return rootElements;
     }
 
+    /**
+     * Returns root element of document.
+     * @return
+     */
     @Override
     public ModElement getDefaultRootElement()
     {
         return rootElement;
+    }
+    
+//    public boolean inFileHeaderContext()
+//    {
+//        return this.inFileHeaderContext;
+//    }
+//    
+//    public boolean inCodeContext()
+//    {
+//        return this.inCodeContext;
+//    }
+//    
+//    public boolean inHeaderContext()
+//    {
+//        return this.inHeaderContext;
+//    }
+//    
+//    public boolean inBeforeBlockContext()
+//    {
+//        return this.inBeforeBlockContext;
+//    }
+//    
+//    public boolean inAfterBlockContext()
+//    {
+//        return this.inAfterBlockContext;
+//    }
+
+    public int getFileVersion()
+    {
+        return fileVersion;
+    }
+    
+    public void setFileVersion(int n)
+    {
+        fileVersion = n;
+    }
+    
+    public String getUpkName()
+    {
+        return upkName;
+    }
+    
+    public void setUpkName(String s)
+    {
+        upkName = s;
+    }
+    
+    public String getGuid()
+    {
+        return guid;
+    }
+    
+    public void setGuid(String s)
+    {
+        guid = s;
+    }
+
+    public String getFunctionName()
+    {
+        return functionName;
+    }
+
+    public void setFunctionName(String s)
+    {
+        functionName = s;
     }
 
 }

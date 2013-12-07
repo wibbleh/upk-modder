@@ -1,5 +1,7 @@
 package model.modelement3;
 
+import static model.modelement3.ModContextType.*;
+
 /**
  *
  * @author Amineri
@@ -15,17 +17,24 @@ public class ModOperandElement extends ModElement
     {
         super(o);
         name = "ModOperandElement";
-        isCode = true;
-        isValidCode = true;
+        setLocalContext(CODE, true);
+        setLocalContext(VALIDCODE, true);
+        operand = "";
     }
 
+    @Override
+    public String getName()
+    {
+        return name + "_" + operand;
+    }
+    
     /**
      * Parses a passed string into ModTokens.
      * TODO -- optimize this code
      * @param s
      * @return - the unparsed string remnant
      */
-    public String parseUnrealHex(String s)
+    protected String parseUnrealHex(String s)
     {
         int lastEnd = this.startOffset;
         operand = s.split("\\s")[0];
