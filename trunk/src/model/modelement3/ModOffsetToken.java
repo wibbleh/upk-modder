@@ -1,5 +1,7 @@
 package model.modelement3;
 
+import static model.modelement3.ModContextType.*;
+
 /**
  *
  * @author Amineri
@@ -17,6 +19,7 @@ public class ModOffsetToken extends ModToken
         name = "ModJumpToken";
         operand = null;
         isSimpleString = false;
+        setContext(VALIDCODE, true);
     }
 
 

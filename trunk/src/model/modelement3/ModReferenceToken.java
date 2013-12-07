@@ -1,5 +1,7 @@
 package model.modelement3;
 
+import static model.modelement3.ModContextType.*;
+
 /**
  *
  * @author Amineri
@@ -17,6 +19,7 @@ public class ModReferenceToken extends ModToken
         this.isVFFunction = vf;
         name = "ModReferenceToken";
         isSimpleString = false;
+        setLocalContext(VALIDCODE, true);
     }
 
     String parseUnrealHex(String s)

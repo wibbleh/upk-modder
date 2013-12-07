@@ -1,5 +1,7 @@
 package model.modelement3;
 
+import static model.modelement3.ModContextType.*;
+
 /**
  *
  * @author Amineri
@@ -13,37 +15,49 @@ public class ModToken extends ModElement
     
     public ModToken(ModElement o)
     {
+        super(o);
         init(o);
         data = "";
+        name = "ModToken";
     }
     
     public ModToken(ModElement o, String s)
     {
+        super(o);
         init(o);
         data = s;
+        name = "ModToken";
     }
     
     public ModToken(ModElement o, String s, boolean simple)
     {
+        super(o);
         init(o);
         this.data = s;
         this.isSimpleString = simple;
+        name = "ModToken";
+    }
+    
+    @Override
+    public int getMemorySize()
+    {
+        if(isSimpleString) {
+            return -1;
+        } else {
+            return data.length()/3;
+        }
     }
     
     private void init(ModElement o)
     {
         this.branches = null;
         this.parent = o;
-        getDocument().inCodeContext = false;
-        getDocument().inHeaderContext = false;
-        getDocument().inBeforeBlockContext = false;
-        getDocument().inAfterBlockContext = false;
-        this.isCode = isCode();
-        this.isValidCode = false;
         this.isSimpleString = false;
-        this.isHeader = false;
-        this.isInBeforeBlock = false;
-        this.isInAfterBlock = false;
+        setLocalContext(CODE, isCode());
+        setLocalContext(VALIDCODE, false);
+        setLocalContext(HEADER, false);
+        setLocalContext(BEFOREHEX, false);
+        setLocalContext(AFTERHEX, false);
     }
 
     
@@ -59,16 +73,19 @@ public class ModToken extends ModElement
         data = s;
     }
 
+    @Override
     public boolean isVFFunctionRef()
     {
         return false;
     }
     
+    @Override
     public int getOffset()
     {
         return -1;
     }
 
+    @Override
     public int getRefValue()
     {
         return -1;

@@ -1,6 +1,9 @@
 package model.modelement3;
 
 import model.moddocument3.ModDocument;
+import static model.modelement3.ModContextType.*;
+import model.modfile2.OperandNode;
+import parser.unrealhex.OperandTable;
 
 
 /**
@@ -11,12 +14,18 @@ import model.moddocument3.ModDocument;
 
 public class ModRootElement extends ModElement
 {
+    // context identifiers used when updating after insert or remove operation
+//    private boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
 
-    public ModRootElement(ModDocument d)
+    private final boolean[] contexts;
+    
+    public ModRootElement(ModDocument d, OperandTable table)
     {
         super(d);
+        setOpTable(table);
         this.parent = null;
         name = "ModRootElement";
+        contexts = new boolean[NUMCONTEXTS.getIndex()]; // number of context types
         addElement(new ModElement(this, true));
         branches.get(0).addElement(new ModToken(branches.get(0), "", true));
     }
@@ -114,13 +123,14 @@ public class ModRootElement extends ModElement
     private void buildContextsParseUnreal()
     {
         // iterate through array of lines 
-        getDocument().inFileHeaderContext = true;
+        setContext(FILEHEADER, true);
+//        getDocument().inFileHeaderContext = true;
         for(ModElement b : branches) {
             // update contexts
             b.updateContexts();
             
             //  consolidate/expand code lines
-            if(!b.isCode && !b.isSimpleString) { // consolidate string
+            if(!b.inLocalContext(CODE) && !b.isSimpleString) { // consolidate string
                 ModToken newToken = new ModToken(b, b.toString(), true);
                 newToken.startOffset = b.startOffset;
                 newToken.endOffset = b.endOffset;
@@ -128,13 +138,24 @@ public class ModRootElement extends ModElement
                 b.addElement(newToken);
                 b.isSimpleString = true;
             }
-            if(b.isCode && b.isSimpleString) {
+            if(b.inLocalContext(CODE) && b.isSimpleString) {
                 b.parseUnrealHex();
             }
             // isCode and not isSimple String means it was not update
             // !isCode and isSimple string does not need reconsolidating
         }
+    }
 
+    @Override
+    protected boolean inContext(ModContextType type)
+    {
+        return this.contexts[type.getIndex()];
+    }
+    
+    @Override
+    protected void setContext(ModContextType type, boolean val)
+    {
+        this.contexts[type.getIndex()] = val;
     }
     
 }
