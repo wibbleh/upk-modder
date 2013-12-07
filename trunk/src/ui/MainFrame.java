@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 
@@ -25,13 +26,19 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.PlainDocument;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
 import javax.xml.stream.events.XMLEvent;
 
 import org.bounce.text.LineNumberMargin;
@@ -40,6 +47,8 @@ import org.bounce.text.xml.XMLEditorKit;
 import org.bounce.text.xml.XMLFoldingMargin;
 import org.bounce.text.xml.XMLScanner;
 import org.bounce.text.xml.XMLStyleConstants;
+
+import ui.editor.ModEditorKit;
 
 /**
  * The application's primary frame.
@@ -129,7 +138,7 @@ public class MainFrame extends JFrame {
 		JScrollPane xmlPane = new JScrollPane(xmlPnl);
 		xmlPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		xmlPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		xmlPane.setPreferredSize(new Dimension(400, 600));
+		xmlPane.setPreferredSize(new Dimension(350, 600));
 
 		JPanel rowHeader = new JPanel(new BorderLayout());
 		rowHeader.add(new XMLFoldingMargin(xmlEditor), BorderLayout.EAST);
@@ -139,14 +148,51 @@ public class MainFrame extends JFrame {
 		modEditor = new JEditorPane();
 		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 		// TODO: insert custom editor kit for modfile format
+		modEditor.setEditorKit(new ModEditorKit());
+		File file = new File("test_mod.upk_mod");
+		modEditor.read(new FileInputStream(file), file);
+		
+		Document modDocument = modEditor.getDocument();
+		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
 		
 		JScrollPane modPane = new JScrollPane(modEditor);
 		modPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		modPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		modPane.setPreferredSize(new Dimension(400, 600));
+		modPane.setPreferredSize(new Dimension(650, 600));
+
+		// create tree view of right-hand mod editor
+		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
+		TreeNode modRoot = (TreeNode) modDocument.getDefaultRootElement();
+		final JTree modTree = new JTree(modRoot);
+		JScrollPane modTreePane = new JScrollPane(modTree);
+		modTreePane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		modTreePane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		modTreePane.setPreferredSize(new Dimension(350, 600));
+		
+		// install document listener to refresh tree on changes to the document
+		modDocument.addDocumentListener(new DocumentListener() {
+			@Override
+			public void removeUpdate(DocumentEvent evt) {
+				this.updateTree(evt);
+			}
+			@Override
+			public void insertUpdate(DocumentEvent evt) {
+				this.updateTree(evt);
+			}
+			@Override
+			public void changedUpdate(DocumentEvent evt) {
+				this.updateTree(evt);
+			}
+			/** Updates the tree view on document changes */
+			private void updateTree(DocumentEvent evt) {
+				((DefaultTreeModel) modTree.getModel()).setRoot(
+						(TreeNode) evt.getDocument().getDefaultRootElement());
+			}
+		});
 		
 		// wrap editors in split pane with vertical divider
-		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, xmlPane, modPane);
+//		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, xmlPane, modPane);
+		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, modTreePane, modPane);
 		
 		contentPane.add(splitPane);
 	}
