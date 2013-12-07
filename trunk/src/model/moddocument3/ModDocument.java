@@ -20,9 +20,8 @@ public class ModDocument extends PlainDocument {
 	 */
     private ModRootElement rootElement;
     
-    /**
-	 * The array of the document's root elements. Always contains only a single
-	 * element.
+	/**
+	 * The array of the document's root elements. Always contains only a single element.
 	 */
 	private final ModRootElement[] rootElements = new ModRootElement[1];
 

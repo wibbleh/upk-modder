@@ -29,6 +29,7 @@ import model.upk.UpkFile;
 
 import model.modfile2.*;
 import parser.unrealhex.MemorySizeCalculator;
+import parser.unrealhex.OperandTable;
 
 /**
  *
@@ -70,9 +71,9 @@ public class UPKmodderApp {
         
         
         OperandTableParser kOpParser = new OperandTableParser(Paths.get(kConfigData.m_sOperandData));
-        ReferenceParser kRefParser = new ReferenceParser(kOpParser.parseFile());
-        
-        MemorySizeCalculator calc = new MemorySizeCalculator(kOpParser.parseFile());
+		ReferenceParser kRefParser = new ReferenceParser();
+//        
+        MemorySizeCalculator calc = new MemorySizeCalculator();
         
         // reference parser test cases:
         if(kRefParser.parseString("07 DA 01 9B 38 3A 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 38 3A 24 00 16 ").equals("07 DA 01 9B 38 3A 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 38 3A 24 00 16 "))
@@ -89,7 +90,7 @@ public class UPKmodderApp {
         }
 //        UpkFile kUpkFile = new UpkFile(new File("C:/Games/XComGame_EU_patch4.upk"));
         
-        ModFile2 myfile = new ModFile2(kOpParser.parseFile());
+        ModFile2 myfile = new ModFile2();
 
         String encoding = System.getProperty("file.encoding");
         try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test_mod.upk_mod"), Charset.forName(encoding))))
