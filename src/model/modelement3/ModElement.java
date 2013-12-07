@@ -10,6 +10,7 @@ import javax.swing.text.Segment;
 
 import model.moddocument3.ModDocument;
 import model.modelement3.ModContext.ModContextType;
+import static model.modelement3.ModContext.ModContextType.*;
 
 /**
  * Basic <code>Element</code> implementation used in structuring <code>ModDocument</code> contents.
@@ -102,22 +103,23 @@ public class ModElement implements Element {
 	}
     
 	/**
-	 * Resets the context flags to their default values (<code>false</code>).
+	 * Invoke ModRootElement's Context Flag reset algorithm.
+	 * In practice this function should never be called anywhere but the root element.
 	 */
 	protected void resetContextFlags() {
-		this.context = new ModContext();
-		// TODO: @Amineri why is any basic element capable of resetting values in the underlying document? Shouldn't only the root node be allowed to do this?
-//		 getDocument().setFileVersion(-1);
-//		 getDocument().setUpkName("");
-//		 getDocument().setGuid("");
-//		 getDocument().setFunctionName("");
+		if(getParentElement() == null) {return;}
+		getParentElement().resetContextFlags();
 	}
     
 	@Override
 	public ModDocument getDocument() {
 		// fetch document from parent, only the root node carries the actual
 		// reference to the document instance
-		return this.parent.getDocument();
+		if(getParentElement() != null) {
+			return this.getParentElement().getDocument();
+		} else {
+			return null;
+		}
 	}
 	
 	/**
@@ -171,7 +173,7 @@ public class ModElement implements Element {
 			return false;
 		} else {
 			// if this element is not flagged as containing hex code pass check on to parent element
-			return this.getContextFlag(ModContextType.HEX_CODE) || getParentElement().isCode();
+			return this.getContextFlag(HEX_CODE) || getParentElement().isCode();
 		}
 	}
 	
@@ -193,36 +195,37 @@ public class ModElement implements Element {
 		if (!this.isValidHexLine()) {
 			return;
 		}
+		String oldString = this.toString();
 		try {
+			// extract initial string representation of this element
+			String[] linebreak = this.toHexStringArray();
+
 			// remove all children
 			this.children.clear();
 			
 			// start parsing the document from the beginning of this element
 			int currOffset = this.startOffset;
-			// extract initial string representation of this element
-			String oldString = this.toString();
 			
-			String[] linebreak = this.toHexStringArray();
 			String prefix = linebreak[0];
 			if (!prefix.isEmpty()) {
 				// wrap leading text data in plain token
 				ModToken leadToken = new ModToken(this, linebreak[0], true);
-				leadToken.setRange(currOffset, currOffset + oldString.length());
+				leadToken.setRange(currOffset, currOffset + linebreak[0].length());
 				this.addElement(leadToken);
 				// move offset to end of new token
 				currOffset = leadToken.getEndOffset();
 			}
 			String hex = linebreak[1];
 			while (!hex.isEmpty()) {
-				// cache length
 				int oldLength = hex.length();
+				// cache length
 				// create operand token
 				ModOperandElement opElem = new ModOperandElement(this);
 				hex = opElem.parseUnrealHex(hex);
-				opElem.setRange(currOffset, currOffset + oldLength - hex.length());
+				int lastLength = oldLength - hex.length();
+				opElem.setRange(currOffset, currOffset + lastLength);
 				this.addElement(opElem);
-				// TODO: @Amineri move offset?
-				
+				currOffset += lastLength;
 			}
 			String suffix = linebreak[2];
 			// wrap trailing text data in plain token
@@ -230,15 +233,15 @@ public class ModElement implements Element {
 			trailToken.setRange(currOffset, currOffset + suffix.length());
 			// currStart = newToken.endOffset;
 			this.addElement(trailToken);
-			this.setContextFlag(ModContextType.VALID_CODE, true);
+			this.setContextFlag(VALID_CODE, true);
 			this.isSimpleString = false;
 		} catch (Exception e) {
 			// something went wrong, set error flag...
-			setContextFlag(ModContextType.VALID_CODE, false);
+			setContextFlag(VALID_CODE, false);
 			// ... remove any child elements that may have been inserted... 
 			this.children.clear();
-			// ... insert text data as plain mod token
-			this.addElement(new ModToken(this, this.toString(), true));
+			// ... insert original text data as plain mod token
+			this.addElement(new ModToken(this, oldString, true));
 		}
 	}
     
@@ -278,16 +281,24 @@ public class ModElement implements Element {
 		}
 
 		// extract prefix string
-		int first = in.indexOf(tokens[0]);
-		outString[0] = in.substring(0, first);
-
+		int count = 0;
+		while(tokens[count].isEmpty() && count < tokens.length) {count++;}
+		if(count < tokens.length) {
+			int first = in.indexOf(tokens[count]);
+			outString[0] = in.substring(0, first);
+		} else {
+			outString[0] = "";
+		}
 		// extract suffix string
 		int last = in.lastIndexOf(tokens[tokens.length - 1]);
 		if ((last + 3) < in.length()) {
 			outString[2] = in.substring(last + 3, in.length());
 		}
-		
-		return outString;
+		if((outString[0] + outString[1] + outString[2]).equals(in)) {
+			return outString;
+		} else { 
+			return null;
+		}
 	}
     
     /**
@@ -309,10 +320,11 @@ public class ModElement implements Element {
 	}
     
 	protected void updateContexts() {
+		if(getDocument() == null) {return;}
 		String content = this.toString().toUpperCase();
 		if (this.isSimpleString) {
 			ModDocument document = getDocument();
-			String tagValue = this.getTagValue();
+			String tagValue = this.getTagValue(content);
 			if (content.startsWith("UPKFILE=")) {
 				document.setUpkName(tagValue);
 			} else if (content.startsWith("FUNCTION=")) {
@@ -324,33 +336,33 @@ public class ModElement implements Element {
 			}
 		}
 		if (this.foundHeader()) {
-			this.setContextFlag(ModContextType.FILE_HEADER, false);
+			this.setContextFlag(FILE_HEADER, false);
 		}
-		if (getContextFlag(ModContextType.FILE_HEADER)) {
-			this.setContextFlag(ModContextType.HEX_CODE, false);
-			this.setContextFlag(ModContextType.BEFORE_HEX, false);
-			this.setContextFlag(ModContextType.AFTER_HEX, false);
-			this.setContextFlag(ModContextType.HEX_HEADER, false);
-			this.setContextFlag(ModContextType.FILE_HEADER, true);
+		if (getContextFlag(FILE_HEADER)) {
+			this.setContextFlag(HEX_CODE, false);
+			this.setContextFlag(BEFORE_HEX, false);
+			this.setContextFlag(AFTER_HEX, false);
+			this.setContextFlag(HEX_HEADER, false);
+			this.setContextFlag(FILE_HEADER, true);
 		} else {
 			if (content.startsWith("[BEFORE_HEX]")) {
-				this.setContextFlag(ModContextType.BEFORE_HEX, true);
+				this.setContextFlag(BEFORE_HEX, true);
 			} else if (content.startsWith("[/BEFORE_HEX]")) {
-				this.setContextFlag(ModContextType.BEFORE_HEX, false);
+				this.setContextFlag(BEFORE_HEX, false);
 			} else if (content.startsWith("[AFTER_HEX]")) {
-				this.setContextFlag(ModContextType.AFTER_HEX, true);
+				this.setContextFlag(AFTER_HEX, true);
 			} else if (content.startsWith("[/AFTER_HEX]")) {
-				this.setContextFlag(ModContextType.AFTER_HEX, false);
+				this.setContextFlag(AFTER_HEX, false);
 			} else if (content.startsWith("[CODE]")) {
-				this.setContextFlag(ModContextType.HEX_CODE, true);
+				this.setContextFlag(HEX_CODE, true);
 			} else if (content.startsWith("[/CODE]")) {
-				this.setContextFlag(ModContextType.HEX_CODE, false);
+				this.setContextFlag(HEX_CODE, false);
 			} else if (content.startsWith("[HEADER]")) {
-				this.setContextFlag(ModContextType.HEX_HEADER, true);
+				this.setContextFlag(HEX_HEADER, true);
 			} else if (content.startsWith("[/HEADER]")) {
-				this.setContextFlag(ModContextType.HEX_HEADER, false);
+				this.setContextFlag(HEX_HEADER, false);
 			}
-			this.setContextFlag(ModContextType.FILE_HEADER, false);
+			this.setContextFlag(FILE_HEADER, false);
 		}
 	}
     
@@ -359,8 +371,11 @@ public class ModElement implements Element {
 	 * @return <code>true</code> 
 	 */
 	// TODO: this method would probably better belong in the document itself, i.e. getDocument().hasValidHeader() or somesuch
+	// Amineri : Good point. When updating a file after insert/remove, this header has to be reset
+	//			 and each line the value updated, in case the insert/remove invalidated the header (i.e edits to header lines)
 	protected boolean foundHeader() {
 		ModDocument document = getDocument();
+		if(document == null) {return false;}
 		return !document.getUpkName().isEmpty()
 				&& !document.getFunctionName().isEmpty()
 				&& !document.getGuid().isEmpty()
@@ -369,11 +384,16 @@ public class ModElement implements Element {
 
 	/**
 	 * Returns the value of a 'NAME=VALUE' tag.
+	 * @param s the string to retrieve value from
 	 * @return the tag value
 	 */
-	protected String getTagValue() {
+	protected String getTagValue(String s) {
 		// trim comments ("//"), split at tag name/value delimiter ("="), trim whitespace from value
-		return this.toString().split("//", 2)[0].split("=", 2)[1].trim();
+		if(s.contains("=")) {
+			return s.split("//", 2)[0].split("=", 2)[1].trim();
+		} else {
+			return "";
+		}
 	}
         
     /**
@@ -526,12 +546,12 @@ public class ModElement implements Element {
     @Override
     public String toString()
     {
-		if (this.children == null) {
+		if (this.children.size() == 0) {
 			return this.getString();
 		}
 		String newString = "";
-		for (ModElement branch : children) {
-			newString += branch.toString();
+		for (ModElement child : children) {
+			newString += child.toString();
 		}
 		return newString;
     }
@@ -697,7 +717,7 @@ public class ModElement implements Element {
             return children.size()-1;
         } else {
             int index = 0;
-            while(children.get(index).getEndOffset() < offset) {
+            while(children.get(index).getEndOffset() <= offset) {
                 index++;
             }
             return index;

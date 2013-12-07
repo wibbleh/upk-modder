@@ -59,26 +59,26 @@ public class ModDocumentTest
     /**
      * Test of createDefaultRoot method, of class ModDocument.
      */
-    @Test
-    public void testCreateRoot()
-    {
-        System.out.println("createDefaultRoot");
-        ModDocument instance = new ModDocument();
-        instance.createRoot();
-    }
+//    @Test
+//    public void testCreateRoot()
+//    {
+//        System.out.println("createDefaultRoot");
+//        ModDocument instance = new ModDocument();
+//        instance.createRoot();
+//    }
 
     /**
      * Test of reorganize method, of class ModDocument.
      */
-    @Test
-    public void testReorganize()
-    {
-        System.out.println("reorganize");
-        ModDocument instance = new ModDocument();
-//        instance.reorganize();
-        instance.createRoot();
-//        instance.reorganize();
-    }
+//    @Test
+//    public void testReorganize()
+//    {
+//        System.out.println("reorganize");
+//        ModDocument instance = new ModDocument();
+////        instance.reorganize();
+//        instance.createRoot();
+////        instance.reorganize();
+//    }
 
     /**
      * Test of addDocumentListener method, of class ModDocument.
@@ -164,7 +164,7 @@ public class ModDocumentTest
         int expResult = 0;
         int result = instance.getLength();
         assertEquals(expResult, result);
-        instance.createRoot();
+//        instance.createRoot();
         result = instance.getLength();
         assertEquals(expResult, result);
     }
@@ -196,7 +196,7 @@ public class ModDocumentTest
         int offset = 0;
         int length = 0;
         ModDocument instance = new ModDocument();
-        instance.createRoot();
+//        instance.createRoot();
         instance.remove(offset, length);
         instance.removeUpdate(null);
     }
@@ -213,7 +213,7 @@ public class ModDocumentTest
         AttributeSet as = null;
         ModDocument instance = new ModDocument();
         instance.insertString(offset, string, as);
-        instance.createRoot();
+//        instance.createRoot();
         instance.insertString(offset, string, as);
         instance.insertString(offset, "test", as);
         instance.insertString(offset, "line1 \n line2", as);
@@ -232,7 +232,8 @@ public class ModDocumentTest
         String expected = "st1";
         AttributeSet as = null;
         ModDocument instance = new ModDocument();
-        instance.createRoot();
+		ModElement r = instance.getDefaultRootElement();
+//        instance.createRoot();
         instance.insertString(offset, string, as);
         instance.insertUpdate(null, as);
         String result = instance.getText(2, 3);
@@ -261,10 +262,11 @@ public class ModDocumentTest
     {
         System.out.println("Read test_mod_v3.upk_mod");
         AttributeSet as = null;
-        UpkConfigData kConfigData = new UpkConfigData();
-        OperandTableParser kOpParser = new OperandTableParser(Paths.get(kConfigData.m_sOperandData));
-        ModDocument myDoc = new ModDocument(kOpParser.parseFile());
-        myDoc.createRoot();
+		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		parser.parseFile();
+        ModDocument myDoc = new ModDocument();
+		ModElement r = myDoc.getDefaultRootElement();
+//        myDoc.createRoot();
         String encoding = System.getProperty("file.encoding");
         long startTime = System.currentTimeMillis();
         try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_v3.upk_mod"), Charset.forName(encoding))))
@@ -287,6 +289,7 @@ public class ModDocumentTest
         System.out.println(myDoc.getLength());
 //        System.out.print(myDoc.getDefaultRootElement().toString());
         result = myDoc.getText(892, 900);
+//		System.out.println(myDoc.getText(892, 900));
         String expResult;
         expResult = "19 19 2E FE 2C 00 00 19 12 20 4F FE FF FF 0A 00 D8 F9 FF FF 00 1C F6 FB FF FF 16 09 00 98 F9 FF FF 00 01 98 F9 FF FF 09 00 F0 2C 00 00 00 01 F0 2C 00 00 13 01 42 10 00 00 00 1B 16 31 00 00 00 00 00 00 38 3A 19 19 00 C4 7E 00 00 09 00 E8 BB 00 00 00 01 E8 BB 00 00 0A 00 E8 9B 00 00 00 1B 92 30 00 00 00 00 00 00 16 19 00 C4 7E 00 00 0A 00 1C 7C 00 00 00 1B 1E 35 00 00 00 00 00 00 16 19 19 19 00 C4 7E 00 00 09 00 E6 7B 00 00 00 01 E6 7B 00 00 0A 00 EB B2 00 00 00 1B 0A 34 00 00 00 00 00 00 16 0C 00 9E 94 00 00 00 1B 7A 36 00 00 00 00 00 00 24 0A 16 19 19 19 00 C4 7E 00 00 09 00 E6 7B 00 00 00 01 E6 7B 00 00 0A 00 63 B4 00 00 00 1B 7B 31 00 00 00 00 00 00 16 09 00 C3 A2 00 00 00 01 C3 A2 00 00 19 00 C4 7E 00 00 0A 00 D2 7B 00 00 00 2D 01 D2 7B 00 00 16 \n" +
                 "[/CODE]\n" +
@@ -304,6 +307,7 @@ public class ModDocumentTest
         System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
         result = myDoc.getText(892, 900);
         assertEquals(900, result.length());
+		assertTrue(myDoc.getDefaultRootElement().getChildElementAt(9).getElementCount() > 1); // check that line 9 (unreal) was parsed
     }   
     
     /**
@@ -319,7 +323,7 @@ public class ModDocumentTest
         String expResult = "";
         String result = instance.getText(offset, length);
         assertEquals(expResult, result);
-        instance.createRoot();
+//        instance.createRoot();
         result = instance.getText(offset, length);
         assertEquals(expResult, result);
     }
@@ -336,7 +340,7 @@ public class ModDocumentTest
         Segment segment = new Segment();
         ModDocument instance = new ModDocument();
         instance.getText(offset, length, segment);
-        instance.createRoot();
+//        instance.createRoot();
         instance.getText(offset, length, segment);
         assertEquals(segment.count, 0);
         assertEquals(segment.offset, 0);
@@ -381,7 +385,7 @@ public class ModDocumentTest
         Position expResult = new ModPosition(0);
         Position result = instance.createPosition(i);
         assertEquals(expResult.getOffset(), result.getOffset());
-        instance.createRoot();
+//        instance.createRoot();
         result = instance.createPosition(i);
         assertEquals(expResult.getOffset(), result.getOffset());
     }
@@ -394,10 +398,10 @@ public class ModDocumentTest
     {
         System.out.println("getRootElements");
         ModDocument instance = new ModDocument();
-        ModElement[] expResult = new ModElement[1];
+        ModElement[] expResult = {instance.getDefaultRootElement()};
         ModElement[] result = instance.getRootElements();
         assertArrayEquals(expResult, result);
-        instance.createRoot();
+//        instance.createRoot();
         result = instance.getRootElements();
         assertNotNull(result);
     }
@@ -410,11 +414,7 @@ public class ModDocumentTest
     {
         System.out.println("getDefaultRootElement");
         ModDocument instance = new ModDocument();
-        ModElement expResult = null;
         ModElement result = instance.getDefaultRootElement();
-        assertEquals(expResult, result);
-        instance.createRoot();
-        result = instance.getDefaultRootElement();
         assertNotNull(result);
     }
 
@@ -429,7 +429,7 @@ public class ModDocumentTest
         AttributeSet attr = null;
         ModDocument instance = new ModDocument();
         instance.insertUpdate(chng, attr);
-        instance.createRoot();
+//        instance.createRoot();
         instance.insertUpdate(chng, attr);
     }
 
@@ -443,7 +443,7 @@ public class ModDocumentTest
         AbstractDocument.DefaultDocumentEvent chng = null;
         ModDocument instance = new ModDocument();
         instance.removeUpdate(chng);
-        instance.createRoot();
+//        instance.createRoot();
         instance.removeUpdate(chng);
    }
     

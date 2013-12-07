@@ -2,6 +2,7 @@ package model.modelement3;
 
 import model.moddocument3.ModDocument;
 import model.modelement3.ModContext.ModContextType;
+import static model.modelement3.ModContext.ModContextType.*;
 
 
 /**
@@ -18,11 +19,11 @@ public class ModRootElement extends ModElement {
 	
 	/**
 	 * 
-	 * @param d
+	 * @param document
 	 */
 	public ModRootElement(ModDocument document) {
 		super(null);
-
+		this.document = document;
 		this.name = "ModRootElement";
 
 		ModElement child = new ModElement(this, true);
@@ -85,9 +86,9 @@ public class ModRootElement extends ModElement {
      */
     public void reorganizeAfterDeletion()
     {
-        resetContextFlags();
-        glueElementsWithoutNewline();
-        buildContextsParseUnreal();
+        this.resetContextFlags();
+        this.glueElementsWithoutNewline();
+        this.buildContextsParseUnreal();
     }
 
 	private void glueElementsWithoutNewline() {
@@ -130,7 +131,7 @@ public class ModRootElement extends ModElement {
     private void buildContextsParseUnreal()
     {
         // iterate through array of lines 
-        setContextFlag(ModContextType.FILE_HEADER, true);
+        setContextFlag(FILE_HEADER, true);
 //        getDocument().inFileHeaderContext = true;
         for (int i = 0; i < this.getChildElementCount(); i++) {
 			ModElement b = this.getChildElementAt(i);
@@ -158,5 +159,22 @@ public class ModRootElement extends ModElement {
 	public ModDocument getDocument() {
 		return this.document;
 	}
-    
+
+	/**
+	 * Resets the context flags to their default values (<code>false</code>).
+	 * All flags set to false except for FILE_HEADER = true.
+	 * Reset file attributes in case they were changed.
+	 */
+	@Override
+	protected void resetContextFlags() {
+		this.context = new ModContext();
+		this.setContextFlag(FILE_HEADER, true);
+		// TODO: @Amineri why is any basic element capable of resetting values in the underlying document? Shouldn't only the root node be allowed to do this?
+		// Amineri : Yes, this should only be getting called from the root element on an insertUpdate or removeUpdate method call
+		getDocument().setFileVersion(-1);
+		getDocument().setUpkName("");
+		getDocument().setGuid("");
+		getDocument().setFunctionName("");
+	}
+
 }
