@@ -163,6 +163,35 @@ public class ModElementTest
         e1.parseUnrealHex();
     }
 
+	/**
+	 * Test that contexts are set properly.
+	 */
+	@Test
+	public void testContextMaintanence()
+	{
+		System.out.println("file-level context test");
+		ModDocument d = new ModDocument();
+		ModRootElement r = (ModRootElement) d.getDefaultRootElement();
+		d.insertString(0, "MODFILEVERSION=1\n"
+							+ "UPKFILE=a\n"
+							+ "GUID=b\n"
+							+ "FUNCTION=c\n"
+							+ "[BEFORE_HEX]\n"
+							+ "[CODE]\n"
+							+ "//comment\n"
+							+ "0B 0B 0B \n"  // <== should have HEX_CODE context
+							+ "[/CODE]\n"
+							+ "// comment\n"
+							+ "[/BEGIN_HEX",null);
+		assertEquals(1, r.getElementCount());
+		d.insertUpdate(null, null);
+		assertEquals(11, r.getElementCount());
+		assertEquals("0B 0B 0B \n", r.getElement(7).toString());
+		assertTrue(r.getElement(7).getContextFlag(HEX_CODE)); // this assertion is failing
+		assertTrue(r.getElement(6).getContextFlag(BEFORE_HEX)); // this assertion also fails
+		assertFalse(r.getElement(9).getContextFlag(HEX_CODE));
+	}
+	
     /**
      * Test of isValidHexLine method, of class ModElement.
      */
