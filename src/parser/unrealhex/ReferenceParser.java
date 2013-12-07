@@ -90,7 +90,7 @@ public class ReferenceParser
     
     private void parseGenericObject()
     {
-        String sOpCodes = m_kOpTable.getOpString(m_sTokens[m_iInputPosition]);
+        String sOpCodes = m_kOpTable.getOperandString(m_sTokens[m_iInputPosition]);
         if(!m_sTokens[m_iInputPosition].equalsIgnoreCase(sOpCodes.split("\\s",2)[0]))
         {
             System.out.println("/* opcode mismatch */");

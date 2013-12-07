@@ -17,36 +17,41 @@
 
 package parser.unrealhex;
 
-
 /**
- *
- * @author Amineri
+ * Class holding global operand code strings.
+ * @author Amineri, XMS
  */
+// TODO: instead of storing an array strings that need to be decoded further store opcode data in map using opcode (int) as key and parsed Opcode token class as value (needs to be created)
+public class OperandTable {
+	
+	/**
+	 * The list of operand codes.
+	 */
+	private static final String[] m_arrOperandDecodes = new String[256];
 
+	/**
+	 * Parses the specified string and stores its contents in the list of operand codes.
+	 * @param data the operand code string to parse
+	 */
+	public static void parseData(String data) {
+		int iOpIndex = Integer.parseInt(data.split("\\s")[0], 16);
+		if (m_arrOperandDecodes[iOpIndex] == null) {
+			m_arrOperandDecodes[iOpIndex] = data;
+		} else {
+			System.out.println("Duplicate opcode " + iOpIndex);
+			System.out.println(m_arrOperandDecodes[iOpIndex]);
+			System.out.println(data);
+			System.exit(1);
+		}
+	}
 
-public class OperandTable
-{
-    String[] m_arrOperandDecodes = new String[256];
-    
-    public void parseData(String data)
-    {
-        int iOpIndex = Integer.parseInt(data.split("\\s")[0], 16);
-        if(m_arrOperandDecodes[iOpIndex] == null)
-        {
-            m_arrOperandDecodes[iOpIndex] = data;
-        }
-        else
-        {
-            System.out.println("Duplicate opcode " + iOpIndex );
-            System.out.println(m_arrOperandDecodes[iOpIndex]);
-            System.out.println(data);
-            System.exit(1);
-        }
-    }
-    
-    public String getOpString(String sOpCode)
-    {
-        return m_arrOperandDecodes[Integer.parseInt(sOpCode, 16)];
-    }
+	/**
+	 * Returns the operand code string associated with the specified opcode.
+	 * @param opcode the opcode
+	 * @return the operand code string
+	 */
+	public static String getOperandString(String opcode) {
+		return m_arrOperandDecodes[Integer.parseInt(opcode, 16)];
+	}
 
 }

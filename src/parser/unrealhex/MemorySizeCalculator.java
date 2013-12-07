@@ -1,6 +1,7 @@
 package parser.unrealhex;
 
 
+
 /**
  *
  * @author Amineri
@@ -49,7 +50,7 @@ public class MemorySizeCalculator
 
     private void parseGenericObject()
     {
-        String sOpCodes = m_kOpTable.getOpString(tokens[stringPosition]);
+        String sOpCodes = OperandTable.getOperandString(tokens[stringPosition]);
         if(!tokens[stringPosition].equalsIgnoreCase(sOpCodes.split("\\s",2)[0]))
         {
             System.out.println("/* opcode mismatch */");

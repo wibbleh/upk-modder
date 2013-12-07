@@ -1,42 +1,33 @@
 package model.modelement3;
 
-import static model.modelement3.ModContextType.*;
+import model.modelement3.ModContext.ModContextType;
 
 /**
  *
  * @author Amineri
  */
-
-
-public class ModToken extends ModElement
-{
+public class ModToken extends ModElement {
     
+	/**
+	 * The string data of this token.
+	 */
     protected String data;
     
-    public ModToken(ModElement o)
-    {
-        super(o);
-        init(o);
-        data = "";
-        name = "ModToken";
-    }
+	public ModToken(ModElement parent) {
+		this(parent, "");
+	}
     
-    public ModToken(ModElement o, String s)
-    {
-        super(o);
-        init(o);
-        data = s;
-        name = "ModToken";
-    }
+	public ModToken(ModElement parent, String data) {
+		this(parent, data, false);
+	}
     
-    public ModToken(ModElement o, String s, boolean simple)
-    {
-        super(o);
-        init(o);
-        this.data = s;
-        this.isSimpleString = simple;
-        name = "ModToken";
-    }
+	public ModToken(ModElement parent, String data, boolean isSimpleString) {
+		super(parent);
+		init(parent);
+		this.data = data;
+		this.isSimpleString = isSimpleString;
+		name = "ModToken";
+	}
     
     @Override
     public int getMemorySize()
@@ -50,14 +41,13 @@ public class ModToken extends ModElement
     
     private void init(ModElement o)
     {
-        this.branches = null;
         this.parent = o;
         this.isSimpleString = false;
-        setLocalContext(CODE, isCode());
-        setLocalContext(VALIDCODE, false);
-        setLocalContext(HEADER, false);
-        setLocalContext(BEFOREHEX, false);
-        setLocalContext(AFTERHEX, false);
+        setContextFlag(ModContextType.HEX_CODE, this.isCode());
+        setContextFlag(ModContextType.VALID_CODE, false);
+        setContextFlag(ModContextType.HEX_HEADER, false);
+        setContextFlag(ModContextType.BEFORE_HEX, false);
+        setContextFlag(ModContextType.AFTER_HEX, false);
     }
 
     
@@ -91,16 +81,16 @@ public class ModToken extends ModElement
         return -1;
     }
     
-    String parseUnrealHex(String s, int num)
-    {
-        for(int i = 0; i < num; i++)
-        {
-            this.endOffset += 3;
-            data += s.split("\\s", 2)[0] + " ";
-            s = s.split("\\s", 2)[1];
-        }
-        return s;
-    }
+	String parseUnrealHex(String s, int num) {
+		int endOffset = this.getEndOffset();
+		for (int i = 0; i < num; i++) {
+			endOffset += 3;
+			data += s.split("\\s", 2)[0] + " ";
+			s = s.split("\\s", 2)[1];
+		}
+		this.setRange(this.getStartOffset(), endOffset);
+		return s;
+	}
 
     /**
      * Returns true if element is leaf node (eg "token" )

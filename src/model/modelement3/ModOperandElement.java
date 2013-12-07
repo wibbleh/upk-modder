@@ -1,6 +1,7 @@
 package model.modelement3;
 
-import static model.modelement3.ModContextType.*;
+import model.modelement3.ModContext.ModContextType;
+import parser.unrealhex.OperandTable;
 
 /**
  *
@@ -17,8 +18,8 @@ public class ModOperandElement extends ModElement
     {
         super(o);
         name = "ModOperandElement";
-        setLocalContext(CODE, true);
-        setLocalContext(VALIDCODE, true);
+        setContextFlag(ModContextType.HEX_CODE, true);
+        setContextFlag(ModContextType.VALID_CODE, true);
         operand = "";
     }
 
@@ -36,13 +37,13 @@ public class ModOperandElement extends ModElement
      */
     protected String parseUnrealHex(String s)
     {
-        int lastEnd = this.startOffset;
+        int lastEnd = this.getStartOffset();
         operand = s.split("\\s")[0];
         if(operand.isEmpty())
         {
             return "ERROR";
         }
-        String sOpCodes = opTable.getOpString(operand);
+        String sOpCodes = OperandTable.getOperandString(operand);
 //        if(!operand.equalsIgnoreCase(sOpCodes.split("\\s",2)[0]))
 //        {
 //            System.out.println("/* opcode mismatch */");
@@ -56,21 +57,19 @@ public class ModOperandElement extends ModElement
             if(sParseItem.matches("[0-9]"))
             {
                 ModGenericToken n = new ModGenericToken(this);
-                n.startOffset = lastEnd;
-                n.endOffset = lastEnd;
+                n.setRange(lastEnd, lastEnd);
                 addElement(n);
                 s = n.parseUnrealHex(s, Integer.parseInt(sParseItem));
-                lastEnd = n.endOffset;
+                lastEnd = n.getEndOffset();
                 continue;
             }
             if(sParseItem.equals("G"))
             {
                 ModOperandElement n = new ModOperandElement(this);
-                n.startOffset = lastEnd;
-                n.endOffset = lastEnd;
+                n.setRange(lastEnd, lastEnd);
                 addElement(n);
                 s = n.parseUnrealHex(s);
-                lastEnd = n.endOffset;
+                lastEnd = n.getEndOffset();
                 continue;
             }
             if(sParseItem.equals("P"))
@@ -78,62 +77,56 @@ public class ModOperandElement extends ModElement
                 while(!s.split("\\s")[0].equals("16"))
                 {
                     ModOperandElement n = new ModOperandElement(this);
-                    n.startOffset = lastEnd;
-                    n.endOffset = lastEnd;
+                    n.setRange(lastEnd, lastEnd);
                     addElement(n);
                     s = n.parseUnrealHex(s);
-                    lastEnd = n.endOffset;
+                    lastEnd = n.getEndOffset();
                 }
                 continue;
             }
             if(sParseItem.equals("R"))
             {
                 ModReferenceToken n = new ModReferenceToken(this, false);
-                n.startOffset = lastEnd;
-                n.endOffset = lastEnd;
+                n.setRange(lastEnd, lastEnd);
                 addElement(n);
                 s = n.parseUnrealHex(s);
-                lastEnd = n.endOffset;
+                lastEnd = n.getEndOffset();
                 continue;
             }
             if(sParseItem.equals("NR"))
             {
                 ModReferenceToken n = new ModReferenceToken(this, true);
-                n.startOffset = lastEnd;
-                n.endOffset = lastEnd;
+                n.setRange(lastEnd, lastEnd);
                 addElement(n);
                 s = n.parseUnrealHex(s);
-                lastEnd = n.endOffset;
+                lastEnd = n.getEndOffset();
                 continue;
             }
             if(sParseItem.equals("N"))
             {
                 ModStringToken n = new ModStringToken(this);
-                n.startOffset = lastEnd;
-                n.endOffset = lastEnd;
+                n.setRange(lastEnd, lastEnd);
                 addElement(n);
                 s = n.parseUnrealHex(s);
-                lastEnd = n.endOffset;
+                lastEnd = n.getEndOffset();
                 continue;
             }
             if(sParseItem.startsWith("S"))
             {
                 ModOffsetToken n = new ModOffsetToken(this, sParseItem);
-                n.startOffset = lastEnd;
-                n.endOffset = lastEnd;
+                n.setRange(lastEnd, lastEnd);
                 addElement(n);
                 s = n.parseUnrealHex(s);
-                lastEnd = n.endOffset;
+                lastEnd = n.getEndOffset();
                 continue;
             }
             if(sParseItem.equals("J"))
             {
                 ModOffsetToken n = new ModOffsetToken(this);
-                n.startOffset = lastEnd;
-                n.endOffset = lastEnd;
+                n.setRange(lastEnd, lastEnd);
                 addElement(n);
                 s = n.parseUnrealHex(s);
-                lastEnd = n.endOffset;
+                lastEnd = n.getEndOffset();
                 continue;
             }
             if(sParseItem.equals("C"))
@@ -141,31 +134,28 @@ public class ModOperandElement extends ModElement
                 if(s.split("\\s")[0].equalsIgnoreCase("FF") && s.split("\\s")[1].equalsIgnoreCase("FF"))
                 {
                     ModGenericToken n = new ModGenericToken(this);
-                    n.startOffset = lastEnd;
-                    n.endOffset = lastEnd;
+                    n.setRange(lastEnd, lastEnd);
                     addElement(n);
                     s = n.parseUnrealHex(s, Integer.parseInt(sParseItem));
-                    lastEnd = n.endOffset;
+                    lastEnd = n.getEndOffset();
                 }
                 else
                 {
                     ModOffsetToken n1 = new ModOffsetToken(this);
-                    n1.startOffset = lastEnd;
-                    n1.endOffset = lastEnd;
+                    n1.setRange(lastEnd, lastEnd);
                     addElement(n1);
                     s = n1.parseUnrealHex(s);
-                    lastEnd = n1.endOffset;
+                    lastEnd = n1.getEndOffset();
 
                     ModOperandElement n2 = new ModOperandElement(this);
-                    n2.startOffset = lastEnd;
-                    n2.endOffset = lastEnd;
+                    n2.setRange(lastEnd, lastEnd);
                     addElement(n2);
                     s = n2.parseUnrealHex(s);
-                    lastEnd = n2.endOffset;
+                    lastEnd = n2.getEndOffset();
                }
             }
         }
-        this.endOffset = lastEnd;
+        this.setRange(this.getStartOffset(), lastEnd);
         return s;
     }
 }

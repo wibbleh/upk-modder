@@ -22,51 +22,44 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Scanner;
+
 import parser.unrealhex.OperandTable;
 
 /**
- *
+ * 
  * @author Amineri
  */
-public class OperandTableParser 
-{
-    Path m_kOpTableFile;
-    
-    /**
-     * Constructor for Operand Table using the configuration file. 
-     * @param file
-     * @param bVerbose
-     * @throws IOException
-     */
-    public OperandTableParser(Path file)
-    {
-        m_kOpTableFile = file;
-    }
-    public OperandTable parseFile() throws IOException
-    {
-        // Read the bytes with the proper encoding for this platform.  If
-        // you skip this step, you might see something that looks like
-        // Chinese characters when you expect Latin-style characters.
-        String encoding = System.getProperty("file.encoding");
-        
-        OperandTable kOpTable = new OperandTable();
-        
-        try (Scanner kScanner = new Scanner(Files.newBufferedReader(m_kOpTableFile, Charset.forName(encoding))))
-        {
-            while(kScanner.hasNextLine())
-            {
-                String currLine = kScanner.nextLine().split(";")[0];
-                if(currLine.isEmpty()) 
-                {
-                    continue;
-                }
-                kOpTable.parseData(currLine);
-            }
-        }
-        catch (IOException x) 
-        {
-            System.out.println("caught exception: " + x);
-        }
-        return kOpTable;
-    }
+public class OperandTableParser {
+	Path m_kOpTableFile;
+
+	/**
+	 * Constructor for Operand Table using the configuration file.
+	 * 
+	 * @param file
+	 * @param bVerbose
+	 * @throws IOException
+	 */
+	public OperandTableParser(Path file) {
+		m_kOpTableFile = file;
+	}
+
+	public void parseFile() throws IOException {
+		// Read the bytes with the proper encoding for this platform. If
+		// you skip this step, you might see something that looks like
+		// Chinese characters when you expect Latin-style characters.
+		String encoding = System.getProperty("file.encoding");
+
+		try (Scanner kScanner = new Scanner(Files.newBufferedReader(
+				m_kOpTableFile, Charset.forName(encoding)))) {
+			while (kScanner.hasNextLine()) {
+				String currLine = kScanner.nextLine().split(";")[0];
+				if (currLine.isEmpty()) {
+					continue;
+				}
+				OperandTable.parseData(currLine);
+			}
+		} catch (IOException x) {
+			System.out.println("caught exception: " + x);
+		}
+	}
 }

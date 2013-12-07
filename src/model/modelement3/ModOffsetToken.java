@@ -1,6 +1,6 @@
 package model.modelement3;
 
-import static model.modelement3.ModContextType.*;
+import model.modelement3.ModContext.ModContextType;
 
 /**
  *
@@ -19,7 +19,7 @@ public class ModOffsetToken extends ModToken
         name = "ModJumpToken";
         operand = null;
         isSimpleString = false;
-        setContext(VALIDCODE, true);
+        setContextFlag(ModContextType.VALID_CODE, true);
     }
 
 
@@ -30,14 +30,13 @@ public class ModOffsetToken extends ModToken
         name = "ModRelativeJumpToken";
     }
 
-    String parseUnrealHex(String s)
-    {
-        s = super.parseUnrealHex(s, 2);
-        int int0 = Integer.getInteger(data.split("\\s")[0], 16);
-        int int1 = Integer.getInteger(data.split("\\s")[1], 16);
-        jumpoffset = 256*int0 + int1;
-        return s;
-    }
+	protected String parseUnrealHex(String s) {
+		s = super.parseUnrealHex(s, 2);
+		int int0 = Integer.getInteger(data.split("\\s")[0], 16);
+		int int1 = Integer.getInteger(data.split("\\s")[1], 16);
+		jumpoffset = 256 * int0 + int1;
+		return s;
+	}
     
     @Override
     public int getOffset()

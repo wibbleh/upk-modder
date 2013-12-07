@@ -1,297 +1,246 @@
 package model.moddocument3;
 
-import java.util.ArrayList;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.PlainDocument;
 import javax.swing.text.Segment;
-import model.modelement3.*;
-import parser.unrealhex.OperandTable;
+
+import model.modelement3.ModElement;
+import model.modelement3.ModRootElement;
 
 /**
- *
- * @author Amineri
+ * Document class for the mod file format.
+ * @author Amineri, XMS
  */
-
-
-public class ModDocument extends PlainDocument
-{
-    private ModPosition currPosition;  // maintains current position
-    private ModPosition endPosition; // maintains size of file in characters
-
+@SuppressWarnings("serial")
+public class ModDocument extends PlainDocument {
+	
+	/**
+	 * The document's root element.
+	 */
     private ModRootElement rootElement;
-    private final ModRootElement[] rootElements = new ModRootElement[1];
-    
-//    // context identifiers used when updating after insert or remove operation
-//    private boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
-
-    private int fileVersion;
-    private String upkName;
-    private String guid;
-    private String functionName;
-
-    ArrayList<Object> docProperties;
-    ArrayList<Object> propertyKeys;
-    
-    protected OperandTable opTable;
-
-    /**
-     * Creates a new ModDocument.
-     */
-    public ModDocument()
-    {
-        super();
-        opTable = null;
-        initVars();
-    }
-
-    /**
-     * Creates a new ModDocument with attached OperandTable table.
-     * OperandTable is used to perform unreal bytecode parsing.
-     * @param table
-     */
-    public ModDocument(OperandTable table)
-    {
-        super();
-        opTable = table;
-        initVars();
-    }
-    
-    private void initVars()
-    {
-//        inCodeContext = false;
-//        inHeaderContext = false;
-//        inBeforeBlockContext = false;
-//        inAfterBlockContext = false;
-//        inFileHeaderContext = false;
-
-        fileVersion = -1;
-        upkName = "";
-        guid = "";
-        functionName = "";
-    }
     
     /**
-     * Creates and initializes the root element of the document.
-     */
-    public void createRoot()
-    {
-        if(rootElement == null){
-            rootElement = new ModRootElement(this, opTable);
-//            rootElement.setOpTable(opTable);
-            rootElements[0] = rootElement;
-        }
-    }
-    
+	 * The array of the document's root elements. Always contains only a single
+	 * element.
+	 */
+	private final ModRootElement[] rootElements = new ModRootElement[1];
+
+	/**
+	 * The version number of the document.
+	 */
+	private int fileVersion = -1;
+
+	/**
+	 * The filename of the UPK file associated with this document.
+	 */
+	private String upkName = "";
+
+	/**
+	 * The GUID of the UPK file associated with this document.
+	 */
+	private String guid = "";
+
+	/**
+	 * The name of the targeted UnrealScript function.
+	 */
+	private String functionName = "";
+
+	/**
+	 * Creates a new ModDocument instance.
+	 */
+	public ModDocument() {
+		super();
+	}
+
+	/**
+	 * Refreshes contexts and re-parses tokens after an insert operation.<br>
+	 * <i>Parameters <code>chng</code> and <code>attr</code> currently unused.</i>
+	 * @param chng the change event describing the edit
+	 * @param attr the set of attributes for the inserted text
+	 */
+	@Override
+	public void insertUpdate(AbstractDocument.DefaultDocumentEvent chng, AttributeSet attr) {
+		if (this.rootElement != null) {
+			this.rootElement.reorganizeAfterInsertion();
+		}
+	}
+
     /**
-     * Refreshes contexts and re-parses tokens after an insert operation.
-     * Parameters chng and attr currently unused.
-     * @param chng
-     * @param attr
+     * Refreshes contexts and re-parses tokens after a remove operation.<br>
+     * <i>Parameter <code>chng</code> currently unused.</i>
+     * @param chng the change event describing the edit
      */
     @Override
-    public void insertUpdate(AbstractDocument.DefaultDocumentEvent chng, AttributeSet attr)
-    {
-        if(rootElement != null)
-            rootElement.reorganizeAfterInsertion();
-    }
-    
-    /**
-     * Refreshes contexts and re-parses tokens after a remove operation.
-     * Parameter chng currently unused.
-     * @param chng
-     */
-    @Override
-    public void removeUpdate(AbstractDocument.DefaultDocumentEvent chng)
-    {
-        if(rootElement != null)
-            rootElement.reorganizeAfterDeletion();
-    }
+	public void removeUpdate(AbstractDocument.DefaultDocumentEvent chng) {
+		if (this.rootElement != null) {
+			this.rootElement.reorganizeAfterDeletion();
+		}
+	}
 
     /**
-     * Returns length of document.
-     * Measured in characters.
+     * Returns the length of the document measured in characters.
+     * @return the document length
+     */
+	@Override
+	public int getLength() {
+		return (this.rootElement == null) ? 0 : this.rootElement.getEndOffset();
+    }
+
+	/**
+	 * Removes <code>length</code> characters starting at position
+	 * <code>offset</code>.
+	 * @param offset the starting offset measured from the beginning of the document
+	 * @param length the number of characters to remove
+	 */
+	@Override
+	public void remove(int offset, int length) {
+		if (this.rootElement == null) {
+			return;
+		}
+		this.rootElement.remove(offset, length);
+	}
+
+    /**
+	 * Inserts <code>string at </code>position</code> offset.<br>
+	 * <i>Parameter <code>as</code> currently is unused.</i><p>
+	 * Requires
+	 * <code>{@link ModDocument#insertUpdate(DefaultDocumentEvent, AttributeSet) insertUpdate}</code>
+	 * call to reset contexts and parse Unreal Engine bytecode.
+	 * @param offset the starting measured from the beginning of the document
+	 * @param string the string to insert; does nothing with null/empty strings
+	 * @param as the attributes for the inserted content (currently unused)
+	 * @see
+	 */
+	@Override
+	public void insertString(int offset, String string, AttributeSet as) {
+		if (this.rootElement == null) {
+			return;
+		}
+		this.rootElement.insertString(offset, string, as);
+	}
+
+    /**
+	 * Retrieves a sequence of text of the specified <code>length</code> from
+	 * the document starting at position <code>offset</offset>.
+	 * @param offset the starting offset
+	 * @param length the number of characters to retrieve
+	 * @return the text
+	 */
+	@Override
+	public String getText(int offset, int length) {
+		if (this.rootElement == null) {
+			return "";
+		}
+		return this.rootElement.getText(offset, length);
+	}
+
+    /**
+     * Retrieves a sequence of text of the specified <code>length</code> from
+	 * the document starting at position <code>offset</offset>.<br>
+     * Result is returned in parameter <code>segment</code>.
+     * @param offset the starting offset
+     * @param length the number of characters to retrieve
+     * @param segment the <code>Segment</code> object to retrieve the text into
+     */
+	@Override
+	public void getText(int offset, int length, Segment segment) {
+		if (this.rootElement == null) {
+			return;
+		}
+		this.rootElement.getText(offset, length, segment);
+	}
+
+    /**
+     * Returns array of root elements.<br>
+     * For <code>ModDocument</code> this will always be length 1 array.
      * @return
      */
-    @Override
-    public int getLength()
-    {
-        if (rootElement == null)
-            return 0;
-        return rootElement.getEndOffset();
-    }
+	@Override
+	public ModElement[] getRootElements() {
+		if (this.rootElements[0] == null) {
+			// lazily instantiate root element
+			this.getDefaultRootElement();
+		}
+		return this.rootElements;
+	}
 
-    /**
-     * Removes length characters, starting at position offset.
-     * Offset is measured from the beginning of the document.
-     * @param offset
-     * @param length
-     */
-    @Override
-    public void remove(int offset, int length)
-    {
-        if(rootElement == null) {
-            return;
-        }
-        rootElement.remove(offset, length);
-    }
-
-    /**
-     * Inserts string at position offset.
-     * AttributeSet as currently is unused.
-     * Does not reset contexts or parse unreal bytecode.
-     * Require insertUpdate call to reset contexts and parse unreal bytecode.
-     * @param offset
-     * @param string
-     * @param as
-     */
-    @Override
-    public void insertString(int offset, String string, AttributeSet as)
-    {
-        if (rootElement == null) {
-            return;
-        }
-        rootElement.insertString(offset, string, as);
-    }
-
-    /**
-     * Retrieves String of length starting at position offset.
-     * Returns String.
-     * @param offset
-     * @param length
-     * @return
-     */
-    @Override
-    public String getText(int offset, int length)
-    {
-        if(rootElement == null)
-            return "";
-        return rootElement.getText(offset, length);
-    }
-
-    /**
-     * Retrieves String of length starting at position offset.
-     * String returned through parameter segment.
-     * @param offset
-     * @param length
-     * @param segment
-     */
-    @Override
-    public void getText(int offset, int length, Segment segment)
-    {
-        if(rootElement == null)
-            return;
-        rootElement.getText(offset, length, segment);
-    }
-
-//    @Override
-//    public Position getStartPosition()
-//    {
-//        return new ModPosition(0);
-//    }
-
-//    @Override
-//    public Position getEndPosition()
-//    {
-//        if(rootElement == null)
-//            return new ModPosition(0);
-//        endPosition.setPosition(rootElement.getEndOffset());
-//        return endPosition;
-//    }
-
-//    @Override
-//    public Position createPosition(int i) throws BadLocationException
-//    {
-//        
-//        currPosition.setPosition(i);
-//        return currPosition;
-//    }
-
-    /**
-     * Returns array of root elements.
-     * For ModDocument this will always be length 1 array.
-     * @return
-     */
+	/**
+	 * Returns the root element of the document.
+	 * @return the root element
+	 */
+	@Override
+	public ModElement getDefaultRootElement() {
+		if (this.rootElement == null) {
+			// lazily instantiate root element
+			this.rootElement = new ModRootElement(this);
+			this.rootElements[0] = this.rootElement;
+		}
+		return this.rootElement;
+	}
     
-    @Override
-    public ModElement[] getRootElements()
-    {
-        return rootElements;
-    }
+	/**
+	 * Returns the file version number.
+	 * @return the version number
+	 */
+	public int getFileVersion() {
+		return this.fileVersion;
+	}
 
-    /**
-     * Returns root element of document.
-     * @return
-     */
-    @Override
-    public ModElement getDefaultRootElement()
-    {
-        return rootElement;
-    }
-    
-//    public boolean inFileHeaderContext()
-//    {
-//        return this.inFileHeaderContext;
-//    }
-//    
-//    public boolean inCodeContext()
-//    {
-//        return this.inCodeContext;
-//    }
-//    
-//    public boolean inHeaderContext()
-//    {
-//        return this.inHeaderContext;
-//    }
-//    
-//    public boolean inBeforeBlockContext()
-//    {
-//        return this.inBeforeBlockContext;
-//    }
-//    
-//    public boolean inAfterBlockContext()
-//    {
-//        return this.inAfterBlockContext;
-//    }
+	/**
+	 * Sets the file version number
+	 * @param fileVersion the version number to set.
+	 */
+	public void setFileVersion(int fileVersion) {
+		this.fileVersion = fileVersion;
+	}
 
-    public int getFileVersion()
-    {
-        return fileVersion;
-    }
-    
-    public void setFileVersion(int n)
-    {
-        fileVersion = n;
-    }
-    
-    public String getUpkName()
-    {
-        return upkName;
-    }
-    
-    public void setUpkName(String s)
-    {
-        upkName = s;
-    }
-    
-    public String getGuid()
-    {
-        return guid;
-    }
-    
-    public void setGuid(String s)
-    {
-        guid = s;
-    }
+	/**
+	 * Returns the filename of the UPK file associated with this document.
+	 * @return the UPK filename
+	 */
+	public String getUpkName() {
+		return this.upkName;
+	}
 
-    public String getFunctionName()
-    {
-        return functionName;
-    }
+	/**
+	 * Sets the filename of the UPK file associated with this document.
+	 * @param upkName the filename to set
+	 */
+	public void setUpkName(String upkName) {
+		this.upkName = upkName;
+	}
 
-    public void setFunctionName(String s)
-    {
-        functionName = s;
-    }
+	/**
+	 * Returns the GUID of the UPK file associated with this document.
+	 * @return the GUID
+	 */
+	public String getGuid() {
+		return this.guid;
+	}
+
+	/**
+	 * Sets the GUID of the UPK file associated with this document.
+	 * @param guid the GUID to set
+	 */
+	public void setGuid(String guid) {
+		this.guid = guid;
+	}
+
+	/**
+	 * Returns the name of the targeted UnrealScript function.
+	 * @return the function name
+	 */
+	public String getFunctionName() {
+		return this.functionName;
+	}
+
+	/**
+	 * Sets the name of the targeted UnrealScript function.
+	 * @param functionName the function name
+	 */
+	public void setFunctionName(String functionName) {
+		this.functionName = functionName;
+	}
 
 }

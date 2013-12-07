@@ -1,6 +1,6 @@
 package model.modelement3;
 
-import static model.modelement3.ModContextType.*;
+import model.modelement3.ModContext.ModContextType;
 
 /**
  *
@@ -16,7 +16,7 @@ public class ModGenericToken extends ModToken
         super(o);
         name = "GenericToken";
         isSimpleString = false;
-        setLocalContext(VALIDCODE, true);
+        setContextFlag(ModContextType.VALID_CODE, true);
     }
 
     @Override

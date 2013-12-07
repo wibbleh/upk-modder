@@ -1,81 +1,83 @@
 package model.modelement3;
 
 import model.moddocument3.ModDocument;
-import static model.modelement3.ModContextType.*;
-import model.modfile2.OperandNode;
-import parser.unrealhex.OperandTable;
+import model.modelement3.ModContext.ModContextType;
 
 
 /**
  *
  * @author Amineri
  */
+public class ModRootElement extends ModElement {
+	
+	/**
+	 * The reference to the document instance. This root node is the only node
+	 * in the hierarchy actually storing this reference.
+	 */
+	private ModDocument document;
+	
+	/**
+	 * 
+	 * @param d
+	 */
+	public ModRootElement(ModDocument document) {
+		super(null);
 
+		this.name = "ModRootElement";
 
-public class ModRootElement extends ModElement
-{
-    // context identifiers used when updating after insert or remove operation
-//    private boolean inCodeContext, inHeaderContext, inBeforeBlockContext, inAfterBlockContext, inFileHeaderContext;
-
-    private final boolean[] contexts;
+		ModElement child = new ModElement(this, true);
+		child.addElement(new ModToken(child, "", true));
+		this.addElement(child);
+	}
     
-    public ModRootElement(ModDocument d, OperandTable table)
-    {
-        super(d);
-        setOpTable(table);
-        this.parent = null;
-        name = "ModRootElement";
-        contexts = new boolean[NUMCONTEXTS.getIndex()]; // number of context types
-        addElement(new ModElement(this, true));
-        branches.get(0).addElement(new ModToken(branches.get(0), "", true));
-    }
-    
-    /**
-     * Splits multi-line tokens into single Line tokens.
-     * Re-computes contexts for all elements and tokens.
-     * Re-parses any modified unrealhex.
-     */
-    public void reorganizeAfterInsertion()
-    {
-        resetContexts();
-        splitElementsOnNewline();
-        buildContextsParseUnreal();
-    }
+	/**
+	 * Splits multi-line tokens into single Line tokens.<br>
+	 * Re-computes contextsfor all elements and tokens.<br>
+	 * Re-parses any modified unrealhex.
+	 */
+	public void reorganizeAfterInsertion() {
+		this.resetContextFlags();
+		this.splitElementsOnNewline();
+		this.buildContextsParseUnreal();
+	}
     
     private void splitElementsOnNewline()
     {
         // iterate through array of lines and break into lines
-        int count = 0;
-        int numbranches = branches.size();
+        int index = 0;
+        int childCount = getChildElementCount();
         do {
-            ModElement branch = branches.get(count);
-            count ++;
-            if(branch.isSimpleString) {
-                if(!branch.toString().isEmpty()) {
-                    if(branch.toString().contains("\n") && (count <= numbranches)){
-                        String[] strings = branch.toString().split("\n",2);
-                        if(!strings[1].isEmpty()) {
-                            strings[0] += "\n";
-                            numbranches++;
-                            branch.branches.get(0).setString(strings[0]);
-                            int oldEndOffset = branch.endOffset;
-                            branch.endOffset -= strings[1].length();
-                            branch.branches.get(0).endOffset -= strings[1].length();
-                            ModElement newElement = new ModElement(getParentElement(), true);
-                            ModToken newToken = new ModToken(newElement, strings[1], true);
-                            addElement(count, newElement);
-                            newElement.addElement(newToken);
-                            newElement.startOffset = branch.endOffset;
-                            newElement.endOffset = oldEndOffset;
-                            newToken.startOffset = branch.endOffset;
-                            newToken.endOffset = oldEndOffset;
-                        }
-                    }
-                }
-            }
-        } while(count < numbranches);
+        	ModElement child = this.getChildElementAt(index);
+        	index ++;
+			if (child.isSimpleString) {
+				if (!child.toString().isEmpty()) {
+					if (child.toString().contains("\n") && (index <= childCount)) {
+						String[] strings = child.toString().split("\n", 2);
+						if (!strings[1].isEmpty()) {
+        					strings[0] += "\n";
+        					childCount++;
+        					ModElement grandChild = child.getChildElementAt(0);
+        					grandChild.setString(strings[0]);
+        					int oldEndOffset = child.getEndOffset();
+        					int childEndOffset = child.getEndOffset() - strings[1].length();
+        					child.setRange(child.getStartOffset(), childEndOffset);
+        					int grandChildEndOffset = grandChild.getEndOffset() - strings[1].length();
+        					grandChild.setRange(grandChild.getStartOffset(), grandChildEndOffset);
+
+        					ModElement newElement = new ModElement(getParentElement(), true);
+        					ModToken newToken = new ModToken(newElement, strings[1], true);
+
+        					this.addElement(index, newElement);
+        					newElement.addElement(newToken);
+        					newElement.setRange(child.getEndOffset(), oldEndOffset);
+        					newToken.setRange(child.getEndOffset(), oldEndOffset);
+        				}
+        			}
+        		}
+        	}
+        } while(index < childCount);
     }
-    
+
     /**
      * Glues together lines not separated by newlines.
      * Re-computes contexts for all elements and tokens.
@@ -83,79 +85,78 @@ public class ModRootElement extends ModElement
      */
     public void reorganizeAfterDeletion()
     {
-        resetContexts();
+        resetContextFlags();
         glueElementsWithoutNewline();
         buildContextsParseUnreal();
     }
 
-    private void glueElementsWithoutNewline()
-    {
-        // iterate through array of lines and break into lines
-        int count = 0;
-        int numbranches = branches.size();
-        do {
-            ModElement branch = branches.get(count);
-            if(branch.isSimpleString) {
-                if(!branch.toString().isEmpty()) {
-                    if(!branch.toString().contains("\n") && count +1 < numbranches){
-                        numbranches--;
-                        String gluedString = branch.toString() + branches.get(count+1).toString();
-                        branch.branches.get(0).setString(gluedString);
-                        branch.endOffset += gluedString.length();
-                        branch.branches.get(0).endOffset += gluedString.length();
-                        branches.remove(count+1);
-                    }
-                    else {
-                        count++;
-                    }
-                } else { // handle empty string removal
-                    if(document.getDefaultRootElement().getEndOffset() == 0){ // if document is empty exit out
-                        count ++;
-                    } else {  // otherwise remove the element with the empty leaf
-                        numbranches --;
-                        branches.remove(count);
-                    }
-                }
-            }
-        } while(count < numbranches);
-    }
+	private void glueElementsWithoutNewline() {
+		// iterate through array of lines and break into lines
+		int count = 0;
+		int numbranches = this.getChildElementCount();
+		do {
+			ModElement branch = this.getChildElementAt(count);
+			if (branch.isSimpleString) {
+				if (!branch.toString().isEmpty()) {
+					if (!branch.toString().contains("\n") && count + 1 < numbranches) {
+						numbranches--;
+						String gluedString = branch.toString()
+								+ this.getChildElementAt(count + 1).toString();
+						ModElement branchBranch = branch.getChildElementAt(0);
+						branchBranch.setString(gluedString);
+						branch.setRange(branch.getStartOffset(),
+								branch.getEndOffset() + gluedString.length());
+						branchBranch.setRange(
+								branchBranch.getStartOffset(),
+								branchBranch.getEndOffset() + gluedString.length());
+						this.removeChildElementAt(count + 1);
+					} else {
+						count++;
+					}
+				} else { // handle empty string removal
+					if (document.getDefaultRootElement().getEndOffset() == 0) {
+						// if document is empty exit out
+						count++;
+					} else {
+						// otherwise remove the element with the empty leaf
+						numbranches--;
+						this.removeChildElementAt(count);
+					}
+				}
+			}
+		} while (count < numbranches);
+	}
 
     private void buildContextsParseUnreal()
     {
         // iterate through array of lines 
-        setContext(FILEHEADER, true);
+        setContextFlag(ModContextType.FILE_HEADER, true);
 //        getDocument().inFileHeaderContext = true;
-        for(ModElement b : branches) {
+        for (int i = 0; i < this.getChildElementCount(); i++) {
+			ModElement b = this.getChildElementAt(i);
+			
             // update contexts
             b.updateContexts();
             
             //  consolidate/expand code lines
-            if(!b.inLocalContext(CODE) && !b.isSimpleString) { // consolidate string
+            if(!b.getContextFlag(ModContextType.HEX_CODE) && !b.isSimpleString) { // consolidate string
                 ModToken newToken = new ModToken(b, b.toString(), true);
-                newToken.startOffset = b.startOffset;
-                newToken.endOffset = b.endOffset;
-                b.branches.clear();
+                newToken.setRange(b.getStartOffset(), b.getEndOffset());
+                b.removeAllChildElements();
                 b.addElement(newToken);
                 b.isSimpleString = true;
             }
-            if(b.inLocalContext(CODE) && b.isSimpleString) {
+            if(b.getContextFlag(ModContextType.HEX_CODE) && b.isSimpleString) {
                 b.parseUnrealHex();
             }
             // isCode and not isSimple String means it was not update
             // !isCode and isSimple string does not need reconsolidating
         }
     }
-
-    @Override
-    protected boolean inContext(ModContextType type)
-    {
-        return this.contexts[type.getIndex()];
-    }
-    
-    @Override
-    protected void setContext(ModContextType type, boolean val)
-    {
-        this.contexts[type.getIndex()] = val;
-    }
+	
+	@Override
+	public ModDocument getDocument() {
+		return this.document;
+	}
     
 }
