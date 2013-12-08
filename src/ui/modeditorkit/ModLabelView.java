@@ -20,13 +20,13 @@ public class ModLabelView extends LabelView {
         super(elem);
     }
     
-//    public void paint(Graphics g, Shape allocation) {
-//        super.paint(g, allocation);
+    public void paint(Graphics g, Shape allocation) {
+        super.paint(g, allocation);
 //        if (getAttributes().getAttribute(ModDocument.JAGGED_UDERLINE_ATTRIBUTE_NAME)!=null &&
 //            (Boolean)getAttributes().getAttribute(ModDocument.JAGGED_UDERLINE_ATTRIBUTE_NAME)) {
 //            paintJaggedLine(g, allocation);
 //        }
-//    }
+    }
 
  
     public void paintJaggedLine(Graphics g, Shape a) {
