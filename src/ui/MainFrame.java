@@ -1,5 +1,6 @@
 package ui;
 
+import io.parser.OperandTableParser;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
@@ -157,21 +159,23 @@ public class MainFrame extends JFrame {
 		/*
 		* use this for working plain text -- X's original
 		*/
-		modEditor.setEditorKit(new ui.editor.ModEditorKit());  
-		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
-		modEditor.read(new FileInputStream(file), file);
-		ui.editor.ModDocument modDocument = (ui.editor.ModDocument) modEditor.getDocument();
-		modDocument.putProperty(ui.editor.ModDocument.tabSizeAttribute, 4);
+//		modEditor.setEditorKit(new ui.editor.ModEditorKit());  
+//		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
+//		modEditor.read(new FileInputStream(file), file);
+//		ui.editor.ModDocument modDocument = (ui.editor.ModDocument) modEditor.getDocument();
+//		modDocument.putProperty(ui.editor.ModDocument.tabSizeAttribute, 4);
 
 		/*
 		* use this for broken ModDocument3 -- Amineri's experiment
 		*/
-//		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
-//		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
-//		modEditor.read(new FileInputStream(file), file);
-//		model.moddocument3.ModDocument modDocument = (model.moddocument3.ModDocument) modEditor.getDocument();
-//		modDocument.insertUpdate(null, null);
-//		modDocument.putProperty(model.moddocument3.ModDocument.tabSizeAttribute, 4);
+		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		parser.parseFile();
+		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
+		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
+		modEditor.read(new FileInputStream(file), file);
+		model.moddocument3.ModDocument modDocument = (model.moddocument3.ModDocument) modEditor.getDocument();
+		modDocument.insertUpdate(null, null);
+		modDocument.putProperty(model.moddocument3.ModDocument.tabSizeAttribute, 4);
 		
 		JScrollPane modPane = new JScrollPane(modEditor);
 		modPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
