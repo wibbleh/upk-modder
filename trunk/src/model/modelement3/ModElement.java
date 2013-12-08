@@ -1,12 +1,15 @@
 package model.modelement3;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import javax.swing.text.AbstractDocument.BranchElement;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Element;
+import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.Segment;
 import javax.swing.tree.TreeNode;
 
@@ -19,7 +22,8 @@ import static model.modelement3.ModContext.ModContextType.*;
  * @author Amineri
  * @see {@link ModDocument}
  */
-public class ModElement implements Element, TreeNode {
+public class ModElement implements Element, TreeNode, Serializable, AttributeSet, MutableAttributeSet {
+//public class ModElement extends AbstractElement {
 	
 	/**
 	 * The list of child elements.
@@ -819,6 +823,94 @@ public class ModElement implements Element, TreeNode {
 	@Override
 	public Enumeration children() {
 		return (Enumeration) children;
+	}
+
+	public ModElement positionToElement(int pos){
+		return getChildElementAt(getElementIndex(pos));
+	}
+	
+	public void replace(int offset, int length, ModElement[] elems){
+		remove(offset, length);
+		int index = getParentElement().getElementIndex(offset);
+		for(ModElement e : elems)
+		{
+			getParentElement().addElement(index, e);
+		}
+	}
+	
+	@Override
+	public int getAttributeCount() {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public boolean isDefined(Object o) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public boolean isEqual(AttributeSet as) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public AttributeSet copyAttributes() {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public Object getAttribute(Object o) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public Enumeration<?> getAttributeNames() {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public boolean containsAttribute(Object o, Object o1) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public boolean containsAttributes(AttributeSet as) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public AttributeSet getResolveParent() {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public void addAttribute(Object o, Object o1) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public void addAttributes(AttributeSet as) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public void removeAttribute(Object o) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public void removeAttributes(Enumeration<?> enmrtn) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public void removeAttributes(AttributeSet as) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+
+	@Override
+	public void setResolveParent(AttributeSet as) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 	}
         
 }

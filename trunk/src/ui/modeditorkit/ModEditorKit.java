@@ -23,6 +23,7 @@ import javax.swing.text.TextAction;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import model.moddocument3.ModDocument;
+import model.modelement3.ModContext;
 import model.modelement3.ModElement;
 
 /**
@@ -31,65 +32,84 @@ import model.modelement3.ModElement;
  */
 
 
-public class ModEditorKit extends StyledEditorKit {
+public class ModEditorKit extends DefaultEditorKit {
 
-	@Override
-	public String getContentType() {
-		return "text/upkmod";
+	/**
+	 * The view factory instance.
+	 */
+	private ModViewFactory factory;
+	
+	/**
+	 * The style context instance.
+	 */
+	private ModContext context;
+
+	/**
+	 * TODO: API
+	 */
+	public ModEditorKit() {
+		super();
+		this.factory = new ModViewFactory();
+		this.context = new ModContext();
 	}
+
+//	@Override
+//	public String getContentType() {
+//		return "text/upkmod";
+//	}
 
 	@Override
 	public ViewFactory getViewFactory()  {
-        return new ModViewFactory();
+		return this.factory;
 	}
 
-	@Override
-	public Action[] getActions() {
-	    return TextAction.augmentList(super.getActions(), new Action[] {new MyUnderlineAction()});
-	}
+//	@Override
+//	public Action[] getActions() {
+//	    return TextAction.augmentList(super.getActions(), new Action[] {new MyUnderlineAction()});
+//	}
+//
+//	public static class MyUnderlineAction extends StyledTextAction {
+// 
+//        public MyUnderlineAction() {
+//            super("jagged-underline");
+//        }
+// 
+//		@Override
+//        public void actionPerformed(ActionEvent e) {
+//            JEditorPane editor = getEditor(e);
+//            if (editor != null) {
+//                ModDocument doc=(ModDocument)editor.getDocument();
+//                int start=editor.getSelectionStart();
+//                int end=editor.getSelectionEnd();
+//                if (start!=end) {
+//                    if (start>end) {
+//                        int tmp=start;
+//                        start=end;
+//                        end=tmp;
+//                    }
+// 
+////                    doc.setJaggedUnderline(start, end);
+//                }
+//
+//            }
+//        }
+//    }
 
-	public static class MyUnderlineAction extends StyledTextAction {
- 
-        public MyUnderlineAction() {
-            super("jagged-underline");
-        }
- 
-		@Override
-        public void actionPerformed(ActionEvent e) {
-            JEditorPane editor = getEditor(e);
-            if (editor != null) {
-                ModDocument doc=(ModDocument)editor.getDocument();
-                int start=editor.getSelectionStart();
-                int end=editor.getSelectionEnd();
-                if (start!=end) {
-                    if (start>end) {
-                        int tmp=start;
-                        start=end;
-                        end=tmp;
-                    }
- 
-//                    doc.setJaggedUnderline(start, end);
-                }
-
-            }
-        }
-    }
-
-	@Override
-	public Caret createCaret() {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
+//	@Override
+//	public Caret createCaret() {
+//		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//	}
 
 	@Override
 	public ModDocument createDefaultDocument() {
 		ModDocument mdoc = new ModDocument();
 		mdoc.getDefaultRootElement();
 		return mdoc;
+//		return new ModDocument();
 	}
 
 	public void read(InputStream in, ModDocument doc, int pos) throws IOException, BadLocationException {
-
-	        ModReader.read(doc, pos, in);
+		ModReader.read(doc, pos, in);
 }
 
 	public void write(Writer out, ModDocument doc, int pos, int len) throws IOException, BadLocationException {
@@ -111,11 +131,11 @@ public class ModEditorKit extends StyledEditorKit {
     static class ModViewFactory implements ViewFactory {
 		@Override
         public View create(Element elem) {
-
 			ModElement modElem = (ModElement) elem;
-            String kind = modElem.getName();
-            if (kind != null) {
-				// TODO -- implement Mod hightlight style names
+
+//			String kind = modElem.getName();
+//            if (kind != null) {
+				// TODO -- implement Mod highlight style names
 //                if (kind.equals(AbstractDocument.ContentElementName)) {
 //                    return new MyLabelView(elem);
 //                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
@@ -127,11 +147,11 @@ public class ModEditorKit extends StyledEditorKit {
 //                } else if (kind.equals(StyleConstants.IconElementName)) {
 //                    return new IconView(elem);
 //                }
-				return null;
-
-            }
- 
-            return new LabelView(elem);
+//				return null;
+//
+//            }
+//			return null;
+            return new ModLabelView(modElem);
         }
     }
 }
