@@ -22,7 +22,7 @@ import static model.modelement3.ModContext.ModContextType.*;
  * @author Amineri
  * @see {@link ModDocument}
  */
-public class ModElement implements Element, TreeNode, Serializable, AttributeSet, MutableAttributeSet {
+public class ModElement implements Element, TreeNode {
 //public class ModElement extends AbstractElement {
 	
 	/**
@@ -111,11 +111,12 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
 	/**
 	 * Invoke ModRootElement's Context Flag reset algorithm.
 	 * In practice this function should never be called anywhere but the root element.
+	 * @return 
 	 */
-	protected void resetContextFlags() {
-		if(getParentElement() == null) {return;}
-		getParentElement().resetContextFlags();
-	}
+//	protected void resetContextFlags() {
+//		if(getParentElement() == null) {return;}
+//		getParentElement().resetContextFlags();
+//	}
     
 	@Override
 	public ModDocument getDocument() {
@@ -201,7 +202,7 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
 		if (!this.isValidHexLine()) {
 			return;
 		}
-		String oldString = this.toString();
+		String oldString = this.toStr();
 		try {
 			// extract initial string representation of this element
 			String[] linebreak = this.toHexStringArray();
@@ -227,6 +228,7 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
 				// cache length
 				// create operand token
 				ModOperandElement opElem = new ModOperandElement(this);
+				opElem.setRange(currOffset, this.getEndOffset());
 				hex = opElem.parseUnrealHex(hex);
 				int lastLength = oldLength - hex.length();
 				opElem.setRange(currOffset, currOffset + lastLength);
@@ -256,7 +258,7 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
 	 * @return <code>true</code> if this element contains valid hex data, <code>false</code> otherwise
 	 */
 	protected boolean isValidHexLine() {
-		String[] tokens = toString().split("//")[0].trim().split("\\s");
+		String[] tokens = toStr().split("//")[0].trim().split("\\s");
 		for (String token : tokens) {
 			if (!token.matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
 				return false;
@@ -271,7 +273,7 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
      */
 	protected String[] toHexStringArray() {
 		// get initial string representation of this element
-		String in = this.toString();
+		String in = this.toStr();
 
 		// pre-allocate result array
 		String outString[] = new String[3];
@@ -327,48 +329,49 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
     
 	protected void updateContexts() {
 		if(getDocument() == null) {return;}
-		String content = this.toString().toUpperCase();
+		String content = this.toStr().toUpperCase();
 		if (this.isSimpleString) {
-			ModDocument document = getDocument();
-			String tagValue = this.getTagValue(content);
+//			ModDocument document = getDocument();
+//			String tagValue = this.getTagValue(content);
 			if (content.startsWith("UPKFILE=")) {
-				document.setUpkName(tagValue);
+				getDocument().setUpkName(this.getTagValue(content));
 			} else if (content.startsWith("FUNCTION=")) {
-				document.setFunctionName(tagValue);
+				getDocument().setFunctionName(this.getTagValue(content));
 			} else if (content.startsWith("GUID=")) {
-				document.setGuid(tagValue);
+				getDocument().setGuid(this.getTagValue(content));
 			} else if (content.startsWith("MODFILEVERSION=")) {
-				document.setFileVersion(Integer.parseInt(tagValue));
+				getDocument().setFileVersion(Integer.parseInt(this.getTagValue(content)));
 			}
 		}
+		// update global contexts
 		if (this.foundHeader()) {
-			this.setContextFlag(FILE_HEADER, false);
+			getRoot().setContextFlag(FILE_HEADER, false);
 		}
-		if (getContextFlag(FILE_HEADER)) {
-			this.setContextFlag(HEX_CODE, false);
-			this.setContextFlag(BEFORE_HEX, false);
-			this.setContextFlag(AFTER_HEX, false);
-			this.setContextFlag(HEX_HEADER, false);
-			this.setContextFlag(FILE_HEADER, true);
+		if (getRoot().getContextFlag(FILE_HEADER)) {
+			getRoot().setContextFlag(HEX_CODE, false);
+			getRoot().setContextFlag(BEFORE_HEX, false);
+			getRoot().setContextFlag(AFTER_HEX, false);
+			getRoot().setContextFlag(HEX_HEADER, false);
+			getRoot().setContextFlag(FILE_HEADER, true);
 		} else {
 			if (content.startsWith("[BEFORE_HEX]")) {
-				this.setContextFlag(BEFORE_HEX, true);
+				getRoot().setContextFlag(BEFORE_HEX, true);
 			} else if (content.startsWith("[/BEFORE_HEX]")) {
-				this.setContextFlag(BEFORE_HEX, false);
+				getRoot().setContextFlag(BEFORE_HEX, false);
 			} else if (content.startsWith("[AFTER_HEX]")) {
-				this.setContextFlag(AFTER_HEX, true);
+				getRoot().setContextFlag(AFTER_HEX, true);
 			} else if (content.startsWith("[/AFTER_HEX]")) {
-				this.setContextFlag(AFTER_HEX, false);
+				getRoot().setContextFlag(AFTER_HEX, false);
 			} else if (content.startsWith("[CODE]")) {
-				this.setContextFlag(HEX_CODE, true);
+				getRoot().setContextFlag(HEX_CODE, true);
 			} else if (content.startsWith("[/CODE]")) {
-				this.setContextFlag(HEX_CODE, false);
+				getRoot().setContextFlag(HEX_CODE, false);
 			} else if (content.startsWith("[HEADER]")) {
-				this.setContextFlag(HEX_HEADER, true);
+				getRoot().setContextFlag(HEX_HEADER, true);
 			} else if (content.startsWith("[/HEADER]")) {
-				this.setContextFlag(HEX_HEADER, false);
+				getRoot().setContextFlag(HEX_HEADER, false);
 			}
-			this.setContextFlag(FILE_HEADER, false);
+			getRoot().setContextFlag(FILE_HEADER, false);
 		}
 	}
     
@@ -514,7 +517,7 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
         if(isSimpleString) {
         } else {
             ModElement lineParent = getLineParent();
-            String newSimpleString = lineParent.toString();
+            String newSimpleString = lineParent.toStr();
             lineParent.children.clear();
             lineParent.addElement(new ModToken(lineParent, newSimpleString, true));
             
@@ -549,19 +552,24 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
      * For tokens returns the current token string data.
      * @return the contents of this element in text form
      */
-    @Override
-    public String toString()
+    public String toStr()
     {
+		String newString = "";
 		if (this.children.size() == 0) {
 			return this.getString();
 		}
-		String newString = "";
 		for (ModElement child : children) {
-			newString += child.toString();
+			newString += child.toStr();
 		}
 		return newString;
     }
     
+    @Override
+	public String toString(){
+		String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
+		return newString + toStr();
+	}
+	
     /**
      * Returns the element of type line that contains offset (measured in characters from start of file).
      * IMPLEMENTED
@@ -744,6 +752,15 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
             return children.size();
         }
     }
+	
+	/**
+	 * Returns the root element of the tree
+	 * @return
+	 */
+	protected ModElement getRoot()
+	{
+		return getParentElement().getRoot();
+	}
 
     /**
      * Returns the n-th child of the current element.
@@ -838,79 +855,5 @@ public class ModElement implements Element, TreeNode, Serializable, AttributeSet
 		}
 	}
 	
-	@Override
-	public int getAttributeCount() {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public boolean isDefined(Object o) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public boolean isEqual(AttributeSet as) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public AttributeSet copyAttributes() {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public Object getAttribute(Object o) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public Enumeration<?> getAttributeNames() {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public boolean containsAttribute(Object o, Object o1) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public boolean containsAttributes(AttributeSet as) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public AttributeSet getResolveParent() {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public void addAttribute(Object o, Object o1) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public void addAttributes(AttributeSet as) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public void removeAttribute(Object o) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public void removeAttributes(Enumeration<?> enmrtn) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public void removeAttributes(AttributeSet as) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-	@Override
-	public void setResolveParent(AttributeSet as) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
         
 }

@@ -48,7 +48,12 @@ import org.bounce.text.xml.XMLFoldingMargin;
 import org.bounce.text.xml.XMLScanner;
 import org.bounce.text.xml.XMLStyleConstants;
 
-import ui.editor.ModEditorKit;
+import ui.editor.*;  // use these for plain text
+//import ui.editor.ModEditorKit;
+
+import ui.modeditorkit.*;     // use these for broken text display
+import model.moddocument3.*;
+//import model.modelement3.ModElement;
 
 /**
  * The application's primary frame.
@@ -147,13 +152,26 @@ public class MainFrame extends JFrame {
 		
 		modEditor = new JEditorPane();
 		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
 		// TODO: insert custom editor kit for modfile format
-		modEditor.setEditorKit(new ModEditorKit());
-		File file = new File("test_mod.upk_mod");
+		/*
+		* use this for working plain text -- X's original
+		*/
+		modEditor.setEditorKit(new ui.editor.ModEditorKit());  
+		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
 		modEditor.read(new FileInputStream(file), file);
-		
-		Document modDocument = modEditor.getDocument();
-		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
+		ui.editor.ModDocument modDocument = (ui.editor.ModDocument) modEditor.getDocument();
+		modDocument.putProperty(ui.editor.ModDocument.tabSizeAttribute, 4);
+
+		/*
+		* use this for broken ModDocument3 -- Amineri's experiment
+		*/
+//		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
+//		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
+//		modEditor.read(new FileInputStream(file), file);
+//		model.moddocument3.ModDocument modDocument = (model.moddocument3.ModDocument) modEditor.getDocument();
+//		modDocument.insertUpdate(null, null);
+//		modDocument.putProperty(model.moddocument3.ModDocument.tabSizeAttribute, 4);
 		
 		JScrollPane modPane = new JScrollPane(modEditor);
 		modPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);

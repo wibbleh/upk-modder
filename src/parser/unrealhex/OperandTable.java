@@ -34,8 +34,8 @@ public class OperandTable {
 	 * @param data the operand code string to parse
 	 */
 	public static void parseData(String data) {
-		if(m_arrOperandDecodes[0]!= null)  // TODO : handle re-initialization of the operand table more cleanly
-				return;
+//		if(m_arrOperandDecodes[0]!= null)  // TODO : handle re-initialization of the operand table -- this doesn't work
+//				return;
 		int iOpIndex = Integer.parseInt(data.split("\\s")[0], 16);
 		if (m_arrOperandDecodes[iOpIndex] == null) {
 			m_arrOperandDecodes[iOpIndex] = data;

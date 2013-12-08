@@ -17,6 +17,11 @@ public class ModRootElement extends ModElement {
 	 */
 	private ModDocument document;
 	
+    /**
+     * The persistent global context maintained while parsing through the file.
+     */
+//    private ModContext globalContext;
+
 	/**
 	 * 
 	 * @param document
@@ -51,9 +56,9 @@ public class ModRootElement extends ModElement {
         	ModElement child = this.getChildElementAt(index);
         	index ++;
 			if (child.isSimpleString) {
-				if (!child.toString().isEmpty()) {
-					if (child.toString().contains("\n") && (index <= childCount)) {
-						String[] strings = child.toString().split("\n", 2);
+				if (!child.toStr().isEmpty()) {
+					if (child.toStr().contains("\n") && (index <= childCount)) {
+						String[] strings = child.toStr().split("\n", 2);
 						if (!strings[1].isEmpty()) {
         					strings[0] += "\n";
         					childCount++;
@@ -62,10 +67,10 @@ public class ModRootElement extends ModElement {
         					int oldEndOffset = child.getEndOffset();
         					int childEndOffset = child.getEndOffset() - strings[1].length();
         					child.setRange(child.getStartOffset(), childEndOffset);
-        					int grandChildEndOffset = grandChild.getEndOffset() - strings[1].length();
-        					grandChild.setRange(grandChild.getStartOffset(), grandChildEndOffset);
+        					int grandChildEndOffset = child.getEndOffset() - strings[1].length();
+        					grandChild.setRange(child.getStartOffset(), childEndOffset);
 
-        					ModElement newElement = new ModElement(getParentElement(), true);
+        					ModElement newElement = new ModElement(this, true);
         					ModToken newToken = new ModToken(newElement, strings[1], true);
 
         					this.addElement(index, newElement);
@@ -98,11 +103,11 @@ public class ModRootElement extends ModElement {
 		do {
 			ModElement branch = this.getChildElementAt(count);
 			if (branch.isSimpleString) {
-				if (!branch.toString().isEmpty()) {
-					if (!branch.toString().contains("\n") && count + 1 < numbranches) {
+				if (!branch.toStr().isEmpty()) {
+					if (!branch.toStr().contains("\n") && count + 1 < numbranches) {
 						numbranches--;
-						String gluedString = branch.toString()
-								+ this.getChildElementAt(count + 1).toString();
+						String gluedString = branch.toStr()
+								+ this.getChildElementAt(count + 1).toStr();
 						ModElement branchBranch = branch.getChildElementAt(0);
 						branchBranch.setString(gluedString);
 						branch.setRange(branch.getStartOffset(),
@@ -128,20 +133,30 @@ public class ModRootElement extends ModElement {
 		} while (count < numbranches);
 	}
 
+	protected void updateContexts(ModElement e){
+		
+	}
+	
     private void buildContextsParseUnreal()
     {
         // iterate through array of lines 
-        setContextFlag(FILE_HEADER, true);
-//        getDocument().inFileHeaderContext = true;
-        for (int i = 0; i < this.getChildElementCount(); i++) {
+		for (int i = 0; i < this.getChildElementCount(); i++) {
 			ModElement b = this.getChildElementAt(i);
 			
             // update contexts
             b.updateContexts();
+			
+			//store copy of global contexts at current child
+			b.context.setContextFlag(FILE_HEADER, this.context.getContextFlag(FILE_HEADER));
+			b.context.setContextFlag(BEFORE_HEX, this.context.getContextFlag(BEFORE_HEX));
+			b.context.setContextFlag(AFTER_HEX, this.context.getContextFlag(AFTER_HEX));
+			b.context.setContextFlag(HEX_HEADER, this.context.getContextFlag(HEX_HEADER));
+			b.context.setContextFlag(HEX_CODE, this.context.getContextFlag(HEX_CODE));
+			b.context.setContextFlag(VALID_CODE, this.context.getContextFlag(VALID_CODE));
             
             //  consolidate/expand code lines
             if(!b.getContextFlag(ModContextType.HEX_CODE) && !b.isSimpleString) { // consolidate string
-                ModToken newToken = new ModToken(b, b.toString(), true);
+                ModToken newToken = new ModToken(b, b.toStr(), true);
                 newToken.setRange(b.getStartOffset(), b.getEndOffset());
                 b.removeAllChildElements();
                 b.addElement(newToken);
@@ -160,17 +175,23 @@ public class ModRootElement extends ModElement {
 		return this.document;
 	}
 
+	@Override
+	protected ModElement getRoot()
+	{
+		return this;
+	}
+
 	/**
 	 * Resets the context flags to their default values (<code>false</code>).
 	 * All flags set to false except for FILE_HEADER = true.
 	 * Reset file attributes in case they were changed.
 	 */
-	@Override
 	protected void resetContextFlags() {
 		this.context = new ModContext();
 		this.setContextFlag(FILE_HEADER, true);
 		// TODO: @Amineri why is any basic element capable of resetting values in the underlying document? Shouldn't only the root node be allowed to do this?
 		// Amineri : Yes, this should only be getting called from the root element on an insertUpdate or removeUpdate method call
+		if(getDocument() == null) {return;}
 		getDocument().setFileVersion(-1);
 		getDocument().setUpkName("");
 		getDocument().setGuid("");
