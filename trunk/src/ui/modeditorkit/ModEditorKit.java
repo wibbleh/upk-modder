@@ -150,8 +150,8 @@ public class ModEditorKit extends DefaultEditorKit {
 //				return null;
 //
 //            }
-//			return null;
-            return new ModLabelView(modElem);
+			return null;
+//            return new ModLabelView(modElem);
         }
     }
 }

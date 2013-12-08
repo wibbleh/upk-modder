@@ -98,10 +98,10 @@ public class ModElementTest
     public void testResetContextFlags()
     {
         System.out.println("resetContextFlags");
-        ModElement instance = new ModElement(null);
+        ModRootElement instance = new ModRootElement(null);
         instance.resetContextFlags();
         assertFalse(instance.getContextFlag(HEX_CODE));
-        assertFalse(instance.getContextFlag(FILE_HEADER));
+        assertTrue(instance.getContextFlag(FILE_HEADER));
         
         ModDocument d = new ModDocument();
 		ModRootElement r = (ModRootElement)d.getDefaultRootElement();
@@ -160,7 +160,8 @@ public class ModElementTest
 		ModToken t1 = new ModToken(e1, in, true);
 		e1.addElement(t1);
 		t1.setRange(0, 34);
-        e1.parseUnrealHex();
+		e1.parseUnrealHex();
+		assertEquals(3, e1.getChildElementCount());
     }
 
 	/**
@@ -186,7 +187,7 @@ public class ModElementTest
 		assertEquals(1, r.getElementCount());
 		d.insertUpdate(null, null);
 		assertEquals(11, r.getElementCount());
-		assertEquals("0B 0B 0B \n", r.getElement(7).toString());
+		assertEquals("0B 0B 0B \n", r.getElement(7).toStr());
 		assertTrue(r.getElement(7).getContextFlag(HEX_CODE)); // this assertion is failing
 		assertTrue(r.getElement(6).getContextFlag(BEFORE_HEX)); // this assertion also fails
 		assertFalse(r.getElement(9).getContextFlag(HEX_CODE));
@@ -258,15 +259,12 @@ public class ModElementTest
     public void testUpdateContexts()
     {
         System.out.println("updateContexts");
-        ModElement e = new ModElement(null);
-        e.updateContexts();
         ModDocument d = new ModDocument();
-        ModElement r = d.getDefaultRootElement();
+        ModRootElement r = (ModRootElement) d.getDefaultRootElement();
         ModElement e2 = new ModElement(r);
-        e.resetContextFlags();
         r.resetContextFlags();
-        assertFalse(r.getContextFlag(HEX_CODE));
-        assertTrue(r.getContextFlag(FILE_HEADER));
+        assertFalse("HEX_CODE true, s.b. false", r.getContextFlag(HEX_CODE));
+        assertTrue("FILE_HEADER false, s.b. true", r.getContextFlag(FILE_HEADER));
     }
 
     /**
@@ -354,7 +352,7 @@ public class ModElementTest
 		ModToken t = new ModToken(e, "test", true);
 		t.setRange(0, 4);
         t.insertStringAtLeaf(2, "foo", as);
-		String result = t.toString();
+		String result = t.toStr();
 		String expResult = "tefoost";
 		assertEquals(expResult, result);
     }
@@ -425,7 +423,7 @@ public class ModElementTest
 		ModToken t2 = new ModToken(e, "bar", true);
 		e.addElement(t2);
         String expResult = "foobar";
-        String result = e.toString();
+        String result = e.toStr();
         assertEquals(expResult, result);
     }
 
