@@ -1,6 +1,7 @@
 package ui;
 
 import io.parser.OperandTableParser;
+
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
@@ -39,7 +40,10 @@ import javax.swing.filechooser.FileFilter;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.PlainDocument;
+import javax.swing.text.View;
+import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.xml.stream.events.XMLEvent;
 
@@ -49,12 +53,9 @@ import org.bounce.text.xml.XMLEditorKit;
 import org.bounce.text.xml.XMLFoldingMargin;
 import org.bounce.text.xml.XMLScanner;
 import org.bounce.text.xml.XMLStyleConstants;
-
-import ui.editor.*;  // use these for plain text
+// use these for plain text
 //import ui.editor.ModEditorKit;
-
-import ui.modeditorkit.*;     // use these for broken text display
-import model.moddocument3.*;
+// use these for broken text display
 //import model.modelement3.ModElement;
 
 /**
@@ -138,13 +139,15 @@ public class MainFrame extends JFrame {
 		
 //		xmlKit.setAutoIndentation(true);
 		xmlEditor.setEditorKit(xmlKit);
-		xmlEditor.setEditable(false);
 		xmlEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 		
+		File xmlFile = new File("MyModPackage_v3.xml");    // new streamlined file version
+		xmlEditor.read(new FileInputStream(xmlFile), xmlFile);
+		
 		ScrollableEditorPanel xmlPnl = new ScrollableEditorPanel(xmlEditor);
-		JScrollPane xmlPane = new JScrollPane(xmlPnl);
-		xmlPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-		xmlPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		JScrollPane xmlPane = new JScrollPane(xmlPnl,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		xmlPane.setPreferredSize(new Dimension(350, 600));
 
 		JPanel rowHeader = new JPanel(new BorderLayout());
@@ -155,41 +158,49 @@ public class MainFrame extends JFrame {
 		modEditor = new JEditorPane();
 		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
-		// TODO: insert custom editor kit for modfile format
 		/*
-		* use this for working plain text -- X's original
-		*/
-//		modEditor.setEditorKit(new ui.editor.ModEditorKit());  
-//		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
-//		modEditor.read(new FileInputStream(file), file);
-//		ui.editor.ModDocument modDocument = (ui.editor.ModDocument) modEditor.getDocument();
-//		modDocument.putProperty(ui.editor.ModDocument.tabSizeAttribute, 4);
-
+		 * use this for working plain text -- X's original
+		 */
+		modEditor.setEditorKit(new ui.editor.ModEditorKit());
+		
+		JScrollPane modPane = new JScrollPane(modEditor,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+//		modPane.setRowHeaderView(new LineNumberMargin(modEditor));
+		modPane.setPreferredSize(new Dimension(650, 600));
+		
 		/*
-		* use this for broken ModDocument3 -- Amineri's experiment
-		*/
+		 * use this for broken ModDocument3 -- Amineri's experiment
+		 */
 		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
 		parser.parseFile();
 		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
-		File file = new File("test_mod_v3.upk_mod");    // new streamlined file version
-		modEditor.read(new FileInputStream(file), file);
-		model.moddocument3.ModDocument modDocument = (model.moddocument3.ModDocument) modEditor.getDocument();
-		modDocument.insertUpdate(null, null);
-		modDocument.putProperty(model.moddocument3.ModDocument.tabSizeAttribute, 4);
-		
-		JScrollPane modPane = new JScrollPane(modEditor);
-		modPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-		modPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		modPane.setPreferredSize(new Dimension(650, 600));
+
+		File modFile = new File("test_mod_v3.upk_mod");    // new streamlined file version
+		modEditor.read(new FileInputStream(modFile), modFile);
+
+		Document modDocument = modEditor.getDocument();
+		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
+		((model.moddocument3.ModDocument) modDocument).insertUpdate(null, null);
 
 		// create tree view of right-hand mod editor
 		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
-		TreeNode modRoot = (TreeNode) modDocument.getDefaultRootElement();
-		final JTree modTree = new JTree(modRoot);
-		JScrollPane modTreePane = new JScrollPane(modTree);
-		modTreePane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-		modTreePane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		modTreePane.setPreferredSize(new Dimension(350, 600));
+		TreeNode modElemRoot = (TreeNode) modDocument.getDefaultRootElement();
+		final JTree modElemTree = new JTree(modElemRoot);
+		JScrollPane modElemTreePane = new JScrollPane(modElemTree,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		modElemTreePane.setPreferredSize(new Dimension(350, 300));
+		
+		
+		View modRootView = modEditor.getUI().getRootView(modEditor);
+		TreeNode modViewRoot = this.createViewBranch(modRootView);	// sorry about the names :S
+		
+		final JTree modViewTree = new JTree(modViewRoot);
+		JScrollPane modViewTreePane = new JScrollPane(modViewTree,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		modViewTreePane.setPreferredSize(new Dimension(350, 300));
 		
 		// install document listener to refresh tree on changes to the document
 		modDocument.addDocumentListener(new DocumentListener() {
@@ -205,18 +216,59 @@ public class MainFrame extends JFrame {
 			public void changedUpdate(DocumentEvent evt) {
 				this.updateTree(evt);
 			}
-			/** Updates the tree view on document changes */
+			/** Updates the tree views on document changes */
 			private void updateTree(DocumentEvent evt) {
-				((DefaultTreeModel) modTree.getModel()).setRoot(
+				// reset element tree
+				((DefaultTreeModel) modElemTree.getModel()).setRoot(
 						(TreeNode) evt.getDocument().getDefaultRootElement());
+				// reset view tree
+				((DefaultTreeModel) modViewTree.getModel()).setRoot(
+						createViewBranch(modEditor.getUI().getRootView(modEditor)));
+				
+				// expand trees
+				for (int i = 0; i < modElemTree.getRowCount(); i++) {
+					modElemTree.expandRow(i);
+				}
+				for (int i = 0; i < modViewTree.getRowCount(); i++) {
+					modViewTree.expandRow(i);
+				}
 			}
 		});
+
+		// expand trees
+		for (int i = 0; i < modElemTree.getRowCount(); i++) {
+			modElemTree.expandRow(i);
+		}
+		for (int i = 0; i < modViewTree.getRowCount(); i++) {
+			modViewTree.expandRow(i);
+		}
+		
+		JSplitPane modTreeSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, modElemTreePane, modViewTreePane);
 		
 		// wrap editors in split pane with vertical divider
 //		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, xmlPane, modPane);
-		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, modTreePane, modPane);
+		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, modTreeSplit, modPane);
 		
 		contentPane.add(splitPane);
+	}
+	
+	/**
+	 * Build a tree node from the provided View and recursively adds all its
+	 * child views as child nodes.
+	 * @param parentView the view to wrap in a tree node
+	 * @return the tree node wrapping the view
+	 */
+	private TreeNode createViewBranch(View parentView) {
+		TreeNode parentNode = new DefaultMutableTreeNode(parentView);
+		int viewCount = parentView.getViewCount();
+		for (int i = 0; i < viewCount; i++) {
+			View childView = parentView.getView(i);
+			if (childView != null) {
+				TreeNode childNode = createViewBranch(childView);
+				((DefaultMutableTreeNode) parentNode).add((MutableTreeNode) childNode);
+			}
+		}
+		return parentNode;
 	}
 	
 	/**
@@ -315,7 +367,6 @@ public class MainFrame extends JFrame {
 						
 					});
 					
-					xmlEditor.setEditable(true);
 					// repaint parent (or rather great-grandparent) scroll pane to update row header
 					xmlEditor.getParent().getParent().getParent().repaint();
 					
