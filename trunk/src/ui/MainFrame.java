@@ -1,7 +1,5 @@
 package ui;
 
-import io.parser.OperandTableParser;
-
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
@@ -15,7 +13,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
@@ -157,31 +154,31 @@ public class MainFrame extends JFrame {
 		
 		modEditor = new JEditorPane();
 		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		
+		JScrollPane modPane = new JScrollPane(modEditor,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		modPane.setRowHeaderView(new LineNumberMargin(modEditor));
+		modPane.setPreferredSize(new Dimension(650, 600));
 
 		/*
 		 * use this for working plain text -- X's original
 		 */
 		modEditor.setEditorKit(new ui.editor.ModEditorKit());
 		
-		JScrollPane modPane = new JScrollPane(modEditor,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-//		modPane.setRowHeaderView(new LineNumberMargin(modEditor));
-		modPane.setPreferredSize(new Dimension(650, 600));
-		
 		/*
 		 * use this for broken ModDocument3 -- Amineri's experiment
 		 */
-		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
-		parser.parseFile();
-		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
+//		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+//		parser.parseFile();
+//		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
 
 		File modFile = new File("test_mod_v3.upk_mod");    // new streamlined file version
 		modEditor.read(new FileInputStream(modFile), modFile);
 
 		Document modDocument = modEditor.getDocument();
 		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
-		((model.moddocument3.ModDocument) modDocument).insertUpdate(null, null);
+//		((model.moddocument3.ModDocument) modDocument).insertUpdate(null, null);
 
 		// create tree view of right-hand mod editor
 		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
