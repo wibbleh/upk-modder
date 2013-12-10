@@ -1,7 +1,38 @@
 package model.modtree;
 
+import static model.modtree.ModContext.ModContextType.AFTER_HEX;
+import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
+import static model.modtree.ModContext.ModContextType.FILE_HEADER;
+import static model.modtree.ModContext.ModContextType.HEX_CODE;
+import static model.modtree.ModContext.ModContextType.VALID_CODE;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import io.parser.OperandTableParser;
+
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.event.DocumentEvent;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Document;
+import javax.swing.text.Element;
 import javax.swing.text.Segment;
+import javax.swing.text.StyledDocument;
+
+import model.modtree.ModContext.ModContextType;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 //import org.junit.After;
 //import org.junit.AfterClass;
 //import org.junit.Before;
@@ -9,27 +40,6 @@ import javax.swing.text.Segment;
 //import org.junit.Test;
 //import static org.junit.Assert.*;
 //import parser.unrealhex.OperandTable;
-import io.parser.OperandTableParser;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.event.DocumentEvent;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.Document;
-import javax.swing.text.Element;
-import javax.swing.text.StyledDocument;
-import model.modtree.*;
-import model.modtree.ModContext.*;
-import static model.modtree.ModContext.ModContextType.*;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
 //import org.junit.Ignore;
 
 /**
@@ -138,13 +148,14 @@ public class ModTreeTest
 
     /**
      * Test of getDefaultRootNode method, of class ModDocument.
+     * @throws BadLocationException 
      */
     @Test
-    public void testGetDefaultRootNode()
+    public void testGetDefaultRootNode() throws BadLocationException
     {
         System.out.println("getDefaultRootNode");
         ModTree instance = new ModTree();
-        ModTreeNode result = instance.getDefaultRootNode();
+        ModTreeNode result = instance.getRoot();
         assertNotNull(result);
     }
 
@@ -184,9 +195,10 @@ public class ModTreeTest
 
     /**
      * Test of resetContextFlags method, of class ModTreeNode.
+     * @throws BadLocationException 
      */
     @Test
-    public void testResetContextFlags()
+    public void testResetContextFlags() throws BadLocationException
     {
         System.out.println("resetContextFlags");
         ModTreeRootNode instance = new ModTreeRootNode(null);
@@ -195,7 +207,7 @@ public class ModTreeTest
         assertTrue(instance.getContextFlag(FILE_HEADER));
         
         ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootNode();
+		ModTreeRootNode r = (ModTreeRootNode)d.getRoot();
         r.resetContextFlags();
         assertFalse(r.getContextFlag(HEX_CODE));
         assertTrue(r.getContextFlag(FILE_HEADER));
@@ -203,9 +215,10 @@ public class ModTreeTest
 
     /**
      * Test of getDocument method, of class ModTreeNode.
+     * @throws BadLocationException 
      */
     @Test
-    public void testGetTree()
+    public void testGetTree() throws BadLocationException
     {
         System.out.println("getTree");
         ModTreeNode instance = new ModTreeNode(null);
@@ -214,7 +227,7 @@ public class ModTreeTest
         assertEquals(expResult, result);
 		
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootNode();
+		ModTreeRootNode r = (ModTreeRootNode)d.getRoot();
 		ModTreeNode e = new ModTreeNode(r);
 		ModTreeLeaf t = new ModTreeLeaf(e, "foo", true);
 		assertEquals(d, t.getTree());
@@ -250,7 +263,7 @@ public class ModTreeTest
 		ModTreeLeaf t1 = new ModTreeLeaf(e1, in, true);
 		e1.addNode(t1);
 		t1.setRange(0, 34);
-		e1.parseUnrealHex();
+		e1.parseUnrealHex(null, 0);
 		assertEquals(3, e1.getChildNodeCount()); // three children: "\t\t", "OperandTreeNode_0F", "// comment\n"
 		assertEquals(3, e1.getChildAt(1).getChildCount());  // three childen: "0F ", "OperandTreeNode_00", "25 "
     }
@@ -264,7 +277,7 @@ public class ModTreeTest
 	{
 		System.out.println("file-level context test");
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
+		ModTreeRootNode r = (ModTreeRootNode) d.getRoot();
 		r.insertString(0, "MODFILEVERSION=1\n"
 							+ "UPKFILE=a\n"
 							+ "GUID=b\n"
@@ -279,7 +292,7 @@ public class ModTreeTest
 		assertEquals(1, r.getNodeCount());
 		r.reorganizeAfterInsertion();
 		assertEquals(11, r.getNodeCount());
-		assertEquals("0B 0B 0B \n", r.getNode(7).toStr());
+		assertEquals("0B 0B 0B \n", r.getNode(7).getFullText());
 		assertTrue(r.getNode(7).getContextFlag(HEX_CODE)); // this assertion is failing
 		assertTrue(r.getNode(6).getContextFlag(BEFORE_HEX)); // this assertion also fails
 		assertFalse(r.getNode(9).getContextFlag(HEX_CODE));
@@ -346,13 +359,14 @@ public class ModTreeTest
 
     /**
      * Test of updateContexts method, of class ModTreeNode.
+     * @throws BadLocationException 
      */
     @Test
-    public void testUpdateContexts()
+    public void testUpdateContexts() throws BadLocationException
     {
         System.out.println("updateContexts");
         ModTree d = new ModTree();
-        ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
+        ModTreeRootNode r = (ModTreeRootNode) d.getRoot();
         ModTreeNode e2 = new ModTreeNode(r);
         r.resetContextFlags();
         assertFalse("HEX_CODE true, s.b. false", r.getContextFlag(HEX_CODE));
@@ -387,9 +401,10 @@ public class ModTreeTest
 
     /**
      * Test of remove method, of class ModTreeNode.
+     * @throws BadLocationException 
      */
     @Test
-    public void testRemove()
+    public void testRemove() throws BadLocationException
     {
         System.out.println("remove");
         int offset = 0;
@@ -410,7 +425,7 @@ public class ModTreeTest
 		String expResult = "12345456789\n"
 				+ "123456789\n"
 				+ "1234567890";
-		assertEquals(expResult, r.toStr());
+		assertEquals(expResult, r.getFullText());
 		assertEquals(0, r.getStartOffset());
 		assertEquals(32, r.getEndOffset());
 		assertEquals(0, r.getChildNodeAt(0).getStartOffset());
@@ -473,7 +488,7 @@ public class ModTreeTest
 		ModTreeLeaf t = new ModTreeLeaf(e, "test", true);
 		t.setRange(0, 4);
         t.insertStringAtLeaf(2, "foo", as);
-		String result = t.toStr();
+		String result = t.getFullText();
 		String expResult = "tefoost";
 		assertEquals(expResult, result);
     }
@@ -487,8 +502,8 @@ public class ModTreeTest
         System.out.println("setString");
         String s = "foo";
         ModTreeLeaf instance = new ModTreeLeaf(null);
-        instance.setString(s);
-		String result = instance.getString();
+        instance.setText(s);
+		String result = instance.getText();
 		String expResult = "foo";
 		assertEquals(expResult, result);
     }
@@ -503,7 +518,7 @@ public class ModTreeTest
         ModTreeNode e = new ModTreeNode(null);
 		ModTreeLeaf t = new ModTreeLeaf(e, "foobar", true);
 		String expResult = "foobar";
-		String result = t.getString();
+		String result = t.getText();
 		assertEquals(expResult, result);
 //        expResult = "";
 //        result = e.getString();
@@ -546,7 +561,7 @@ public class ModTreeTest
 		ModTreeLeaf t2 = new ModTreeLeaf(e, "bar", true);
 		e.addNode(t2);
         String expResult = "foobar";
-        String result = e.toStr();
+        String result = e.getFullText();
         assertEquals(expResult, result);
     }
 
@@ -565,7 +580,7 @@ public class ModTreeTest
         String result = instance.getText(offset, length);
         assertEquals(expResult, result);
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
+		ModTreeRootNode r = (ModTreeRootNode) d.getRoot();
 		r.setRange(0, 19);
 		ModTreeNode e1 = new ModTreeNode(r, true);
 		r.addNode(e1);
@@ -597,7 +612,7 @@ public class ModTreeTest
 		String expResult = "";
 		assertEquals(expResult, segment.toString());
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
+		ModTreeRootNode r = (ModTreeRootNode) d.getRoot();
 		ModTreeNode e1 = new ModTreeNode(r, true);
 		r.addNode(0, e1);
 		r.setRange(0, 6);
@@ -709,7 +724,7 @@ public class ModTreeTest
     {
         System.out.println("getNodeIndex");
         ModTree d = new ModTree();
-        ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
+        ModTreeRootNode r = (ModTreeRootNode) d.getRoot();
         r.insertString(0, "foo\nbar\nstuff", null);
         r.reorganizeAfterInsertion();
         assertEquals(0, r.getNodeIndex(-1));
@@ -748,14 +763,15 @@ public class ModTreeTest
 
     /**
      * Test of getContextFlag method, of class ModTreeNode.
+     * @throws BadLocationException 
      */
     @Test
-    public void testSetAndInContext()
+    public void testSetAndInContext() throws BadLocationException
     {
         System.out.println("getContextFlag");
         ModTree d = new ModTree();
-        ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootNode();
-        ModTreeNode e = new ModTreeNode(d.getDefaultRootNode());
+        ModTreeRootNode r = (ModTreeRootNode)d.getRoot();
+        ModTreeNode e = new ModTreeNode(d.getRoot());
         assertFalse(e.getContextFlag(HEX_CODE));
     }
 
@@ -774,9 +790,10 @@ public class ModTreeTest
 
     /**
      * Test of getMemorySize method, of class ModTreeNode.
+     * @throws BadLocationException 
      */
     @Test
-    public void testGetMemorySize()
+    public void testGetMemorySize() throws BadLocationException
     {
         System.out.println("getMemorySize");
         ModTreeNode instance = new ModTreeNode(null);
@@ -807,12 +824,12 @@ public class ModTreeTest
     {
         System.out.println("isVFFunctionRef");
         ModTreeNode n1 = new ModTreeNode(null);
-        boolean result = n1.isVFFunctionRef();
+        boolean result = n1.isVirtualFunctionRef();
         assertEquals(false, result);
 		ModReferenceLeaf n2 = new ModReferenceLeaf(n1,false);
-		assertEquals(false, n2.isVFFunctionRef());
+		assertEquals(false, n2.isVirtualFunctionRef());
 		ModReferenceLeaf n3 = new ModReferenceLeaf(n1,true);
-		assertEquals(true, n3.isVFFunctionRef());
+		assertEquals(true, n3.isVirtualFunctionRef());
     }
 
     /**
@@ -857,22 +874,24 @@ public class ModTreeTest
 	/**
 	 * Test of getDocument method, of class ModTree.
 	 * Verifies null case does not crash app.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testGetDocument() {
+	public void testGetDocument() throws BadLocationException {
 		System.out.println("getDocument");
 		ModTree instance = new ModTree();
 		StyledDocument expResult = null;
-		StyledDocument result = instance.getDocument();
+		StyledDocument result = (StyledDocument) instance.getDocument();
 		assertEquals(expResult, result);
 	}
 
 	/**
 	 * Test of getFileVersion method, of class ModTree.
 	 * Tests un-initialized case.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testGetFileVersion() {
+	public void testGetFileVersion() throws BadLocationException {
 		System.out.println("getFileVersion");
 		ModTree instance = new ModTree();
 		int expResult = -1;
@@ -882,9 +901,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of setFileVersion method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testSetFileVersion() {
+	public void testSetFileVersion() throws BadLocationException {
 		System.out.println("setFileVersion");
 		int fileVersion = 27;
 		ModTree t = new ModTree();
@@ -894,9 +914,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of getUpkName method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testGetUpkName() {
+	public void testGetUpkName() throws BadLocationException {
 		System.out.println("getUpkName");
 		ModTree instance = new ModTree();
 		String expResult = "";
@@ -906,9 +927,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of setUpkName method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testSetUpkName() {
+	public void testSetUpkName() throws BadLocationException {
 		System.out.println("setUpkName");
 		String upkName = "testname.upk";
 		ModTree t = new ModTree();
@@ -918,9 +940,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of getGuid method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testGetGuid() {
+	public void testGetGuid() throws BadLocationException {
 		System.out.println("getGuid");
 		ModTree instance = new ModTree();
 		String expResult = "";
@@ -930,9 +953,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of setGuid method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testSetGuid() {
+	public void testSetGuid() throws BadLocationException {
 		System.out.println("setGuid");
 		String guid = "11 22 33 AA 87 ";
 		ModTree t = new ModTree();
@@ -942,9 +966,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of getFunctionName method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testGetFunctionName() {
+	public void testGetFunctionName() throws BadLocationException {
 		System.out.println("getFunctionName");
 		ModTree instance = new ModTree();
 		String expResult = "";
@@ -954,9 +979,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of setFunctionName method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testSetFunctionName() {
+	public void testSetFunctionName() throws BadLocationException {
 		System.out.println("setFunctionName");
 		String functionName = "function@class";
 		ModTree t = new ModTree();
@@ -966,9 +992,10 @@ public class ModTreeTest
 
 	/**
 	 * Test of processNextEvent method, of class ModTree.
+	 * @throws BadLocationException 
 	 */
 	@Test
-	public void testProcessNextEvent() {
+	public void testProcessNextEvent() throws BadLocationException {
 		System.out.println("processNextEvent");
 		// null case -- verify code does not crash
 		ModTree instance = new ModTree();
@@ -979,13 +1006,13 @@ public class ModTreeTest
 		ModTree t = new ModTree();
 		t.docEvents.add(de);
 		t.processNextEvent();
-		assertEquals("This", t.getDefaultRootNode().toStr());
-		assertEquals(0, t.getDefaultRootNode().getStartOffset());
-		assertEquals(4, t.getDefaultRootNode().getEndOffset());
-		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getStartOffset());
-		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getEndOffset());
-		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getStartOffset());
-		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getEndOffset());
+		assertEquals("This", t.getRoot().getFullText());
+		assertEquals(0, t.getRoot().getStartOffset());
+		assertEquals(4, t.getRoot().getEndOffset());
+		assertEquals(0, t.getRoot().getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getRoot().getChildNodeAt(0).getEndOffset());
+		assertEquals(0, t.getRoot().getChildNodeAt(0).getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getRoot().getChildNodeAt(0).getChildNodeAt(0).getEndOffset());
 	}
 
 	/**
@@ -1002,13 +1029,13 @@ public class ModTreeTest
 		//full case
 		de = new MyDE();
 		t.processDocumentEvent(de);
-		assertEquals("This", t.getDefaultRootNode().toStr());
-		assertEquals(0, t.getDefaultRootNode().getStartOffset());
-		assertEquals(4, t.getDefaultRootNode().getEndOffset());
-		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getStartOffset());
-		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getEndOffset());
-		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getStartOffset());
-		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getEndOffset());
+		assertEquals("This", t.getRoot().getFullText());
+		assertEquals(0, t.getRoot().getStartOffset());
+		assertEquals(4, t.getRoot().getEndOffset());
+		assertEquals(0, t.getRoot().getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getRoot().getChildNodeAt(0).getEndOffset());
+		assertEquals(0, t.getRoot().getChildNodeAt(0).getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getRoot().getChildNodeAt(0).getChildNodeAt(0).getEndOffset());
 	}
     
 }

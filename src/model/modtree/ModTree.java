@@ -1,79 +1,35 @@
 package model.modtree;
 
+import static model.modtree.ModContext.ModContextType.HEX_CODE;
+import static model.modtree.ModContext.ModContextType.VALID_CODE;
+
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentEvent.EventType;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Document;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import static model.modtree.ModContext.ModContextType.*;
 
 /**
  *
  * @author Amineri
  */
-
-
-public class ModTree implements Runnable {
-
-	@Override
-	public void run() {
-		try {
-			Thread.sleep(50);
-		} catch(InterruptedException ex) {
-			Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		while(!docEvents.isEmpty()) {
-			processNextEvent();
-		}
-	}
-	
-	/**
-	 * Implements the Listener to be registered with a StyledDocument
-	 */
-	protected class ModTreeListener implements DocumentListener {
-
-		@Override
-		public void insertUpdate(DocumentEvent de) {
-			if(de.getDocument() == doc) {
-				if(de.getType() == DocumentEvent.EventType.INSERT) {
-					docEvents.add(de);
-					(new Thread(new ModTree())).start();
-				}
-			}
-		}
-
-		@Override
-		public void removeUpdate(DocumentEvent de) {
-			if(de.getDocument() == doc) {
-				if(de.getType() == DocumentEvent.EventType.REMOVE) {
-					docEvents.add(de);
-					(new Thread(new ModTree())).start();
-				}
-			}
-		}
-
-		@Override
-		public void changedUpdate(DocumentEvent de) {
-			if(de.getDocument() == doc) {
-				if(de.getType() == DocumentEvent.EventType.CHANGE) {
-					// do nothing for formatting changes
-				}
-			}
-		}
-	}
+public class ModTree {
 	
 	/**
 	 * The tree's DocumentListener implementation.
 	 */
-	protected ModTreeListener mtListener;
+	protected ModTreeListener mtListener = new ModTreeListener();
 	
 	/**
 	 * The tree's list (queue) of pending Document Events to be processed.
@@ -83,19 +39,12 @@ public class ModTree implements Runnable {
 	/**
 	 * The tree's document it is listening to.
 	 */
-	protected StyledDocument doc = null;
+	protected Document doc = null;
 	
 	/**
 	 * The tree's root node.
 	 */
     private ModTreeRootNode rootNode;
-    
-	/**
-	 * The array of the tree's root nodes. Always contains only a single node.
-	 */
-	@Deprecated
-	private final ModTreeRootNode[] rootElements = new ModTreeRootNode[1];
-
 	
 	// TODO -- Should retrieve this information from ModDocument if stored there
 	// @ XMTS : Would it make more sense to store these values here? Does the document even need them?
@@ -122,34 +71,46 @@ public class ModTree implements Runnable {
 	/**
 	 * ModTree constructor.
 	 * Initializes queue of 10 DocumentEvents.
+	 * @param modDocument 
+	 * @throws BadLocationException 
 	 */
-	public ModTree() {
-		docEvents = new ArrayList<>(10);
+	public ModTree(Document document) throws BadLocationException {
+		docEvents = new ArrayList<>();
+		this.setDocument(document);
+	}
+
+	/**
+	 * Associates a default document with the ModTree.
+	 * Registers a DocumentListener with the document.
+	 * @throws BadLocationException
+	 */
+	public ModTree() throws BadLocationException {
+		this(new DefaultStyledDocument());
 	}
 
 	/**
 	 * Associates a document with the ModTree.
 	 * Registers a DocumentListener with the document.
-	 * @param document StyledDocument to be registered.
+	 * @param doc StyledDocument to be registered.
 	 * @throws javax.swing.text.BadLocationException
 	 */
-	public void setDocument(StyledDocument document) throws BadLocationException {
-		this.doc = document;
-		mtListener = new ModTreeListener();
-		if(doc.getLength() > 0) {
+	public void setDocument(Document doc) throws BadLocationException {
+		this.doc = doc;
+		if (doc.getLength() > 0) {
 			String s = doc.getText(0, doc.getLength());
-			getDefaultRootNode().insertString(0, s, null);
-			getDefaultRootNode().reorganizeAfterInsertion();
-			updateDocument();
+			ModTreeRootNode root = this.getRoot();
+			root.insertString(0, s, null);
+			root.reorganizeAfterInsertion();
+			this.updateDocument();
 		}
-		doc.addDocumentListener(mtListener);
+		doc.addDocumentListener(this.mtListener);
 	}
 	
 	/**
 	 * Retrieves current document associated with ModTree.
 	 * @return
 	 */
-	public StyledDocument getDocument() {
+	public Document getDocument() {
 		return doc;
 	}
 	
@@ -159,20 +120,21 @@ public class ModTree implements Runnable {
 	 * Later may modify text to implement reference/offset corrections.
 	 */
 	protected void updateDocument() {
-		if(getDocument() == null) { return; }
-		updateNode(getDefaultRootNode());
-		
+		if (getDocument() == null) {
+			return;
+		}
+		this.updateNodeStyles(this.getRoot());
 	}
 	
 	/**
 	 * Updates associated document for a single node.
-	 * Function is used recursively
+	 * Function is used recursively.
 	 * @param node The current node being updated for.
 	 */
-	protected void updateNode(ModTreeNode node) {
-		applyStyle(node);
-		for(int i = 0; i < node.getChildNodeCount() ; i ++ ) {
-			updateNode(node.getChildNodeAt(i));
+	protected void updateNodeStyles(ModTreeNode node) {
+		this.applyStyles(node);
+		for (int i = 0; i < node.getChildNodeCount(); i++) {
+			this.updateNodeStyles(node.getChildNodeAt(i));
 		}
 	}
 
@@ -182,17 +144,17 @@ public class ModTree implements Runnable {
 	 * Attribute changes are ignored by ModTree.
 	 * @param node The ModTreeNode originating the style. 
 	 */
-	protected void applyStyle(ModTreeNode node) {
+	protected void applyStyles(ModTreeNode node) {
 		int start = node.getStartOffset();
 		int end = node.getEndOffset();
 		boolean replace = true;
-		
+
 		// perform attribute updates
-		AttributeSet as = new SimpleAttributeSet();  // TODO perform node-to-style mapping
+		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 		StyleConstants.setItalic((MutableAttributeSet) as, false);
-		if(node.getName().equals("ModReferenceToken")) {
-			if(node.isVFFunctionRef()) {
+		if (node instanceof ModReferenceLeaf) {
+			if (node.isVirtualFunctionRef()) {
 				StyleConstants.setForeground((MutableAttributeSet) as, Color.MAGENTA);
 				StyleConstants.setUnderline((MutableAttributeSet) as, true);
 			} else {
@@ -200,42 +162,36 @@ public class ModTree implements Runnable {
 				StyleConstants.setUnderline((MutableAttributeSet) as, true);
 			}
 		}
-		if(node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE)) {
+		if (node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE)) {
 			StyleConstants.setBackground((MutableAttributeSet) as, Color.RED);
 		}
-		if(node.getName().equals("OperandToken")) {
-			if(node.toStr().startsWith("0B")) {
+		if (node.getName().equals("OperandToken")) {
+			if (node.getFullText().startsWith("0B")) {
 				StyleConstants.setForeground((MutableAttributeSet) as, Color.DARK_GRAY);
 				StyleConstants.setBold((MutableAttributeSet) as, false);
-				
 			} else {
 				StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
 				StyleConstants.setBold((MutableAttributeSet) as, true);
 			}
 		}
-		if(node.getName().contains("Jump")) {
-			StyleConstants.setBackground((MutableAttributeSet) as, new Color(255, 255, 128));
+		if (node.getName().contains("Jump")) {
+			StyleConstants.setBackground((MutableAttributeSet) as,
+					new Color( 255, 255, 128));
 		}
-		getDocument().setCharacterAttributes(start, end, as, replace);
 		
+		((StyledDocument) this.getDocument()).setCharacterAttributes(
+				start, end, as, replace);
 	}
 	
 	/**
 	 * Processes next DocumentEvent in the queue.
 	 * Updates the ModTree model, then updates the registered document
 	 * TODO -- Event/thread trigger on this when docEvents not empty
+	 * @throws BadLocationException 
 	 */
-		public void processNextEvent() {
-		if(!docEvents.isEmpty()) {
-			try {
-				processDocumentEvent(docEvents.get(0));
-				docEvents.remove(0);
-				if(getDocument() != null) {
-					updateDocument();
-				}
-			} catch(BadLocationException ex) {
-				Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
-			}
+	public void processNextEvent() throws BadLocationException {
+		if (!docEvents.isEmpty()) {
+			this.processDocumentEvent(docEvents.get(0));
 		}
 	}
 	
@@ -246,25 +202,33 @@ public class ModTree implements Runnable {
 	 * @throws BadLocationException
 	 */
 	protected void processDocumentEvent(DocumentEvent de) throws BadLocationException {
-		if(de == null) {return;}
+		if (de == null) {
+			return;
+		}
 		int offset = de.getOffset();
 		int length = de.getLength();
 		String s = de.getDocument().getText(offset, length);
-		ModTreeRootNode r = getDefaultRootNode();
-		if(de.getType() == DocumentEvent.EventType.INSERT) {
+		ModTreeRootNode r = this.getRoot();
+		EventType type = de.getType();
+		if (type == EventType.INSERT) {
 			r.insertString(offset, s, null);
 			r.reorganizeAfterInsertion();
-		} else if (de.getType() == DocumentEvent.EventType.REMOVE) {
+		} else if (type == EventType.REMOVE) {
 			r.remove(offset, length);
 			r.reorganizeAfterDeletion();
 		}
+
+		docEvents.remove(de);
+		if (this.getDocument() != null) {
+			this.updateDocument();
+		}
 	}
-	
+
 	/**
 	 * Returns the root node of the document.
 	 * @return the root node
 	 */
-	public ModTreeRootNode getDefaultRootNode() {
+	public ModTreeRootNode getRoot() {
 		if (this.rootNode == null) {
 			// lazily instantiate root node
 			this.rootNode = new ModTreeRootNode(this);
@@ -335,6 +299,83 @@ public class ModTree implements Runnable {
 	 */
 	public void setFunctionName(String functionName) {
 		this.functionName = functionName;
+	}
+
+	/**
+	 * Implements the Listener to be registered with a StyledDocument
+	 */
+	private class ModTreeListener implements DocumentListener {
+
+		@Override
+		public void insertUpdate(DocumentEvent evt) {
+			this.update(evt);
+		}
+
+		@Override
+		public void removeUpdate(DocumentEvent evt) {
+			this.update(evt);
+		}
+
+		@Override
+		public void changedUpdate(DocumentEvent evt) {
+			// do nothing for formatting changes
+		}
+		
+		private void update(DocumentEvent evt) {
+			System.out.println("new event: " + evt.getType());
+			docEvents.add(evt);
+//			new SwingWorker<Object, Object>() {
+//
+//				@Override
+//				protected Object doInBackground() throws Exception {
+//					while (!docEvents.isEmpty()) {
+//						ModTree.this.processNextEvent();
+//					}
+//					return null;
+//				}
+//				
+//				@Override
+//				protected void done() {
+//					System.out.println("done");
+//				};
+//
+//			}.execute();
+//			SwingUtilities.invokeLater(new Runnable() {
+//				
+//				@Override
+//				public void run() {
+//					while (!docEvents.isEmpty()) {
+//						try {
+//							ModTree.this.processNextEvent();
+//						} catch (BadLocationException e) {
+//							e.printStackTrace();
+//						}
+//					}
+//					System.out.println("done");
+//				}
+//			});
+			new Thread() {
+				public void run() {
+					try {
+						SwingUtilities.invokeAndWait(new Runnable() {
+							@Override
+							public void run() {
+								while (!docEvents.isEmpty()) {
+									try {
+										ModTree.this.processNextEvent();
+									} catch (BadLocationException e) {
+										e.printStackTrace();
+									}
+								}
+							}
+						});
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					System.out.println("done");
+				};
+			}.start();
+		}
 	}
 
 }

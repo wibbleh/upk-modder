@@ -2,40 +2,36 @@ package model.modtree;
 
 import model.modtree.ModContext.ModContextType;
 
-
 /**
- *
+ * TODO: API
  * @author Amineri
  */
-
-
-public class ModGenericLeaf extends ModTreeLeaf
-{
-
-    ModGenericLeaf(ModTreeNode o)
-    {
-        super(o);
-        name = "GenericToken";
-        isSimpleString = false;
-        setContextFlag(ModContextType.VALID_CODE, true);
-    }
-
-    ModGenericLeaf(ModTreeNode o, boolean operand)
-    {
-        super(o);
-        name = "GenericToken";
-        isSimpleString = false;
-        setContextFlag(ModContextType.VALID_CODE, true);
-		if(operand) {
-			name = "OperandToken";
-		}
-    }
+public class ModGenericLeaf extends ModTreeLeaf {
 	
-    @Override
-    String parseUnrealHex(String s, int i)
-    {
-            s = super.parseUnrealHex(s, i);
-            return s;
-    }
-    
+	private boolean operand;
+
+	/**
+	 * TODO: API
+	 * @param parent
+	 */
+	public ModGenericLeaf(ModTreeNode parent) {
+		this(parent, false);
+	}
+
+	/**
+	 * TODO API
+	 * @param parent
+	 * @param operand
+	 */
+	public ModGenericLeaf(ModTreeNode parent, boolean operand) {
+		super(parent);
+		
+		this.setContextFlag(ModContextType.VALID_CODE, true);
+	}
+	
+	@Override
+	public String getName() {
+		return (this.operand) ? "OperandToken" : "GenericToken";
+	}
+
 }

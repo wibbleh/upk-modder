@@ -1,59 +1,72 @@
 package model.modtree;
 
-import model.modtree.ModContext.*;
-import static model.modtree.ModContext.ModContextType.*;
+import model.modtree.ModContext.ModContextType;
 
 /**
- *
+ * TODO: API
  * @author Amineri
  */
+public class ModReferenceLeaf extends ModTreeLeaf {
+	
+	/**
+	 * TODO: API
+	 */
+	private final boolean virtualFunction;
+	
+	/**
+	 * TODO: API
+	 */
+	private int value;
 
+	/**
+	 * TODO: API
+	 * @param o
+	 * @param virtualFunction
+	 */
+	public ModReferenceLeaf(ModTreeNode o, boolean virtualFunction) {
+		super(o);
+		this.virtualFunction = virtualFunction;
+		
+		this.setContextFlag(ModContextType.VALID_CODE, true);
+	}
+	
+	@Override
+	public String getName() {
+		return "ModReferenceToken";
+	}
 
-public class ModReferenceLeaf extends ModTreeLeaf
-{
-    private final boolean isVFFunction;
-    private int value;
-
-    ModReferenceLeaf(ModTreeNode o, boolean vf)
-    {
-        super(o);
-        this.isVFFunction = vf;
-        name = "ModReferenceToken";
-        isSimpleString = false;
-        setContextFlag(ModContextType.VALID_CODE, true);
-    }
-
-	protected String parseUnrealHex(String s) {
-		value = 0;
+	/**
+	 * TODO: API
+	 * @param s
+	 * @return
+	 */
+	public String parseUnrealHex(String s) {
+		return this.parseUnrealHex(s, 0);
+	}
+	
+	@Override
+	public String parseUnrealHex(String s, int num) {
+		this.value = 0;
 		String[] tokens = s.split("\\s");
 		for (int i = 0; i < 4; i++) {
-			value += Integer.parseInt(tokens[i], 16) << (8 * i);
+			this.value += Integer.parseInt(tokens[i], 16) << (8 * i);
 		}
+		
 		return super.parseUnrealHex(s, 4);
 	}
-    
-    @Override
-    public boolean isVFFunctionRef()
-    {
-        return isVFFunction;
-    }
 
-    @Override
-    public int getMemorySize()
-    {
-        if(isVFFunctionRef())
-        {
-            return 4;
-        }
-        else
-        {
-            return 8;
-        }
-    }
-    
-    @Override
-    public int getRefValue()
-    {
-        return value;
-    }
+	@Override
+	public boolean isVirtualFunctionRef() {
+		return virtualFunction;
+	}
+
+	@Override
+	public int getMemorySize() {
+		return (this.isVirtualFunctionRef()) ? 4 : 8;
+	}
+
+	@Override
+	public int getRefValue() {
+		return value;
+	}
 }

@@ -1,48 +1,72 @@
 package model.modtree;
 
-import model.modtree.ModContext.*;
-import static model.modtree.ModContext.ModContextType.*;
+import model.modtree.ModContext.ModContextType;
 
 /**
- *
+ * TODO: API
  * @author Amineri
  */
+public class ModOffsetLeaf extends ModTreeLeaf {
+	
+	/**
+	 * TODO: API
+	 */
+	private String operand;
+	
+	/**
+	 * TODO: API
+	 */
+	private int jumpOffset;
 
-
-public class ModOffsetLeaf extends ModTreeLeaf
-{
-    private String operand;
-    private int jumpoffset;
-    
-    ModOffsetLeaf(ModOperandNode o)
-    {
-        super(o);
-        name = "ModJumpToken";
-        operand = null;
-        isSimpleString = false;
-        setContextFlag(ModContextType.VALID_CODE, true);
-    }
-
-
-    ModOffsetLeaf(ModOperandNode o, String sParseItem)
-    {
-        super(o);
-        operand = sParseItem;
-        name = "ModRelativeJumpToken";
-        setContextFlag(ModContextType.VALID_CODE, true);
-    }
-
-	protected String parseUnrealHex(String s) {
-		s = super.parseUnrealHex(s, 2);
-		int int0 = Integer.getInteger(data.split("\\s")[0], 16);
-		int int1 = Integer.getInteger(data.split("\\s")[1], 16);
-		jumpoffset = 256 * int0 + int1;
-		return s;
+	/**
+	 * TODO: API
+	 * @param parent
+	 */
+	ModOffsetLeaf(ModOperandNode parent) {
+		this(parent, null);
 	}
-    
-    @Override
-    public int getOffset()
-    {
-        return jumpoffset;
-    }
+
+	/**
+	 * TODO: API
+	 * @param parent
+	 * @param operand
+	 */
+	ModOffsetLeaf(ModOperandNode parent, String operand) {
+		super(parent);
+		this.operand = operand;
+		
+		this.setContextFlag(ModContextType.VALID_CODE, true);
+	}
+	
+	@Override
+	public String getName() {
+		return (this.operand == null) ? "ModJumpToken" : "ModRelativeJumpToken";
+	}
+	
+	/**
+	 * TODO: API
+	 * @param s
+	 * @return
+	 */
+	public String parseUnrealHex(String s) {
+		return this.parseUnrealHex(s, 0);
+	}
+
+	@Override
+	public String parseUnrealHex(String s, int num) {
+		String res = super.parseUnrealHex(s, 2);
+		
+		// parse jump offset
+		String[] split = this.getText().split("\\s");
+		int int0 = Integer.parseInt(split[0], 16);
+		int int1 = Integer.parseInt(split[1], 16);
+		this.jumpOffset = 256 * int0 + int1;
+		
+		return res;
+	}
+
+	@Override
+	public int getOffset() {
+		return this.jumpOffset;
+	}
 }

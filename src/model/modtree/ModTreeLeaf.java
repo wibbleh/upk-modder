@@ -2,9 +2,8 @@ package model.modtree;
 
 import model.modtree.ModContext.ModContextType;
 
-
 /**
- *
+ * TODO: API
  * @author Amineri
  */
 public class ModTreeLeaf extends ModTreeNode {
@@ -12,96 +11,100 @@ public class ModTreeLeaf extends ModTreeNode {
 	/**
 	 * The string data of this token.
 	 */
-    protected String data;
+    private String text;
     
+    /**
+     * TODO: API
+     * @param parent
+     */
 	public ModTreeLeaf(ModTreeNode parent) {
 		this(parent, "");
 	}
     
+	/**
+	 * TODO: API
+	 * @param parent
+	 * @param data
+	 */
 	public ModTreeLeaf(ModTreeNode parent, String data) {
 		this(parent, data, false);
 	}
     
-	public ModTreeLeaf(ModTreeNode parent, String data, boolean isSimpleString) {
+	/**
+	 * TODO: API
+	 * @param parent
+	 * @param text
+	 * @param plainText
+	 */
+	public ModTreeLeaf(ModTreeNode parent, String text, boolean plainText) {
 		super(parent);
-		init(parent);
-		this.data = data;
-		this.isSimpleString = isSimpleString;
-		name = "ModToken";
+        this.setContextFlag(ModContextType.HEX_CODE, this.isCode());
+		this.text = text;
+		this.setPlainText(plainText);
 	}
-    
-    @Override
-    public int getMemorySize()
-    {
-        if(isSimpleString) {
-            return 0;
-        } else {
-            return data.length()/3;
-        }
-    }
-    
-    private void init(ModTreeNode o)
-    {
-        this.parent = o;
-        this.isSimpleString = false;
-        setContextFlag(ModContextType.HEX_CODE, this.isCode());
-        setContextFlag(ModContextType.VALID_CODE, false);
-        setContextFlag(ModContextType.HEX_HEADER, false);
-        setContextFlag(ModContextType.BEFORE_HEX, false);
-        setContextFlag(ModContextType.AFTER_HEX, false);
-    }
-
-    
-    @Override
-    protected String getString()
-    {
-        return data;
-		}
-
-    @Override
-    protected void setString(String s)
-    {
-        data = s;
-    }
-
-    @Override
-    public boolean isVFFunctionRef()
-    {
-        return false;
-    }
-    
-    @Override
-    public int getOffset()
-    {
-        return -1;
-    }
-
-    @Override
-    public int getRefValue()
-    {
-        return -1;
-    }
-    
-	String parseUnrealHex(String s, int num) {
+	
+	/**
+	 * TODO: API
+	 * @param s
+	 * @param num
+	 * @return
+	 */
+	@Override
+	public String parseUnrealHex(String s, int num) {
 		int endOffset = this.getEndOffset();
 		for (int i = 0; i < num; i++) {
 			endOffset += 3;
-			data += s.split("\\s", 2)[0] + " ";
+			text += s.split("\\s", 2)[0] + " ";
 			s = s.split("\\s", 2)[1];
 		}
 		this.setRange(this.getStartOffset(), endOffset);
 		return s;
 	}
 
-    /**
-     * Returns true if node is leaf node
-     * IMPLEMENTED
-     * @return
-     */
+	@Override
+	public String getName() {
+		return "ModToken";
+	}
+    
     @Override
-    public boolean isLeaf()
-    {
-        return true;
-    }
+	public int getMemorySize() {
+		if (this.isPlainText()) {
+//			return 0;
+			// ony byte per character plus termination byte
+			return this.getText().length() + 1;
+		} else {
+			return text.length() / 3;
+		}
+	}
+
+	@Override
+	public String getText() {
+		return text;
+	}
+
+	@Override
+	public void setText(String text) {
+		this.text = text;
+	}
+
+	@Override
+	public boolean isVirtualFunctionRef() {
+		return false;
+	}
+
+	@Override
+	public int getOffset() {
+		return -1;
+	}
+
+	@Override
+	public int getRefValue() {
+		return -1;
+	}
+
+	@Override
+	public boolean isLeaf() {
+		return true;
+	}
 
 }
