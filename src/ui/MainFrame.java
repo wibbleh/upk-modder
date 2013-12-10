@@ -1,5 +1,7 @@
 package ui;
 
+
+import io.parser.OperandTableParser;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
@@ -7,12 +9,18 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentListener;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
@@ -31,18 +39,26 @@ import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultEditorKit;
+import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.PlainDocument;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.StyledEditorKit;
 import javax.swing.text.View;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.xml.stream.events.XMLEvent;
+import model.modtree.ModTree;
 
 import org.bounce.text.LineNumberMargin;
 import org.bounce.text.ScrollableEditorPanel;
@@ -154,36 +170,53 @@ public class MainFrame extends JFrame {
 		
 		modEditor = new JEditorPane();
 		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-		
+
 		JScrollPane modPane = new JScrollPane(modEditor,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		modPane.setRowHeaderView(new LineNumberMargin(modEditor));
 		modPane.setPreferredSize(new Dimension(650, 600));
-
+		
 		/*
 		 * use this for working plain text -- X's original
 		 */
-		modEditor.setEditorKit(new ui.editor.ModEditorKit());
+//		modEditor.setEditorKit(new ui.editor.ModEditorKit());
+		
 		
 		/*
 		 * use this for broken ModDocument3 -- Amineri's experiment
 		 */
-//		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
-//		parser.parseFile();
+		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		parser.parseFile();
 //		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
 
 		File modFile = new File("test_mod_v3.upk_mod");    // new streamlined file version
-		modEditor.read(new FileInputStream(modFile), modFile);
+//		modEditor.read(new FileInputStream(modFile), modFile);
 
-		Document modDocument = modEditor.getDocument();
-		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
+//		Document modDocument = modEditor.getDocument();
+//		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
 //		((model.moddocument3.ModDocument) modDocument).insertUpdate(null, null);
 
+		/*
+		 * Amineri's experiment with ModTree and Styled Document
+		 */
+		modEditor.setEditorKit(new StyledEditorKit()); 
+		final ModTree modTree = new ModTree();
+		StyledDocument modDocument = new DefaultStyledDocument();
+		modEditor.setDocument(modDocument);
+		modEditor.read(new FileInputStream(modFile), modFile);
+		modDocument = (StyledDocument) modEditor.getDocument();
+		try {
+			modTree.setDocument(modDocument);
+		} catch(BadLocationException ex) {
+			Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+		}
+
+		
 		// create tree view of right-hand mod editor
 		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
-		TreeNode modElemRoot = (TreeNode) modDocument.getDefaultRootElement();
-		final JTree modElemTree = new JTree(modElemRoot);
+//		final JTree modElemTree = new JTree((TreeNode) modDocument.getDefaultRootElement()); // draw from document
+		final JTree modElemTree = new JTree(modTree.getDefaultRootNode()); // draw from ModTree
 		JScrollPane modElemTreePane = new JScrollPane(modElemTree,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
@@ -198,6 +231,7 @@ public class MainFrame extends JFrame {
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		modViewTreePane.setPreferredSize(new Dimension(350, 300));
+		
 		
 		// install document listener to refresh tree on changes to the document
 		modDocument.addDocumentListener(new DocumentListener() {
@@ -216,8 +250,19 @@ public class MainFrame extends JFrame {
 			/** Updates the tree views on document changes */
 			private void updateTree(DocumentEvent evt) {
 				// reset element tree
-				((DefaultTreeModel) modElemTree.getModel()).setRoot(
-						(TreeNode) evt.getDocument().getDefaultRootElement());
+//				((DefaultTreeModel) modElemTree.getModel()).setRoot(
+//						(TreeNode) evt.getDocument().getDefaultRootElement());
+				// reset view tree
+				((DefaultTreeModel) modViewTree.getModel()).setRoot(
+						createViewBranch(modEditor.getUI().getRootView(modEditor)));
+				
+				// expand trees
+//				for (int i = 0; i < modElemTree.getRowCount(); i++) {
+//					modElemTree.expandRow(i);
+//				}
+				for (int i = 0; i < modViewTree.getRowCount(); i++) {
+					modViewTree.expandRow(i);
+				}
 				// reset view tree
 				((DefaultTreeModel) modViewTree.getModel()).setRoot(
 						createViewBranch(modEditor.getUI().getRootView(modEditor)));

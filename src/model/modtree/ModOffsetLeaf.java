@@ -29,6 +29,7 @@ public class ModOffsetLeaf extends ModTreeLeaf
         super(o);
         operand = sParseItem;
         name = "ModRelativeJumpToken";
+        setContextFlag(ModContextType.VALID_CODE, true);
     }
 
 	protected String parseUnrealHex(String s) {
