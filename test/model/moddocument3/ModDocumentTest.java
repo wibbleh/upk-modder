@@ -11,6 +11,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.Position;
 import javax.swing.text.Segment;
 import model.modelement3.ModElement;
@@ -25,7 +26,7 @@ import parser.unrealhex.OperandTable;
 
 /**
  *
- * @author Administrator
+ * @author Amineri
  */
 
 
@@ -190,7 +191,7 @@ public class ModDocumentTest
      * Test of remove method, of class ModDocument.
      */
     @Test
-    public void testRemove()
+    public void testRemove() throws BadLocationException
     {
         System.out.println("remove");
         int offset = 0;
@@ -205,7 +206,7 @@ public class ModDocumentTest
      * Test of insertString method, of class ModDocument.
      */
     @Test
-    public void testInsertString()
+    public void testInsertString() throws BadLocationException
     {
         System.out.println("insertString");
         int offset = 0;
@@ -224,7 +225,7 @@ public class ModDocumentTest
      * Test of multiple insertions and deletions.
      */
     @Test
-    public void testInsertGetRemove()
+    public void testInsertGetRemove() throws BadLocationException
     {
         System.out.println("Insert, Get, Delete");
         int offset = 0;
@@ -258,7 +259,7 @@ public class ModDocumentTest
      * @throws java.io.IOException
      */
     @Test
-    public void testReadUpkModFile() throws IOException
+    public void testReadUpkModFile() throws IOException, BadLocationException
     {
         System.out.println("Read test_mod_v3.upk_mod");
         AttributeSet as = null;
@@ -268,17 +269,18 @@ public class ModDocumentTest
 		ModElement r = myDoc.getDefaultRootElement();
 //        myDoc.createRoot();
         String encoding = System.getProperty("file.encoding");
-        long startTime = System.currentTimeMillis();
+        long startTime;
         try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_v3.upk_mod"), Charset.forName(encoding))))
         {
             System.out.print("Reading modfile... ");
+            startTime = System.currentTimeMillis();
             while(s.hasNext())
             {
                 myDoc.insertString(myDoc.getLength(), s.nextLine() + "\n", as);
             }
-            startTime = System.currentTimeMillis();
             System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nParsing modfile... ");
-            myDoc.insertUpdate(null, as);
+            startTime = System.currentTimeMillis();
+//            myDoc.insertUpdate(null, as);
             System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
         }
         catch (IOException x) 
@@ -310,29 +312,63 @@ public class ModDocumentTest
 		assertTrue(myDoc.getDefaultRootElement().getChildElementAt(9).getElementCount() > 1); // check that line 9 (unreal) was parsed
     }   
     
-    /**
-     * Test of getText method, of class ModDocument.
+	    /**
+     * Test actually reading and editing a upk_mod file.
+     * @throws java.io.IOException
      */
     @Test
-    public void testGetText_int_int()
+    public void testReadAndEditUpkModFile() throws IOException, BadLocationException {
+        System.out.println("Edit test_mod_v3.upk_mod");
+        AttributeSet as = null;
+		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		parser.parseFile();
+        ModDocument myDoc = new ModDocument();
+		ModElement r = myDoc.getDefaultRootElement();
+//        myDoc.createRoot();
+        String encoding = System.getProperty("file.encoding");
+        long startTime;
+        try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_v3.upk_mod"), Charset.forName(encoding))))
+        {
+            while(s.hasNext())
+            {
+                myDoc.insertString(myDoc.getLength(), s.nextLine() + "\n", as);
+            }
+            myDoc.insertUpdate(null, as);
+        }
+        catch (IOException x) 
+        {
+            System.out.println("caught exception: " + x);
+        }
+
+	}
+
+	
+    /**
+     * Test of getText method, of class ModDocument.
+	 * @throws javax.swing.text.BadLocationException
+     */
+    @Test
+    public void testGetText_int_int() throws BadLocationException
     {
         System.out.println("getText");
         int offset = 0;
         int length = 0;
-        ModDocument instance = new ModDocument();
+        ModDocument d = new ModDocument();
         String expResult = "";
-        String result = instance.getText(offset, length);
+        String result = d.getText(offset, length);
         assertEquals(expResult, result);
-//        instance.createRoot();
-        result = instance.getText(offset, length);
-        assertEquals(expResult, result);
+		d.insertString(0, "testing\nfoo\nbar", null);
+		result = d.getText(3, 2);
+		expResult = "ti";
+		assertEquals(expResult, result);
     }
 
     /**
      * Test of getText method, of class ModDocument.
+	 * @throws javax.swing.text.BadLocationException
      */
     @Test
-    public void testGetText_3args()
+    public void testGetText_3args() throws BadLocationException
     {
         System.out.println("getText");
         int offset = 0;

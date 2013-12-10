@@ -2,6 +2,7 @@ package model.moddocument3;
 
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.PlainDocument;
 import javax.swing.text.Segment;
 
@@ -93,11 +94,12 @@ public class ModDocument extends PlainDocument {
 	 * @param length the number of characters to remove
 	 */
 	@Override
-	public void remove(int offset, int length) {
+	public void remove(int offset, int length) throws BadLocationException {
 		if (this.rootElement == null) {
 			return;
 		}
 		this.rootElement.remove(offset, length);
+//		super.remove(length, length);
 	}
 
     /**
@@ -112,11 +114,12 @@ public class ModDocument extends PlainDocument {
 	 * @see
 	 */
 	@Override
-	public void insertString(int offset, String string, AttributeSet as) {
+	public void insertString(int offset, String string, AttributeSet as) throws BadLocationException {
 		if (this.rootElement == null) {
 			return;
 		}
 		this.rootElement.insertString(offset, string, as);
+//		super.insertString(offset, string, as);
 	}
 
     /**

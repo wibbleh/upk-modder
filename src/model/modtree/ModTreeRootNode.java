@@ -1,21 +1,21 @@
-package model.modelement3;
+package model.modtree;
 
-import model.moddocument3.ModDocument;
-import model.modelement3.ModContext.ModContextType;
-import static model.modelement3.ModContext.ModContextType.*;
+import model.modtree.ModContext.*;
+import static model.modtree.ModContext.ModContextType.*;
+
 
 
 /**
  *
  * @author Amineri
  */
-public class ModRootElement extends ModElement {
+public class ModTreeRootNode extends ModTreeNode {
 	
 	/**
 	 * The reference to the document instance. This root node is the only node
 	 * in the hierarchy actually storing this reference.
 	 */
-	private ModDocument document;
+	private final ModTree tree;
 	
     /**
      * The persistent global context maintained while parsing through the file.
@@ -24,15 +24,15 @@ public class ModRootElement extends ModElement {
 
 	/**
 	 * 
-	 * @param document
+	 * @param tree
 	 */
-	public ModRootElement(ModDocument document) {
+	public ModTreeRootNode(ModTree tree) {
 		super(null);
-		this.document = document;
+		this.tree = tree;
 		this.name = "ModRootElement";
 
-		ModElement child = new ModElement(this, true);
-		child.addElement(new ModToken(child, "", true));
+		ModTreeNode child = new ModTreeNode(this, true);
+		child.addElement(new ModTreeLeaf(child, "", true));
 		this.addElement(child);
 	}
     
@@ -53,7 +53,7 @@ public class ModRootElement extends ModElement {
         int index = 0;
         int childCount = getChildElementCount();
         do {
-        	ModElement child = this.getChildElementAt(index);
+        	ModTreeNode child = this.getChildElementAt(index);
         	index ++;
 			if (child.isSimpleString) {
 				if (!child.toStr().isEmpty()) {
@@ -62,7 +62,7 @@ public class ModRootElement extends ModElement {
 						if (!strings[1].isEmpty()) {
         					strings[0] += "\n";
         					childCount++;
-        					ModElement grandChild = child.getChildElementAt(0);
+        					ModTreeNode grandChild = child.getChildElementAt(0);
         					grandChild.setString(strings[0]);
         					int oldEndOffset = child.getEndOffset();
         					int childEndOffset = child.getEndOffset() - strings[1].length();
@@ -70,8 +70,8 @@ public class ModRootElement extends ModElement {
         					int grandChildEndOffset = child.getEndOffset() - strings[1].length();
         					grandChild.setRange(child.getStartOffset(), childEndOffset);
 
-        					ModElement newElement = new ModElement(this, true);
-        					ModToken newToken = new ModToken(newElement, strings[1], true);
+        					ModTreeNode newElement = new ModTreeNode(this, true);
+        					ModTreeLeaf newToken = new ModTreeLeaf(newElement, strings[1], true);
 
         					this.addElement(index, newElement);
         					newElement.addElement(newToken);
@@ -101,14 +101,14 @@ public class ModRootElement extends ModElement {
 		int count = 0;
 		int numbranches = this.getChildElementCount();
 		do {
-			ModElement branch = this.getChildElementAt(count);
+			ModTreeNode branch = this.getChildElementAt(count);
 			if (branch.isSimpleString) {
 				if (!branch.toStr().isEmpty()) {
 					if (!branch.toStr().contains("\n") && count + 1 < numbranches) {
 						numbranches--;
 						String gluedString = branch.toStr()
 								+ this.getChildElementAt(count + 1).toStr();
-						ModElement branchBranch = branch.getChildElementAt(0);
+						ModTreeNode branchBranch = branch.getChildElementAt(0);
 						branchBranch.setString(gluedString);
 						branch.setRange(branch.getStartOffset(),
 								branch.getEndOffset() + gluedString.length());
@@ -120,7 +120,7 @@ public class ModRootElement extends ModElement {
 						count++;
 					}
 				} else { // handle empty string removal
-					if (document.getDefaultRootElement().getEndOffset() == 0) {
+					if (tree.getDefaultRootElement().getEndOffset() == 0) {
 						// if document is empty exit out
 						count++;
 					} else {
@@ -133,7 +133,7 @@ public class ModRootElement extends ModElement {
 		} while (count < numbranches);
 	}
 
-	protected void updateContexts(ModElement e){
+	protected void updateContexts(ModTreeNode e){
 		
 	}
 	
@@ -141,7 +141,7 @@ public class ModRootElement extends ModElement {
     {
         // iterate through array of lines 
 		for (int i = 0; i < this.getChildElementCount(); i++) {
-			ModElement b = this.getChildElementAt(i);
+			ModTreeNode b = this.getChildElementAt(i);
 			
             // update contexts
             b.updateContexts();
@@ -156,7 +156,7 @@ public class ModRootElement extends ModElement {
             
             //  consolidate/expand code lines
             if(!b.getContextFlag(ModContextType.HEX_CODE) && !b.isSimpleString) { // consolidate string
-                ModToken newToken = new ModToken(b, b.toStr(), true);
+                ModTreeLeaf newToken = new ModTreeLeaf(b, b.toStr(), true);
                 newToken.setRange(b.getStartOffset(), b.getEndOffset());
                 b.removeAllChildElements();
                 b.addElement(newToken);
@@ -170,13 +170,12 @@ public class ModRootElement extends ModElement {
         }
     }
 	
-	@Override
-	public ModDocument getDocument() {
-		return this.document;
+	public ModTree getTree() {
+		return this.tree;
 	}
 
 	@Override
-	protected ModElement getRoot()
+	protected ModTreeNode getRoot()
 	{
 		return this;
 	}
@@ -191,11 +190,11 @@ public class ModRootElement extends ModElement {
 		this.setContextFlag(FILE_HEADER, true);
 		// TODO: @Amineri why is any basic element capable of resetting values in the underlying document? Shouldn't only the root node be allowed to do this?
 		// Amineri : Yes, this should only be getting called from the root element on an insertUpdate or removeUpdate method call
-		if(getDocument() == null) {return;}
-		getDocument().setFileVersion(-1);
-		getDocument().setUpkName("");
-		getDocument().setGuid("");
-		getDocument().setFunctionName("");
+		if(getTree() == null) {return;}
+		getTree().setFileVersion(-1);
+		getTree().setUpkName("");
+		getTree().setGuid("");
+		getTree().setFunctionName("");
 	}
 
 }
