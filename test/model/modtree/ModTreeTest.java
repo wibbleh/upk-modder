@@ -12,6 +12,8 @@ import javax.swing.text.Segment;
 import io.parser.OperandTableParser;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
@@ -39,14 +41,22 @@ import static org.junit.Assert.*;
 public class ModTreeTest
 {
     
-	public ModTreeTest()
+
+	public ModTreeTest() throws IOException
     {
     }
     
     @BeforeClass
     public static void setUpClass()
     {
-    }
+		// initialize Operand Table for all tests that use it
+		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		try {
+			parser.parseFile();
+		} catch(IOException ex) {
+			Logger.getLogger(ModTreeTest.class.getName()).log(Level.SEVERE, null, ex);
+		}
+   }
     
     @AfterClass
     public static void tearDownClass()
@@ -63,7 +73,8 @@ public class ModTreeTest
     {
     }
 
-	private class MyDE implements DocumentEvent {
+
+		private class MyDE implements DocumentEvent {
 		private String newline = "\n";
 		String[] initString =
 				{ "This is an editable JTextPane, ",            //regular
@@ -234,8 +245,6 @@ public class ModTreeTest
     {
         System.out.println("parseUnrealHex");
 		String in = "\t\t0F 00 34 D2 00 00 25 // comment\n";
-		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
-		parser.parseFile();
 		ModTreeNode e1 = new ModTreeNode(null, true);
 		e1.setRange(0, 34);
 		ModTreeLeaf t1 = new ModTreeLeaf(e1, in, true);
@@ -774,6 +783,20 @@ public class ModTreeTest
         int expResult = 0;
         int result = instance.getMemorySize();
         assertEquals(expResult, result);
+		
+		// comprehensive test
+		String in = "ModFileVersion=5\n"
+				+ "UPKFILE=a\n"
+				+ "GUID=c\n"
+				+ "FUNCTION=d\n"
+				+ "[CODE]\n"
+				+ "0F 00 24 A1 00 00 1B 32 43 00 00 00 00 00 00 01 32 FF 00 00 16 // test hex\n"
+				+ "[/CODE]";
+		ModTree t = new ModTree();
+		ModTreeRootNode r = new ModTreeRootNode(t);
+		r.insertString(0, in, null);
+		r.reorganizeAfterInsertion();
+		assertEquals(29 , r.getMemorySize());
     }
 
     /**
@@ -783,10 +806,13 @@ public class ModTreeTest
     public void testIsVFFunctionRef()
     {
         System.out.println("isVFFunctionRef");
-        ModTreeNode instance = new ModTreeNode(null);
-        boolean expResult = false;
-        boolean result = instance.isVFFunctionRef();
-        assertEquals(expResult, result);
+        ModTreeNode n1 = new ModTreeNode(null);
+        boolean result = n1.isVFFunctionRef();
+        assertEquals(false, result);
+		ModReferenceLeaf n2 = new ModReferenceLeaf(n1,false);
+		assertEquals(false, n2.isVFFunctionRef());
+		ModReferenceLeaf n3 = new ModReferenceLeaf(n1,true);
+		assertEquals(true, n3.isVFFunctionRef());
     }
 
     /**
