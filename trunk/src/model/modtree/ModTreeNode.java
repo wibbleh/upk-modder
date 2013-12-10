@@ -32,13 +32,8 @@ public class ModTreeNode implements TreeNode {
     /**
      * Flag denoting whether this node contains pure textual data.
      */
-    protected boolean isSimpleString;
+    private boolean plainText;
     
-    /**
-     * The name of this node.
-     */
-    protected String name;
-
     /**
      * The start offset of this node in the associated document.
      */
@@ -52,7 +47,7 @@ public class ModTreeNode implements TreeNode {
     /**
      * The context flag container instance.
      */
-    protected ModContext context;
+    private ModContext context;
     
     /**
      * The style attributes of this node.
@@ -76,12 +71,11 @@ public class ModTreeNode implements TreeNode {
 	 */
 	public ModTreeNode(ModTreeNode parent, boolean isSimpleString) {
 		this.parent = parent;
-		this.isSimpleString = isSimpleString;
+		this.plainText = isSimpleString;
 
 		// init properties
 		this.children = new ArrayList<>();
 		this.context = new ModContext();
-		this.name = "ModTreeNode";
 	}
 
 	/**
@@ -101,6 +95,13 @@ public class ModTreeNode implements TreeNode {
 	public boolean getContextFlag(ModContextType type) {
 		return this.context.getContextFlag(type);
 	}
+	
+	/**
+	 * Re-initializes the context flag container instance.
+	 */
+	public void resetContextFlags() {
+		this.context = new ModContext();
+	}
     
 	public ModTree getTree() {
 		// fetch tree from parent, only the root node carries the actual
@@ -110,6 +111,24 @@ public class ModTreeNode implements TreeNode {
 		} else {
 			return null;
 		}
+	}
+
+	/**
+	 * Returns whether this node represents plain text content.
+	 * @return <code>true</code> if this node contains plain text data,
+	 *  <code>false</code> otherwise
+	 */
+	public boolean isPlainText() {
+		return this.plainText;
+	}
+	
+	/**
+	 * Sets whether this node represents plain text content.
+	 * @param plainText <code>true</code> if this node contains plain text data,
+	 *  <code>false</code> otherwise
+	 */
+	public void setPlainText(boolean plainText) {
+		this.plainText = plainText;
 	}
 	
 	/**
@@ -180,12 +199,14 @@ public class ModTreeNode implements TreeNode {
 	/**
 	 * Invokes method to break code lines into tokens based on operand.<br>
 	 * Operates at the line level.
+	 * @param s
+	 * @param num
 	 */
-	protected void parseUnrealHex() {
+	public String parseUnrealHex(String s, int num) {
 		if (!this.isValidHexLine()) {
-			return;
+			return null;
 		}
-		String oldString = this.toStr();
+		String oldString = this.getFullText();
 		try {
 			// extract initial string representation of this node
 			String[] linebreak = this.toHexStringArray();
@@ -225,7 +246,7 @@ public class ModTreeNode implements TreeNode {
 			// currStart = newToken.endOffset;
 			this.addNode(trailToken);
 			this.setContextFlag(VALID_CODE, true);
-			this.isSimpleString = false;
+			this.plainText = false;
 		} catch (Exception e) {
 			// something went wrong, set error flag...
 			setContextFlag(VALID_CODE, false);
@@ -236,6 +257,7 @@ public class ModTreeNode implements TreeNode {
 			this.addNode(t);
 			t.setRange(this.startOffset, this.endOffset);
 		}
+		return null;
 	}
     
 	/**
@@ -243,7 +265,7 @@ public class ModTreeNode implements TreeNode {
 	 * @return <code>true</code> if this node contains valid hex data, <code>false</code> otherwise
 	 */
 	protected boolean isValidHexLine() {
-		String[] tokens = toStr().split("//")[0].trim().split("\\s");
+		String[] tokens = getFullText().split("//")[0].trim().split("\\s");
 		for (String token : tokens) {
 			if (!token.matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
 				return false;
@@ -258,7 +280,7 @@ public class ModTreeNode implements TreeNode {
      */
 	protected String[] toHexStringArray() {
 		// get initial string representation of this node
-		String in = this.toStr();
+		String in = this.getFullText();
 
 		// pre-allocate result array
 		String outString[] = new String[3];
@@ -314,8 +336,8 @@ public class ModTreeNode implements TreeNode {
     
 	protected void updateContexts() {
 		if(getTree() == null) {return;}
-		String content = this.toStr().toUpperCase();
-		if (this.isSimpleString) {
+		String content = this.getFullText().toUpperCase();
+		if (this.plainText) {
 			if (content.startsWith("UPKFILE=")) {
 				getTree().setUpkName(this.getTagValue(content));
 			} else if (content.startsWith("FUNCTION=")) {
@@ -416,26 +438,26 @@ public class ModTreeNode implements TreeNode {
                 endOffset -= length;
             } else if (rs < s ) { // removal start occurs prior to node start -- case 2
                 if(isLeaf()) { // remove early part of data string for leaf
-                    setString(getString().substring(re-s, getString().length()));
+                    setText(getText().substring(re-s, getText().length()));
                 }
                 startOffset -= s - rs;
                 endOffset -= length;
             } else { // removal start happens within node -- case 3
                 if(isLeaf()) { // remove middle part of data string for leaf
-                    setString(getString().substring(0, rs-s) + getString().substring(e-re, getString().length()));
+                    setText(getText().substring(0, rs-s) + getText().substring(e-re, getText().length()));
                 }
                 endOffset -= length;
             }
         } else { // removal end happens after node end -- cases 4, 5, 6
             if(rs < s) { // remove start occurs prior to node start -- case 6
                 if(isLeaf()) { // delete data string
-                    setString("");
+                    setText("");
                 }
                 endOffset = startOffset;
 //                removeModNode();
             } else if(rs < e) { // remove start happens in middle of node -- case 4
                 if(isLeaf()) { // remove end part of data string for leaf
-                    setString(getString().substring(0, e-rs));
+                    setText(getText().substring(0, e-rs));
                 }
                 endOffset -= e - rs;
             } else { // removal is after node -- case 5
@@ -500,32 +522,49 @@ public class ModTreeNode implements TreeNode {
      * @param string
      * @param as
      */
-    protected void insertStringAtLeaf(int offset, String string, AttributeSet as)
-    {
-        if(isSimpleString) {
-        } else {
-            ModTreeNode lineParent = getLineParent();
-            String newSimpleString = lineParent.toStr();
-            lineParent.children.clear();
-            lineParent.addNode(new ModTreeLeaf(lineParent, newSimpleString, true));
-            
-        }
-        setString(getString().substring(0, offset - startOffset) + string + getString().substring(offset - startOffset, getString().length()));
-        endOffset += string.length();
-    }
-    
-    protected void setString(String s)
-    {
+	protected void insertStringAtLeaf(int offset, String string, AttributeSet as) {
+		if (this.plainText) {
+			// do nothing
+		} else {
+			ModTreeNode lineParent = getLineParent();
+			String lineText = lineParent.getFullText();
+			lineParent.children.clear();
+			lineParent.addNode(new ModTreeLeaf(lineParent, lineText, true));
+		}
+		String text = this.getText();
+		this.setText(text.substring(0, offset - startOffset) + string
+				+ text.substring(offset - startOffset, text.length()));
+		this.endOffset += string.length();
+	}
+
+	public void setText(String text) {
         throw new InternalError("Attempted to set string for Element of type: " + getName()); 
         // placeholder for overriding function
     }
-    
-	protected String getString() {
+
+	public String getText() {
 		throw new InternalError("Attempted to get string for Element of type: " + getName());
 		// return "";
 	}
     
-    protected ModTreeNode getLineParent()
+    /**
+	 * Returns the text data of the node or token as a string.<br>
+	 * For nodes returns the concatenation of all child nodes/tokens.<br>
+	 * For tokens returns the current token string data.
+	 * @return the contents of this node in text form
+	 */
+	public String getFullText() {
+		String newString = "";
+		if (this.children.isEmpty()) {
+			return this.getText();
+		}
+		for (ModTreeNode child : children) {
+			newString += child.getFullText();
+		}
+		return newString;
+	}
+
+	protected ModTreeNode getLineParent()
     {
 		if(getParentNode() == null) { return null;}
         if(getName().equals("ModTreeNode") || getParentNode().getParentNode() == null) {
@@ -535,36 +574,18 @@ public class ModTreeNode implements TreeNode {
         }
     }
     
-    /**
-     * Returns the text data of the node or token as a string.<br>
-     * For nodes returns the concatenation of all child nodes/tokens.<br>
-     * For tokens returns the current token string data.
-     * @return the contents of this node in text form
-     */
-    public String toStr()
-    {
-		String newString = "";
-		if (this.children.isEmpty()) {
-			return this.getString();
-		}
-		for (ModTreeNode child : children) {
-			newString += child.toStr();
-		}
-		return newString;
-    }
-    
     @Override
 	public String toString(){
-		if(getParentNode() == null) {
+		if (getParentNode() == null) {
 			return "ROOT";
 		} else if (getParentNode().getParentNode() == null) {
 //			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
 			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-			return newString + toStr();
+			return newString + getFullText();
 		} else if(isLeaf()) {
 //			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
 			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-			return newString + toStr() + " (" + getName() + ")";
+			return newString + getFullText() + " (" + getName() + ")";
 		} else {
 			return "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: " + " (" + getName() + ")";
 //			return "(" + getName() + ")";
@@ -608,13 +629,13 @@ public class ModTreeNode implements TreeNode {
                 // retrieve no text
             } else if (rs < s ) { // retrieval start occurs prior to node start -- case 2
                 if(isLeaf()) { // retrieve early part of data string for leaf
-                    returnString = getString().substring(0, re-s);
+                    returnString = getText().substring(0, re-s);
                 } else {
                     retrieveBranches = true;
                 }
             } else { // retrieval start happens within node -- case 3
                 if(isLeaf()) { // retrieve middle part of data string for leaf
-                    returnString = getString().substring(rs-s, rs-s+length);
+                    returnString = getText().substring(rs-s, rs-s+length);
                 } else {
                     retrieveBranches = true;
                 }
@@ -622,13 +643,13 @@ public class ModTreeNode implements TreeNode {
         } else { // retrieval end happens after node end -- cases 4, 5, 6
             if(rs <= s) { // retrieve start occurs prior to node start -- case 6
                 if(isLeaf()) { // retrieve entire string
-                    returnString = getString();
+                    returnString = getText();
                 } else {
                     retrieveBranches = true;
                 }
             } else if(rs < e) { // retrieve start happens in middle of node -- case 4
                 if(isLeaf()) { // retrieve end part of data string for leaf
-                    return getString().substring(rs-s, getString().length());
+                    return getText().substring(rs-s, getText().length());
                 } else {
                     retrieveBranches = true;
                 }
@@ -682,14 +703,13 @@ public class ModTreeNode implements TreeNode {
 		return false;
 	}
 
-    /**
-     * Returns string name of node.
-     * @return
-     */
-    public String getName()
-    {
-        return name;
-    }
+	/**
+	 * Returns string name of node.
+	 * @return
+	 */
+	public String getName() {
+		return "ModTreeNode";
+	}
 
     // TODO -- FIGURE OUT HOW TO SET ATTRIBUTES
 	// TODO: @Amineri, see StyleConstants class, contains lots of convenience setters for various attributes
@@ -754,7 +774,7 @@ public class ModTreeNode implements TreeNode {
 	 */
 	protected ModTreeNode getRoot()
 	{
-		return getParentNode().getRoot();
+		return this.getParentNode().getRoot();
 	}
 
     /**
@@ -784,7 +804,7 @@ public class ModTreeNode implements TreeNode {
         return num;
     }
 
-    public boolean isVFFunctionRef()
+    public boolean isVirtualFunctionRef()
     {
         return false;
     }

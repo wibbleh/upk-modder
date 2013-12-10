@@ -1,9 +1,12 @@
 package model.modtree;
 
-import model.modtree.ModContext.*;
-import static model.modtree.ModContext.ModContextType.*;
-
-
+import static model.modtree.ModContext.ModContextType.AFTER_HEX;
+import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
+import static model.modtree.ModContext.ModContextType.FILE_HEADER;
+import static model.modtree.ModContext.ModContextType.HEX_CODE;
+import static model.modtree.ModContext.ModContextType.HEX_HEADER;
+import static model.modtree.ModContext.ModContextType.VALID_CODE;
+import model.modtree.ModContext.ModContextType;
 
 /**
  *
@@ -29,8 +32,8 @@ public class ModTreeRootNode extends ModTreeNode {
 	public ModTreeRootNode(ModTree tree) {
 		super(null);
 		this.tree = tree;
-		this.name = "ModRootElement";
 
+		// add initial hierarchy
 		ModTreeNode child = new ModTreeNode(this, true);
 		child.addNode(new ModTreeLeaf(child, "", true));
 		this.addNode(child);
@@ -47,23 +50,22 @@ public class ModTreeRootNode extends ModTreeNode {
 		this.buildContextsParseUnreal();
 	}
     
-    private void splitElementsOnNewline()
-    {
+	private void splitElementsOnNewline() {
         // iterate through array of lines and break into lines
         int index = 0;
-        int childCount = getChildNodeCount();
+        int childCount = this.getChildNodeCount();
         do {
         	ModTreeNode child = this.getChildNodeAt(index);
         	index ++;
-			if (child.isSimpleString) {
-				if (!child.toStr().isEmpty()) {
-					if (child.toStr().contains("\n") && (index <= childCount)) {
-						String[] strings = child.toStr().split("\n", 2);
+			if (child.isPlainText()) {
+				if (!child.getFullText().isEmpty()) {
+					if (child.getFullText().contains("\n") && (index <= childCount)) {
+						String[] strings = child.getFullText().split("\n", 2);
 						if (!strings[1].isEmpty()) {
         					strings[0] += "\n";
         					childCount++;
         					ModTreeNode grandChild = child.getChildNodeAt(0);
-        					grandChild.setString(strings[0]);
+        					grandChild.setText(strings[0]);
         					int oldEndOffset = child.getEndOffset();
         					int childEndOffset = child.getEndOffset() - strings[1].length();
         					child.setRange(child.getStartOffset(), childEndOffset);
@@ -102,14 +104,14 @@ public class ModTreeRootNode extends ModTreeNode {
 		int numbranches = this.getChildNodeCount();
 		do {
 			ModTreeNode branch = this.getChildNodeAt(count);
-			if (branch.isSimpleString) {
-				if (!branch.toStr().isEmpty()) {
-					if (!branch.toStr().contains("\n") && count + 1 < numbranches) {
+			if (branch.isPlainText()) {
+				if (!branch.getFullText().isEmpty()) {
+					if (!branch.getFullText().contains("\n") && count + 1 < numbranches) {
 						numbranches--;
-						String gluedString = branch.toStr()
-								+ this.getChildNodeAt(count + 1).toStr();
+						String gluedString = branch.getFullText()
+								+ this.getChildNodeAt(count + 1).getFullText();
 						ModTreeNode branchBranch = branch.getChildNodeAt(0);
-						branchBranch.setString(gluedString);
+						branchBranch.setText(gluedString);
 						branch.setRange(branch.getStartOffset(),branch.getStartOffset() + gluedString.length());
 						branchBranch.setRange(branchBranch.getStartOffset(),branchBranch.getStartOffset() + gluedString.length());
 						this.removeChildNodeAt(count + 1);
@@ -117,7 +119,7 @@ public class ModTreeRootNode extends ModTreeNode {
 						count++;
 					}
 				} else { // handle empty string removal
-					if (tree.getDefaultRootNode().getEndOffset() == 0) {
+					if (tree.getRoot().getEndOffset() == 0) {
 						// if document is empty exit out
 						count++;
 					} else {
@@ -130,41 +132,42 @@ public class ModTreeRootNode extends ModTreeNode {
 		} while (count < numbranches);
 	}
 
-	protected void updateContexts(ModTreeNode e){
-		
-	}
-	
-    private void buildContextsParseUnreal()
-    {
+	private void buildContextsParseUnreal() {
         // iterate through array of lines 
 		for (int i = 0; i < this.getChildNodeCount(); i++) {
-			ModTreeNode b = this.getChildNodeAt(i);
+			ModTreeNode child = this.getChildNodeAt(i);
 			
             // update contexts
-            b.updateContexts();
+            child.updateContexts();
 			
 			//store copy of global contexts at current child
-			b.context.setContextFlag(FILE_HEADER, this.context.getContextFlag(FILE_HEADER));
-			b.context.setContextFlag(BEFORE_HEX, this.context.getContextFlag(BEFORE_HEX));
-			b.context.setContextFlag(AFTER_HEX, this.context.getContextFlag(AFTER_HEX));
-			b.context.setContextFlag(HEX_HEADER, this.context.getContextFlag(HEX_HEADER));
-			b.context.setContextFlag(HEX_CODE, this.context.getContextFlag(HEX_CODE));
-			b.context.setContextFlag(VALID_CODE, this.context.getContextFlag(VALID_CODE));
+			child.setContextFlag(FILE_HEADER, this.getContextFlag(FILE_HEADER));
+			child.setContextFlag(BEFORE_HEX, this.getContextFlag(BEFORE_HEX));
+			child.setContextFlag(AFTER_HEX, this.getContextFlag(AFTER_HEX));
+			child.setContextFlag(HEX_HEADER, this.getContextFlag(HEX_HEADER));
+			child.setContextFlag(HEX_CODE, this.getContextFlag(HEX_CODE));
+			child.setContextFlag(VALID_CODE, this.getContextFlag(VALID_CODE));
             
             //  consolidate/expand code lines
-            if(!b.getContextFlag(ModContextType.HEX_CODE) && !b.isSimpleString) { // consolidate string
-                ModTreeLeaf newToken = new ModTreeLeaf(b, b.toStr(), true);
-                newToken.setRange(b.getStartOffset(), b.getEndOffset());
-                b.removeAllChildNodes();
-                b.addNode(newToken);
-                b.isSimpleString = true;
+            boolean isCode = child.getContextFlag(ModContextType.HEX_CODE);
+			if (!isCode && !child.isPlainText()) {	// consolidate string
+                ModTreeLeaf leaf = new ModTreeLeaf(child, child.getFullText(), true);
+                leaf.setRange(child.getStartOffset(), child.getEndOffset());
+                child.removeAllChildNodes();
+                child.addNode(leaf);
+                child.setPlainText(true);
             }
-            if(b.getContextFlag(ModContextType.HEX_CODE) && b.isSimpleString) {
-                b.parseUnrealHex();
+            if (isCode && child.isPlainText()) {
+                child.parseUnrealHex(null, 0);
             }
-            // isCode and not isSimple String means it was not update
-            // !isCode and isSimple string does not need reconsolidating
+            // (isCode && !isPlainText) means it was not update
+            // (!isCode && isPlainText) does not need reconsolidating
         }
+    }
+    
+    @Override
+    public String getName() {
+    	return "ModRootElement";
     }
 	
 	public ModTree getTree() {
@@ -182,16 +185,29 @@ public class ModTreeRootNode extends ModTreeNode {
 	 * All flags set to false except for FILE_HEADER = true.
 	 * Reset file attributes in case they were changed.
 	 */
-	protected void resetContextFlags() {
-		this.context = new ModContext();
+	@Override
+	public void resetContextFlags() {
+		super.resetContextFlags();
 		this.setContextFlag(FILE_HEADER, true);
-		// TODO: @Amineri why is any basic element capable of resetting values in the underlying document? Shouldn't only the root node be allowed to do this?
-		// Amineri : Yes, this should only be getting called from the root element on an insertUpdate or removeUpdate method call
-		if(getTree() == null) {return;}
-		getTree().setFileVersion(-1);
-		getTree().setUpkName("");
-		getTree().setGuid("");
-		getTree().setFunctionName("");
+		
+		ModTree tree = this.getTree();
+		if (tree != null) {
+			tree.setFileVersion(-1);
+			tree.setUpkName("");
+			tree.setGuid("");
+			tree.setFunctionName("");
+		}
+	}
+
+	@Override
+	public void setText(String text) {
+		// do nothing
+	}
+
+	@Override
+	public String getText() {
+		// return nothing
+		return "";
 	}
 
 }

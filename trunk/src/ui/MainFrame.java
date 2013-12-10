@@ -2,6 +2,7 @@ package ui;
 
 
 import io.parser.OperandTableParser;
+
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
@@ -9,9 +10,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentListener;
-import java.awt.event.ContainerEvent;
-import java.awt.event.ContainerListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
@@ -19,8 +17,6 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
@@ -39,25 +35,28 @@ import javax.swing.KeyStroke;
 import javax.swing.WindowConstants;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultEditorKit;
-import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.BoxView;
+import javax.swing.text.ComponentView;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import javax.swing.text.IconView;
+import javax.swing.text.LabelView;
+import javax.swing.text.ParagraphView;
 import javax.swing.text.PlainDocument;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledEditorKit;
 import javax.swing.text.View;
+import javax.swing.text.ViewFactory;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.xml.stream.events.XMLEvent;
+
 import model.modtree.ModTree;
 
 import org.bounce.text.LineNumberMargin;
@@ -107,6 +106,7 @@ public class MainFrame extends JFrame {
 		try {
 			this.initComponents();
 		} catch (Exception e) {
+//			Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, e);
 			e.printStackTrace();
 		}
 		
@@ -134,9 +134,9 @@ public class MainFrame extends JFrame {
 
 	/**
 	 * Creates and lays out the frame's components.
-	 * @throws IOException if an I/O error occurs
+	 * @throws Exception if an I/O error occurs
 	 */
-	private void initComponents() throws IOException {
+	private void initComponents() throws Exception {
 		// create and install menu bar
 		this.setJMenuBar(this.createMenuBar());
 		
@@ -200,28 +200,57 @@ public class MainFrame extends JFrame {
 		/*
 		 * Amineri's experiment with ModTree and Styled Document
 		 */
-		modEditor.setEditorKit(new StyledEditorKit()); 
-		final ModTree modTree = new ModTree();
-		StyledDocument modDocument = new DefaultStyledDocument();
-		modEditor.setDocument(modDocument);
-		modEditor.read(new FileInputStream(modFile), modFile);
-		modDocument = (StyledDocument) modEditor.getDocument();
-		try {
-			modTree.setDocument(modDocument);
-		} catch(BadLocationException ex) {
-			Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-		}
+		modEditor.setEditorKit(new StyledEditorKit() {
+			@Override
+			public ViewFactory getViewFactory() {
+				// TODO Auto-generated method stub
+				return new ViewFactory() {
 
-		
+			        public View create(Element elem) {
+			            String kind = elem.getName();
+			            if (kind != null) {
+			                if (kind.equals(AbstractDocument.ContentElementName)) {
+			                    return new LabelView(elem);
+			                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
+			                	return new ParagraphView(elem) {
+			                    	/* hack to prevent line wrapping */
+			                    	@Override
+									public void layout(int width, int height) {
+										super.layout(Short.MAX_VALUE, height);
+									}
+			                    	@Override
+									public float getMinimumSpan(int axis) {
+										return super.getPreferredSpan(axis);
+									}
+			                    };
+			                } else if (kind.equals(AbstractDocument.SectionElementName)) {
+			                    return new BoxView(elem, View.Y_AXIS);
+			                } else if (kind.equals(StyleConstants.ComponentElementName)) {
+			                    return new ComponentView(elem);
+			                } else if (kind.equals(StyleConstants.IconElementName)) {
+			                    return new IconView(elem);
+			                }
+			            }
+
+			            // default to text display
+			            return new LabelView(elem);
+			        }
+
+			    };
+			}
+		}); 
+		modEditor.read(new FileInputStream(modFile), modFile);
+		Document modDocument = modEditor.getDocument();
+
 		// create tree view of right-hand mod editor
 		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
-//		final JTree modElemTree = new JTree((TreeNode) modDocument.getDefaultRootElement()); // draw from document
-		final JTree modElemTree = new JTree(modTree.getDefaultRootNode()); // draw from ModTree
+		final ModTree modTree = new ModTree(modDocument);
+//			final JTree modElemTree = new JTree((TreeNode) modDocument.getDefaultRootElement()); // draw from document
+		final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
 		JScrollPane modElemTreePane = new JScrollPane(modElemTree,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		modElemTreePane.setPreferredSize(new Dimension(350, 300));
-		
 		
 		View modRootView = modEditor.getUI().getRootView(modEditor);
 		TreeNode modViewRoot = this.createViewBranch(modRootView);	// sorry about the names :S
@@ -245,27 +274,24 @@ public class MainFrame extends JFrame {
 			}
 			@Override
 			public void changedUpdate(DocumentEvent evt) {
-				this.updateTree(evt);
+//				this.updateTree(evt);
 			}
 			/** Updates the tree views on document changes */
 			private void updateTree(DocumentEvent evt) {
-				// reset element tree
-//				((DefaultTreeModel) modElemTree.getModel()).setRoot(
-//						(TreeNode) evt.getDocument().getDefaultRootElement());
+				// reset mod tree
+				((DefaultTreeModel) modElemTree.getModel()).setRoot(
+						modTree.getRoot());
 				// reset view tree
 				((DefaultTreeModel) modViewTree.getModel()).setRoot(
 						createViewBranch(modEditor.getUI().getRootView(modEditor)));
 				
 				// expand trees
-//				for (int i = 0; i < modElemTree.getRowCount(); i++) {
-//					modElemTree.expandRow(i);
-//				}
+				for (int i = 0; i < modElemTree.getRowCount(); i++) {
+					modElemTree.expandRow(i);
+				}
 				for (int i = 0; i < modViewTree.getRowCount(); i++) {
 					modViewTree.expandRow(i);
 				}
-				// reset view tree
-				((DefaultTreeModel) modViewTree.getModel()).setRoot(
-						createViewBranch(modEditor.getUI().getRootView(modEditor)));
 				
 				// expand trees
 				for (int i = 0; i < modElemTree.getRowCount(); i++) {
