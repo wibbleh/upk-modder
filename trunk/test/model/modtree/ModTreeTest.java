@@ -12,7 +12,12 @@ import javax.swing.text.Segment;
 import io.parser.OperandTableParser;
 import java.io.IOException;
 import java.nio.file.Paths;
+import javax.swing.event.DocumentEvent;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Document;
+import javax.swing.text.Element;
+import javax.swing.text.StyledDocument;
 import model.modtree.*;
 import model.modtree.ModContext.*;
 import static model.modtree.ModContext.ModContextType.*;
@@ -34,7 +39,7 @@ import static org.junit.Assert.*;
 public class ModTreeTest
 {
     
-    public ModTreeTest()
+	public ModTreeTest()
     {
     }
     
@@ -58,15 +63,77 @@ public class ModTreeTest
     {
     }
 
+	private class MyDE implements DocumentEvent {
+		private String newline = "\n";
+		String[] initString =
+				{ "This is an editable JTextPane, ",            //regular
+				  "another ",                                   //italic
+				  "styled ",                                    //bold
+				  "text ",                                      //small
+				  "component, ",                                //large
+				  "which supports embedded components..." + newline,//regular
+				  " " + newline,                                //button
+				  "...and embedded icons..." + newline,         //regular
+				  " ",                                          //icon
+				  newline + "JTextPane is a subclass of JEditorPane that " +
+					"uses a StyledEditorKit and StyledDocument, and provides " +
+					"cover methods for interacting with those objects."
+				 };
+
+		String[] initStyles =
+				{ "regular", "italic", "bold", "small", "large",
+				  "regular", "button", "regular", "icon",
+				  "regular"
+				};
+
+		DefaultStyledDocument testdoc = new DefaultStyledDocument();
+		public MyDE() {
+			try {
+				for (int i=0; i < initString.length; i++) {
+					testdoc.insertString(testdoc.getLength(), initString[i],
+									 testdoc.getStyle(initStyles[i]));
+				}
+			} catch (BadLocationException ble) {
+				System.err.println("Couldn't insert initial text into text pane.");
+			}
+		}
+
+		@Override
+		public int getOffset() {
+			return 0;
+		}
+
+		@Override
+		public int getLength() {
+			return 4;
+		}
+
+		@Override
+		public Document getDocument() {
+			return testdoc;
+		}
+
+		@Override
+		public DocumentEvent.EventType getType() {
+			return DocumentEvent.EventType.INSERT;
+		}
+
+		@Override
+		public DocumentEvent.ElementChange getChange(Element elmnt) {
+			return null;
+		}
+	}
+
+
     /**
-     * Test of getDefaultRootElement method, of class ModDocument.
+     * Test of getDefaultRootNode method, of class ModDocument.
      */
     @Test
-    public void testGetDefaultRootElement()
+    public void testGetDefaultRootNode()
     {
-        System.out.println("getDefaultRootElement");
+        System.out.println("getDefaultRootNode");
         ModTree instance = new ModTree();
-        ModTreeNode result = instance.getDefaultRootElement();
+        ModTreeNode result = instance.getDefaultRootNode();
         assertNotNull(result);
     }
 
@@ -117,7 +184,7 @@ public class ModTreeTest
         assertTrue(instance.getContextFlag(FILE_HEADER));
         
         ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootElement();
+		ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootNode();
         r.resetContextFlags();
         assertFalse(r.getContextFlag(HEX_CODE));
         assertTrue(r.getContextFlag(FILE_HEADER));
@@ -136,7 +203,7 @@ public class ModTreeTest
         assertEquals(expResult, result);
 		
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootElement();
+		ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootNode();
 		ModTreeNode e = new ModTreeNode(r);
 		ModTreeLeaf t = new ModTreeLeaf(e, "foo", true);
 		assertEquals(d, t.getTree());
@@ -172,10 +239,11 @@ public class ModTreeTest
 		ModTreeNode e1 = new ModTreeNode(null, true);
 		e1.setRange(0, 34);
 		ModTreeLeaf t1 = new ModTreeLeaf(e1, in, true);
-		e1.addElement(t1);
+		e1.addNode(t1);
 		t1.setRange(0, 34);
 		e1.parseUnrealHex();
-		assertEquals(3, e1.getChildElementCount());
+		assertEquals(3, e1.getChildNodeCount()); // three children: "\t\t", "OperandTreeNode_0F", "// comment\n"
+		assertEquals(3, e1.getChildAt(1).getChildCount());  // three childen: "0F ", "OperandTreeNode_00", "25 "
     }
 
 	/**
@@ -187,7 +255,7 @@ public class ModTreeTest
 	{
 		System.out.println("file-level context test");
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootElement();
+		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
 		r.insertString(0, "MODFILEVERSION=1\n"
 							+ "UPKFILE=a\n"
 							+ "GUID=b\n"
@@ -199,13 +267,13 @@ public class ModTreeTest
 							+ "[/CODE]\n"
 							+ "// comment\n"
 							+ "[/BEGIN_HEX",null);
-		assertEquals(1, r.getElementCount());
+		assertEquals(1, r.getNodeCount());
 		r.reorganizeAfterInsertion();
-		assertEquals(11, r.getElementCount());
-		assertEquals("0B 0B 0B \n", r.getElement(7).toStr());
-		assertTrue(r.getElement(7).getContextFlag(HEX_CODE)); // this assertion is failing
-		assertTrue(r.getElement(6).getContextFlag(BEFORE_HEX)); // this assertion also fails
-		assertFalse(r.getElement(9).getContextFlag(HEX_CODE));
+		assertEquals(11, r.getNodeCount());
+		assertEquals("0B 0B 0B \n", r.getNode(7).toStr());
+		assertTrue(r.getNode(7).getContextFlag(HEX_CODE)); // this assertion is failing
+		assertTrue(r.getNode(6).getContextFlag(BEFORE_HEX)); // this assertion also fails
+		assertFalse(r.getNode(9).getContextFlag(HEX_CODE));
 	}
 	
     /**
@@ -243,28 +311,28 @@ public class ModTreeTest
     }
 
     /**
-     * Test of addElement method, of class ModTreeNode.
+     * Test of addNode method, of class ModTreeNode.
      */
     @Test
-    public void testAddElement_ModTreeNode()
+    public void testAddNode_ModTreeNode()
     {
-        System.out.println("addElement");
+        System.out.println("addNode");
         ModTreeNode e = new ModTreeNode(null);
         ModTreeNode instance = new ModTreeNode(null);
-        instance.addElement(e);
+        instance.addNode(e);
     }
 
     /**
-     * Test of addElement method, of class ModTreeNode.
+     * Test of addNode method, of class ModTreeNode.
      */
     @Test
-    public void testAddElement_int_ModTreeNode()
+    public void testAddNode_int_ModTreeNode()
     {
-        System.out.println("addElement");
+        System.out.println("addNode");
         int index = 0;
         ModTreeNode e = null;
         ModTreeNode instance = new ModTreeNode(null);
-        instance.addElement(index, e);
+        instance.addNode(index, e);
     }
 
     /**
@@ -275,7 +343,7 @@ public class ModTreeTest
     {
         System.out.println("updateContexts");
         ModTree d = new ModTree();
-        ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootElement();
+        ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
         ModTreeNode e2 = new ModTreeNode(r);
         r.resetContextFlags();
         assertFalse("HEX_CODE true, s.b. false", r.getContextFlag(HEX_CODE));
@@ -319,23 +387,52 @@ public class ModTreeTest
         int length = 0;
         ModTreeNode instance = new ModTreeNode(null);
         instance.remove(offset, length);
-    }
+		ModTree t = new ModTree();
+		ModTreeRootNode r = new ModTreeRootNode(t);
+		String in = "123456789\n"
+				+ "123456789\n"
+				+ "123456789\n"
+				+ "1234567890";
+		r.insertString(offset, in, null);
+		r.reorganizeAfterInsertion();
+		assertEquals(40, r.getEndOffset());
+		r.remove(5, 8);
+		r.reorganizeAfterDeletion();
+		String expResult = "12345456789\n"
+				+ "123456789\n"
+				+ "1234567890";
+		assertEquals(expResult, r.toStr());
+		assertEquals(0, r.getStartOffset());
+		assertEquals(32, r.getEndOffset());
+		assertEquals(0, r.getChildNodeAt(0).getStartOffset());
+		assertEquals(12, r.getChildNodeAt(0).getEndOffset());
+		assertEquals(12, r.getChildNodeAt(1).getStartOffset());
+		assertEquals(22, r.getChildNodeAt(1).getEndOffset());
+		assertEquals(22, r.getChildNodeAt(2).getStartOffset());
+		assertEquals(32, r.getChildNodeAt(2).getEndOffset());
+		assertEquals(0, r.getChildNodeAt(0).getChildNodeAt(0).getStartOffset());
+		assertEquals(12, r.getChildNodeAt(0).getChildNodeAt(0).getEndOffset());
+		assertEquals(12, r.getChildNodeAt(1).getChildNodeAt(0).getStartOffset());
+		assertEquals(22, r.getChildNodeAt(1).getChildNodeAt(0).getEndOffset());
+		assertEquals(22, r.getChildNodeAt(2).getChildNodeAt(0).getStartOffset());
+		assertEquals(32, r.getChildNodeAt(2).getChildNodeAt(0).getEndOffset());
+	}
 
     /**
      * Test of removeModTreeNode method, of class ModTreeNode.
      */
     @Test
-    public void testRemoveModElement()
+    public void testRemoveModNode()
     {
         System.out.println("removeModTreeNode");
         ModTreeRootNode r = new ModTreeRootNode(null);
         ModTreeNode e1 = new ModTreeNode(r);
         ModTreeNode e2 = new ModTreeNode(e1);
         ModTreeNode e3 = new ModTreeNode(e1);
-        e1.addElement(e2);
-        e1.addElement(e3);
-        e2.removeModElement();
-        assertEquals(e3, e1.getChildElementAt(0));
+        e1.addNode(e2);
+        e1.addNode(e3);
+        e2.removeModNode();
+        assertEquals(e3, e1.getChildNodeAt(0));
     }
 
     /**
@@ -436,9 +533,9 @@ public class ModTreeTest
         System.out.println("toString");
         ModTreeNode e = new ModTreeNode(null);
 		ModTreeLeaf t1 = new ModTreeLeaf(e, "foo", true);
-		e.addElement(t1);
+		e.addNode(t1);
 		ModTreeLeaf t2 = new ModTreeLeaf(e, "bar", true);
-		e.addElement(t2);
+		e.addNode(t2);
         String expResult = "foobar";
         String result = e.toStr();
         assertEquals(expResult, result);
@@ -459,19 +556,19 @@ public class ModTreeTest
         String result = instance.getText(offset, length);
         assertEquals(expResult, result);
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootElement();
+		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
 		r.setRange(0, 19);
 		ModTreeNode e1 = new ModTreeNode(r, true);
-		r.addElement(e1);
+		r.addNode(e1);
 		e1.setRange(0, 9);
 		ModTreeLeaf t1 = new ModTreeLeaf(e1, "testing1\n", true);
-		e1.addElement(t1);
+		e1.addNode(t1);
 		t1.setRange(0, 9);
 		ModTreeNode e2 = new ModTreeNode(r, true);
-		r.addElement(e2);
+		r.addNode(e2);
 		e2.setRange(9, 19);
 		ModTreeLeaf t2 = new ModTreeLeaf(e2, "testing2\n", true);
-		e2.addElement(t2);
+		e2.addNode(t2);
 		t2.setRange(9, 19);
 		String expResult2 = "g1\nte";
 //		String result2 = d.getText(6, 5);
@@ -491,13 +588,13 @@ public class ModTreeTest
 		String expResult = "";
 		assertEquals(expResult, segment.toString());
 		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootElement();
+		ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
 		ModTreeNode e1 = new ModTreeNode(r, true);
-		r.addElement(0, e1);
+		r.addNode(0, e1);
 		r.setRange(0, 6);
 		e1.setRange(0, 6);
 		ModTreeLeaf t1 = new ModTreeLeaf(e1, "foobar", true);
-		e1.addElement(t1);
+		e1.addNode(t1);
 		t1.setRange(0, 6);
 //		d.getText(2, 2, segment);
 //		assertEquals("ob", segment.toString());
@@ -513,15 +610,15 @@ public class ModTreeTest
     }
 
     /**
-     * Test of getParentElement method, of class ModTreeNode.
+     * Test of getParentNode method, of class ModTreeNode.
      */
     @Test
-    public void testGetParentElement()
+    public void testGetParentNode()
     {
-        System.out.println("getParentElement");
+        System.out.println("getParentNode");
         ModTreeNode instance = new ModTreeNode(null);
         ModTreeNode expResult = null;
-        ModTreeNode result = instance.getParentElement();
+        ModTreeNode result = instance.getParentNode();
         assertEquals(expResult, result);
     }
 
@@ -551,7 +648,7 @@ public class ModTreeTest
         assertEquals(expResult, result);
         ModOperandNode instance2 = new ModOperandNode(instance);
         String result2 = instance2.getName();
-        String expResult2 = "ModOperandElement_";
+        String expResult2 = "ModOperandNode_";
         assertEquals(expResult2, result2);
     }
 
@@ -595,48 +692,48 @@ public class ModTreeTest
     }
 
     /**
-     * Test of getElementIndex method, of class ModTreeNode.
+     * Test of getNodeIndex method, of class ModTreeNode.
 	 * @throws javax.swing.text.BadLocationException
      */
     @Test
-    public void testGetElementIndex() throws BadLocationException
+    public void testGetNodeIndex() throws BadLocationException
     {
-        System.out.println("getElementIndex");
+        System.out.println("getNodeIndex");
         ModTree d = new ModTree();
-        ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootElement();
+        ModTreeRootNode r = (ModTreeRootNode) d.getDefaultRootNode();
         r.insertString(0, "foo\nbar\nstuff", null);
         r.reorganizeAfterInsertion();
-        assertEquals(0, r.getElementIndex(-1));
-        assertEquals(0, r.getElementIndex(3));
-        assertEquals(1, r.getElementIndex(5));
-        assertEquals(2, r.getElementIndex(8));
-        assertEquals(2, r.getElementIndex(400));
+        assertEquals(0, r.getNodeIndex(-1));
+        assertEquals(0, r.getNodeIndex(3));
+        assertEquals(1, r.getNodeIndex(5));
+        assertEquals(2, r.getNodeIndex(8));
+        assertEquals(2, r.getNodeIndex(400));
     }
 
     /**
-     * Test of getElementCount method, of class ModTreeNode.
+     * Test of getNodeCount method, of class ModTreeNode.
      */
     @Test
-    public void testGetElementCount()
+    public void testGetNodeCount()
     {
-        System.out.println("getElementCount");
+        System.out.println("getNodeCount");
         ModTreeNode instance = new ModTreeNode(null);
         int expResult = 0;
-        int result = instance.getElementCount();
+        int result = instance.getNodeCount();
         assertEquals(expResult, result);
     }
 
     /**
-     * Test of getElement method, of class ModTreeNode.
+     * Test of getNode method, of class ModTreeNode.
      */
     @Test
-    public void testGetElement()
+    public void testGetNode()
     {
-        System.out.println("getElement");
+        System.out.println("getNode");
         int n = 0;
         ModTreeNode instance = new ModTreeNode(null);
         ModTreeNode expResult = null;
-        ModTreeNode result = instance.getElement(n);
+        ModTreeNode result = instance.getNode(n);
         assertEquals(expResult, result);
     }
 
@@ -648,8 +745,8 @@ public class ModTreeTest
     {
         System.out.println("getContextFlag");
         ModTree d = new ModTree();
-        ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootElement();
-        ModTreeNode e = new ModTreeNode(d.getDefaultRootElement());
+        ModTreeRootNode r = (ModTreeRootNode)d.getDefaultRootNode();
+        ModTreeNode e = new ModTreeNode(d.getDefaultRootNode());
         assertFalse(e.getContextFlag(HEX_CODE));
     }
 
@@ -717,5 +814,175 @@ public class ModTreeTest
         int result = instance.getRefValue();
         assertEquals(expResult, result);
     }
+
+	/**
+	 * Test of setDocument method, of class ModTree.
+	 */
+	@Test
+	public void testSetDocument() {
+		System.out.println("setDocument");
+		StyledDocument d = new DefaultStyledDocument();
+		ModTree r = new ModTree();
+		r.setDocument(d);
+		assertEquals(d, r.getDocument());
+		assertEquals(d, r.doc);
+	}
+
+	/**
+	 * Test of getDocument method, of class ModTree.
+	 * Verifies null case does not crash app.
+	 */
+	@Test
+	public void testGetDocument() {
+		System.out.println("getDocument");
+		ModTree instance = new ModTree();
+		StyledDocument expResult = null;
+		StyledDocument result = instance.getDocument();
+		assertEquals(expResult, result);
+	}
+
+	/**
+	 * Test of getFileVersion method, of class ModTree.
+	 * Tests un-initialized case.
+	 */
+	@Test
+	public void testGetFileVersion() {
+		System.out.println("getFileVersion");
+		ModTree instance = new ModTree();
+		int expResult = -1;
+		int result = instance.getFileVersion();
+		assertEquals(expResult, result);
+	}
+
+	/**
+	 * Test of setFileVersion method, of class ModTree.
+	 */
+	@Test
+	public void testSetFileVersion() {
+		System.out.println("setFileVersion");
+		int fileVersion = 27;
+		ModTree t = new ModTree();
+		t.setFileVersion(fileVersion);
+		assertEquals(fileVersion, t.getFileVersion());
+	}
+
+	/**
+	 * Test of getUpkName method, of class ModTree.
+	 */
+	@Test
+	public void testGetUpkName() {
+		System.out.println("getUpkName");
+		ModTree instance = new ModTree();
+		String expResult = "";
+		String result = instance.getUpkName();
+		assertEquals(expResult, result);
+	}
+
+	/**
+	 * Test of setUpkName method, of class ModTree.
+	 */
+	@Test
+	public void testSetUpkName() {
+		System.out.println("setUpkName");
+		String upkName = "testname.upk";
+		ModTree t = new ModTree();
+		t.setUpkName(upkName);
+		assertEquals(upkName, t.getUpkName());
+	}
+
+	/**
+	 * Test of getGuid method, of class ModTree.
+	 */
+	@Test
+	public void testGetGuid() {
+		System.out.println("getGuid");
+		ModTree instance = new ModTree();
+		String expResult = "";
+		String result = instance.getGuid();
+		assertEquals(expResult, result);
+	}
+
+	/**
+	 * Test of setGuid method, of class ModTree.
+	 */
+	@Test
+	public void testSetGuid() {
+		System.out.println("setGuid");
+		String guid = "11 22 33 AA 87 ";
+		ModTree t = new ModTree();
+		t.setGuid(guid);
+		assertEquals(guid, t.getGuid());
+	}
+
+	/**
+	 * Test of getFunctionName method, of class ModTree.
+	 */
+	@Test
+	public void testGetFunctionName() {
+		System.out.println("getFunctionName");
+		ModTree instance = new ModTree();
+		String expResult = "";
+		String result = instance.getFunctionName();
+		assertEquals(expResult, result);
+	}
+
+	/**
+	 * Test of setFunctionName method, of class ModTree.
+	 */
+	@Test
+	public void testSetFunctionName() {
+		System.out.println("setFunctionName");
+		String functionName = "function@class";
+		ModTree t = new ModTree();
+		t.setFunctionName(functionName);
+		assertEquals(functionName, t.getFunctionName());
+	}
+
+	/**
+	 * Test of processNextEvent method, of class ModTree.
+	 */
+	@Test
+	public void testProcessNextEvent() {
+		System.out.println("processNextEvent");
+		// null case -- verify code does not crash
+		ModTree instance = new ModTree();
+		instance.processNextEvent();
+
+		// full case
+		DocumentEvent de = new MyDE();
+		ModTree t = new ModTree();
+		t.docEvents.add(de);
+		t.processNextEvent();
+		assertEquals("This", t.getDefaultRootNode().toStr());
+		assertEquals(0, t.getDefaultRootNode().getStartOffset());
+		assertEquals(4, t.getDefaultRootNode().getEndOffset());
+		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getEndOffset());
+		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getEndOffset());
+	}
+
+	/**
+	 * Test of processDocumentEvent method, of class ModTree.
+	 */
+	@Test
+	public void testProcessDocumentEvent() throws Exception {
+		System.out.println("processDocumentEvent");
+		// null case -- verify code does not crash
+		DocumentEvent de = null;
+		ModTree t = new ModTree();
+		t.processDocumentEvent(de);
+
+		//full case
+		de = new MyDE();
+		t.processDocumentEvent(de);
+		assertEquals("This", t.getDefaultRootNode().toStr());
+		assertEquals(0, t.getDefaultRootNode().getStartOffset());
+		assertEquals(4, t.getDefaultRootNode().getEndOffset());
+		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getEndOffset());
+		assertEquals(0, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getStartOffset());
+		assertEquals(4, t.getDefaultRootNode().getChildNodeAt(0).getChildNodeAt(0).getEndOffset());
+	}
     
 }

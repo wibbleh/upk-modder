@@ -94,7 +94,7 @@ public class ModTreeLeaf extends ModTreeNode {
 	}
 
     /**
-     * Returns true if element is leaf node (eg "token" )
+     * Returns true if node is leaf node
      * IMPLEMENTED
      * @return
      */

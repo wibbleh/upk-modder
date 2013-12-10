@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.StyledDocument;
 
@@ -17,7 +18,10 @@ import javax.swing.text.StyledDocument;
 
 public class ModTree {
 	
-	private class ModTreeListener implements DocumentListener {
+	/**
+	 * Implements the Listener to be registered with a StyledDocument
+	 */
+	protected class ModTreeListener implements DocumentListener {
 
 		@Override
 		public void insertUpdate(DocumentEvent de) {
@@ -50,31 +54,32 @@ public class ModTree {
 	/**
 	 * The tree's DocumentListener implementation.
 	 */
-	private ModTreeListener mtListener;
+	protected ModTreeListener mtListener;
 	
 	/**
-	 * The tree's list of pending Document Events to be processed.
+	 * The tree's list (queue) of pending Document Events to be processed.
 	 */
-	private final List<DocumentEvent> docEvents;
+	protected final List<DocumentEvent> docEvents;
 	
 	/**
 	 * The tree's document it is listening to.
 	 */
-	private StyledDocument doc = null;
+	protected StyledDocument doc = null;
 	
 	/**
-	 * The tree's root element.
+	 * The tree's root node.
 	 */
-    private ModTreeRootNode rootElement;
+    private ModTreeRootNode rootNode;
     
 	/**
-	 * The array of the tree's root elements. Always contains only a single element.
+	 * The array of the tree's root nodes. Always contains only a single node.
 	 */
 	@Deprecated
 	private final ModTreeRootNode[] rootElements = new ModTreeRootNode[1];
 
 	
-	// TODO -- Probably should retrieve this information from ModDocument if stored there
+	// TODO -- Should retrieve this information from ModDocument if stored there
+	// @ XMTS : Would it make more sense to store these values here? Does the document even need them?
 	/**
 	 * The version number of the document.
 	 */
@@ -95,14 +100,21 @@ public class ModTree {
 	 */
 	private String functionName = "";
 
-	
-	
+	/**
+	 * ModTree constructor.
+	 * Initializes queue of 10 DocumentEvents.
+	 */
 	public ModTree() {
 		docEvents = new ArrayList<>(10);
 	}
 
-	public void setDocument(StyledDocument d) {
-		this.doc = d;
+	/**
+	 * Associates a document with the ModTree.
+	 * Registers a DocumentListener with the document.
+	 * @param document StyledDocument to be registered.
+	 */
+	public void setDocument(StyledDocument document) {
+		this.doc = document;
 		mtListener = new ModTreeListener();
 		if(doc.getLength() > 0) {
 			// TODO retrieve initial text for already non-empty Document
@@ -110,68 +122,120 @@ public class ModTree {
 		doc.addDocumentListener(mtListener);
 	}
 	
+	/**
+	 * Retrieves current document associated with ModTree.
+	 * @return
+	 */
 	public StyledDocument getDocument() {
 		return doc;
 	}
 	
-	private void updateDocument() {
-		// TODO -- scan through ModTree and perform style/text changes to Document as appropriate
+	/**
+	 * Update the current document based on ModTree structure/content.
+	 * Initially will only perform styling.
+	 * Later may modify text to implement reference/offset corrections.
+	 * TODO: Implement
+	 */
+	protected void updateDocument() {
+		if(getDocument() == null) { return; }
+		updateNode(getDefaultRootNode());
+		
 	}
 	
-	// TODO -- Event/thread trigger on this when docEvents not empty
-	private void processNextEvent() {
-		if(!docEvents.isEmpty()) {
+	/**
+	 * Updates associated document for a single node.
+	 * Function is used recursively
+	 * @param node The current node being updated for.
+	 */
+	protected void updateNode(ModTreeNode node) {
+		applyStyle(node, getDocument());
+		for(int i = 0; i < node.getChildNodeCount() ; i ++ ) {
+			updateNode(node.getChildNodeAt(i));
+		}
+	}
+
+	/**
+	 * Applies any necessary styling for the current node to the document.
+	 * WARNING : Do not make unnecessary text changes to the document.
+	 * Attribute changes are ignored by ModTree.
+	 * @param node The ModTreeNode originating the style.
+	 * @param document The StyledDocument the style is being applied to. 
+	 */
+	protected void applyStyle(ModTreeNode node, StyledDocument document) {
+		int start = node.getStartOffset();
+		int end = node.getEndOffset();
+		boolean replace = true;
+		
+		// perform attribute updates
+		AttributeSet as = null;  // TODO perform node-to-style mapping
+		document.setCharacterAttributes(start, end, as, replace);
+		
+		// check for text updates
+		if(node.isLeaf()) {
 			try {
-				processDocumentEvent(docEvents.get(0));
-				docEvents.remove(0);
-				updateDocument();
+				if(!node.getString().equals(document.getText(start, end))) {
+					document.remove(start, end);
+					document.insertString(start, node.getString(), as);
+				}
 			} catch(BadLocationException ex) {
 				Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
 	}
 	
-	private void processDocumentEvent(DocumentEvent de) throws BadLocationException {
-		int offset = de.getOffset();
-		int length = de.getLength();
-		String s = doc.getText(offset, length);
-		if(de.getType() == DocumentEvent.EventType.INSERT) {
-			rootElement.insertString(offset, s, null);
-			rootElement.reorganizeAfterInsertion();
-		} else if (de.getType() == DocumentEvent.EventType.REMOVE) {
-			rootElement.remove(offset, length);
-			rootElement.reorganizeAfterDeletion();
+	/**
+	 * Processes next DocumentEvent in the queue.
+	 * Updates the ModTree model, then updates the registered document
+	 * TODO -- Event/thread trigger on this when docEvents not empty
+	 */
+		protected void processNextEvent() {
+		if(!docEvents.isEmpty()) {
+			try {
+				processDocumentEvent(docEvents.get(0));
+				docEvents.remove(0);
+				if(getDocument() != null) {
+					updateDocument();
+				}
+			} catch(BadLocationException ex) {
+				Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
+			}
 		}
 	}
 	
-    /**
-     * Returns array of root elements.<br>
-     * For <code>ModDocument</code> this will always be length 1 array.
-     * @return
-     */
-	@Deprecated
-	public ModTreeNode[] getRootElements() {
-		if (this.rootElements[0] == null) {
-			// lazily instantiate root element
-			this.getDefaultRootElement();
-		}
-		return this.rootElements;
-	}
-
 	/**
-	 * Returns the root element of the document.
-	 * @return the root element
+	 * Processes a single specified DocumentEvent.
+	 * Inserts or removes text and then reorganizes the tree.
+	 * @param de The DocumentEvent
+	 * @throws BadLocationException
 	 */
-	public ModTreeRootNode getDefaultRootElement() {
-		if (this.rootElement == null) {
-			// lazily instantiate root element
-			this.rootElement = new ModTreeRootNode(this);
-			this.rootElements[0] = this.rootElement;
+	protected void processDocumentEvent(DocumentEvent de) throws BadLocationException {
+		if(de == null) {return;}
+		int offset = de.getOffset();
+		int length = de.getLength();
+		String s = de.getDocument().getText(offset, length);
+		ModTreeRootNode r = getDefaultRootNode();
+		if(de.getType() == DocumentEvent.EventType.INSERT) {
+			r.insertString(offset, s, null);
+			r.reorganizeAfterInsertion();
+		} else if (de.getType() == DocumentEvent.EventType.REMOVE) {
+			r.remove(offset, length);
+			r.reorganizeAfterDeletion();
 		}
-		return this.rootElement;
+	}
+	
+	/**
+	 * Returns the root node of the document.
+	 * @return the root node
+	 */
+	public ModTreeRootNode getDefaultRootNode() {
+		if (this.rootNode == null) {
+			// lazily instantiate root node
+			this.rootNode = new ModTreeRootNode(this);
+		}
+		return this.rootNode;
 	}
 
-	// TODO: redirect these calls to the Document
+	// TODO: redirect these calls to the Document if necessary
 	/**
 	 * Returns the file version number.
 	 * @return the version number

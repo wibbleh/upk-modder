@@ -23,7 +23,7 @@ public class ModContext {
 	/**
 	 * The map holding all context flags.
 	 */
-	private Map<ModContextType, Boolean> contextFlags;
+	private final Map<ModContextType, Boolean> contextFlags;
 	
 	/**
 	 * Creates a mod context instance with all flags initially set to <code>false</code>.

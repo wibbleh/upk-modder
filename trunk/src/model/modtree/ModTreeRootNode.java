@@ -32,8 +32,8 @@ public class ModTreeRootNode extends ModTreeNode {
 		this.name = "ModRootElement";
 
 		ModTreeNode child = new ModTreeNode(this, true);
-		child.addElement(new ModTreeLeaf(child, "", true));
-		this.addElement(child);
+		child.addNode(new ModTreeLeaf(child, "", true));
+		this.addNode(child);
 	}
     
 	/**
@@ -51,9 +51,9 @@ public class ModTreeRootNode extends ModTreeNode {
     {
         // iterate through array of lines and break into lines
         int index = 0;
-        int childCount = getChildElementCount();
+        int childCount = getChildNodeCount();
         do {
-        	ModTreeNode child = this.getChildElementAt(index);
+        	ModTreeNode child = this.getChildNodeAt(index);
         	index ++;
 			if (child.isSimpleString) {
 				if (!child.toStr().isEmpty()) {
@@ -62,7 +62,7 @@ public class ModTreeRootNode extends ModTreeNode {
 						if (!strings[1].isEmpty()) {
         					strings[0] += "\n";
         					childCount++;
-        					ModTreeNode grandChild = child.getChildElementAt(0);
+        					ModTreeNode grandChild = child.getChildNodeAt(0);
         					grandChild.setString(strings[0]);
         					int oldEndOffset = child.getEndOffset();
         					int childEndOffset = child.getEndOffset() - strings[1].length();
@@ -73,8 +73,8 @@ public class ModTreeRootNode extends ModTreeNode {
         					ModTreeNode newElement = new ModTreeNode(this, true);
         					ModTreeLeaf newToken = new ModTreeLeaf(newElement, strings[1], true);
 
-        					this.addElement(index, newElement);
-        					newElement.addElement(newToken);
+        					this.addNode(index, newElement);
+        					newElement.addNode(newToken);
         					newElement.setRange(child.getEndOffset(), oldEndOffset);
         					newToken.setRange(child.getEndOffset(), oldEndOffset);
         				}
@@ -99,34 +99,31 @@ public class ModTreeRootNode extends ModTreeNode {
 	private void glueElementsWithoutNewline() {
 		// iterate through array of lines and break into lines
 		int count = 0;
-		int numbranches = this.getChildElementCount();
+		int numbranches = this.getChildNodeCount();
 		do {
-			ModTreeNode branch = this.getChildElementAt(count);
+			ModTreeNode branch = this.getChildNodeAt(count);
 			if (branch.isSimpleString) {
 				if (!branch.toStr().isEmpty()) {
 					if (!branch.toStr().contains("\n") && count + 1 < numbranches) {
 						numbranches--;
 						String gluedString = branch.toStr()
-								+ this.getChildElementAt(count + 1).toStr();
-						ModTreeNode branchBranch = branch.getChildElementAt(0);
+								+ this.getChildNodeAt(count + 1).toStr();
+						ModTreeNode branchBranch = branch.getChildNodeAt(0);
 						branchBranch.setString(gluedString);
-						branch.setRange(branch.getStartOffset(),
-								branch.getEndOffset() + gluedString.length());
-						branchBranch.setRange(
-								branchBranch.getStartOffset(),
-								branchBranch.getEndOffset() + gluedString.length());
-						this.removeChildElementAt(count + 1);
+						branch.setRange(branch.getStartOffset(),branch.getStartOffset() + gluedString.length());
+						branchBranch.setRange(branchBranch.getStartOffset(),branchBranch.getStartOffset() + gluedString.length());
+						this.removeChildNodeAt(count + 1);
 					} else {
 						count++;
 					}
 				} else { // handle empty string removal
-					if (tree.getDefaultRootElement().getEndOffset() == 0) {
+					if (tree.getDefaultRootNode().getEndOffset() == 0) {
 						// if document is empty exit out
 						count++;
 					} else {
 						// otherwise remove the element with the empty leaf
 						numbranches--;
-						this.removeChildElementAt(count);
+						this.removeChildNodeAt(count);
 					}
 				}
 			}
@@ -140,8 +137,8 @@ public class ModTreeRootNode extends ModTreeNode {
     private void buildContextsParseUnreal()
     {
         // iterate through array of lines 
-		for (int i = 0; i < this.getChildElementCount(); i++) {
-			ModTreeNode b = this.getChildElementAt(i);
+		for (int i = 0; i < this.getChildNodeCount(); i++) {
+			ModTreeNode b = this.getChildNodeAt(i);
 			
             // update contexts
             b.updateContexts();
@@ -158,8 +155,8 @@ public class ModTreeRootNode extends ModTreeNode {
             if(!b.getContextFlag(ModContextType.HEX_CODE) && !b.isSimpleString) { // consolidate string
                 ModTreeLeaf newToken = new ModTreeLeaf(b, b.toStr(), true);
                 newToken.setRange(b.getStartOffset(), b.getEndOffset());
-                b.removeAllChildElements();
-                b.addElement(newToken);
+                b.removeAllChildNodes();
+                b.addNode(newToken);
                 b.isSimpleString = true;
             }
             if(b.getContextFlag(ModContextType.HEX_CODE) && b.isSimpleString) {
