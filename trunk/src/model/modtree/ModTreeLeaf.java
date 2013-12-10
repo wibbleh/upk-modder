@@ -34,7 +34,7 @@ public class ModTreeLeaf extends ModTreeNode {
     public int getMemorySize()
     {
         if(isSimpleString) {
-            return -1;
+            return 0;
         } else {
             return data.length()/3;
         }

@@ -323,7 +323,12 @@ public class ModTreeNode implements TreeNode {
 			} else if (content.startsWith("GUID=")) {
 				getTree().setGuid(this.getTagValue(content));
 			} else if (content.startsWith("MODFILEVERSION=")) {
-				getTree().setFileVersion(Integer.parseInt(this.getTagValue(content)));
+				try {
+					getTree().setFileVersion(Integer.parseInt(this.getTagValue(content)));
+				}
+				catch (NumberFormatException x) {
+					System.out.println("Invalid FileVersion: " +x);
+				}
 			}
 		}
 		// update global contexts
@@ -775,7 +780,7 @@ public class ModTreeNode implements TreeNode {
             num += branch.getMemorySize();
         }
         if(num < 0)
-            return -1;
+            return 0;
         return num;
     }
 

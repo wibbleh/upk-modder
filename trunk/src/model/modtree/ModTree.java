@@ -134,7 +134,6 @@ public class ModTree {
 	 * Update the current document based on ModTree structure/content.
 	 * Initially will only perform styling.
 	 * Later may modify text to implement reference/offset corrections.
-	 * TODO: Implement
 	 */
 	protected void updateDocument() {
 		if(getDocument() == null) { return; }
@@ -188,7 +187,7 @@ public class ModTree {
 	 * Updates the ModTree model, then updates the registered document
 	 * TODO -- Event/thread trigger on this when docEvents not empty
 	 */
-		protected void processNextEvent() {
+		public void processNextEvent() {
 		if(!docEvents.isEmpty()) {
 			try {
 				processDocumentEvent(docEvents.get(0));
