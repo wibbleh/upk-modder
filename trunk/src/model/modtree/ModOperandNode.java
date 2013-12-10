@@ -37,6 +37,7 @@ public class ModOperandNode extends ModTreeNode
      * @return - the unparsed string remnant
      */
 	protected String parseUnrealHex(String s) {
+		boolean isOperand = true;
 		int lastEnd = this.getStartOffset();
 		operand = s.split("\\s")[0];
 		if(operand.isEmpty()) {
@@ -53,7 +54,13 @@ public class ModOperandNode extends ModTreeNode
 		for(String sParseItem : sParseItems) {
 			sParseItem = sParseItem.toUpperCase();
 			if(sParseItem.matches("[0-9]")) {
-				ModGenericLeaf n = new ModGenericLeaf(this);
+				ModGenericLeaf n;
+				if(isOperand) {
+					n = new ModGenericLeaf(this, true);
+					isOperand = false;
+				} else { 
+					n = new ModGenericLeaf(this);
+				}
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
 				s = n.parseUnrealHex(s, Integer.parseInt(sParseItem));

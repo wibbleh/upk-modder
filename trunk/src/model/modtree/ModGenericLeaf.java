@@ -20,6 +20,17 @@ public class ModGenericLeaf extends ModTreeLeaf
         setContextFlag(ModContextType.VALID_CODE, true);
     }
 
+    ModGenericLeaf(ModTreeNode o, boolean operand)
+    {
+        super(o);
+        name = "GenericToken";
+        isSimpleString = false;
+        setContextFlag(ModContextType.VALID_CODE, true);
+		if(operand) {
+			name = "OperandToken";
+		}
+    }
+	
     @Override
     String parseUnrealHex(String s, int i)
     {

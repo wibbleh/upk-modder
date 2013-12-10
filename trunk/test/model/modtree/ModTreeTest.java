@@ -845,7 +845,7 @@ public class ModTreeTest
 	 * Test of setDocument method, of class ModTree.
 	 */
 	@Test
-	public void testSetDocument() {
+	public void testSetDocument() throws BadLocationException {
 		System.out.println("setDocument");
 		StyledDocument d = new DefaultStyledDocument();
 		ModTree r = new ModTree();

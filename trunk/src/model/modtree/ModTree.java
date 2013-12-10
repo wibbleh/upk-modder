@@ -1,5 +1,6 @@
 package model.modtree;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -8,7 +9,11 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+import static model.modtree.ModContext.ModContextType.*;
 
 /**
  *
@@ -16,7 +21,19 @@ import javax.swing.text.StyledDocument;
  */
 
 
-public class ModTree {
+public class ModTree implements Runnable {
+
+	@Override
+	public void run() {
+		try {
+			Thread.sleep(50);
+		} catch(InterruptedException ex) {
+			Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		while(!docEvents.isEmpty()) {
+			processNextEvent();
+		}
+	}
 	
 	/**
 	 * Implements the Listener to be registered with a StyledDocument
@@ -28,6 +45,7 @@ public class ModTree {
 			if(de.getDocument() == doc) {
 				if(de.getType() == DocumentEvent.EventType.INSERT) {
 					docEvents.add(de);
+					(new Thread(new ModTree())).start();
 				}
 			}
 		}
@@ -37,6 +55,7 @@ public class ModTree {
 			if(de.getDocument() == doc) {
 				if(de.getType() == DocumentEvent.EventType.REMOVE) {
 					docEvents.add(de);
+					(new Thread(new ModTree())).start();
 				}
 			}
 		}
@@ -112,12 +131,16 @@ public class ModTree {
 	 * Associates a document with the ModTree.
 	 * Registers a DocumentListener with the document.
 	 * @param document StyledDocument to be registered.
+	 * @throws javax.swing.text.BadLocationException
 	 */
-	public void setDocument(StyledDocument document) {
+	public void setDocument(StyledDocument document) throws BadLocationException {
 		this.doc = document;
 		mtListener = new ModTreeListener();
 		if(doc.getLength() > 0) {
-			// TODO retrieve initial text for already non-empty Document
+			String s = doc.getText(0, doc.getLength());
+			getDefaultRootNode().insertString(0, s, null);
+			getDefaultRootNode().reorganizeAfterInsertion();
+			updateDocument();
 		}
 		doc.addDocumentListener(mtListener);
 	}
@@ -147,7 +170,7 @@ public class ModTree {
 	 * @param node The current node being updated for.
 	 */
 	protected void updateNode(ModTreeNode node) {
-		applyStyle(node, getDocument());
+		applyStyle(node);
 		for(int i = 0; i < node.getChildNodeCount() ; i ++ ) {
 			updateNode(node.getChildNodeAt(i));
 		}
@@ -157,29 +180,44 @@ public class ModTree {
 	 * Applies any necessary styling for the current node to the document.
 	 * WARNING : Do not make unnecessary text changes to the document.
 	 * Attribute changes are ignored by ModTree.
-	 * @param node The ModTreeNode originating the style.
-	 * @param document The StyledDocument the style is being applied to. 
+	 * @param node The ModTreeNode originating the style. 
 	 */
-	protected void applyStyle(ModTreeNode node, StyledDocument document) {
+	protected void applyStyle(ModTreeNode node) {
 		int start = node.getStartOffset();
 		int end = node.getEndOffset();
 		boolean replace = true;
 		
 		// perform attribute updates
-		AttributeSet as = null;  // TODO perform node-to-style mapping
-		document.setCharacterAttributes(start, end, as, replace);
-		
-		// check for text updates
-		if(node.isLeaf()) {
-			try {
-				if(!node.getString().equals(document.getText(start, end))) {
-					document.remove(start, end);
-					document.insertString(start, node.getString(), as);
-				}
-			} catch(BadLocationException ex) {
-				Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
+		AttributeSet as = new SimpleAttributeSet();  // TODO perform node-to-style mapping
+		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+		StyleConstants.setItalic((MutableAttributeSet) as, false);
+		if(node.getName().equals("ModReferenceToken")) {
+			if(node.isVFFunctionRef()) {
+				StyleConstants.setForeground((MutableAttributeSet) as, Color.MAGENTA);
+				StyleConstants.setUnderline((MutableAttributeSet) as, true);
+			} else {
+				StyleConstants.setForeground((MutableAttributeSet) as, Color.ORANGE);
+				StyleConstants.setUnderline((MutableAttributeSet) as, true);
 			}
 		}
+		if(node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE)) {
+			StyleConstants.setBackground((MutableAttributeSet) as, Color.RED);
+		}
+		if(node.getName().equals("OperandToken")) {
+			if(node.toStr().startsWith("0B")) {
+				StyleConstants.setForeground((MutableAttributeSet) as, Color.DARK_GRAY);
+				StyleConstants.setBold((MutableAttributeSet) as, false);
+				
+			} else {
+				StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
+				StyleConstants.setBold((MutableAttributeSet) as, true);
+			}
+		}
+		if(node.getName().contains("Jump")) {
+			StyleConstants.setBackground((MutableAttributeSet) as, new Color(255, 255, 128));
+		}
+		getDocument().setCharacterAttributes(start, end, as, replace);
+		
 	}
 	
 	/**
