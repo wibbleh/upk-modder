@@ -1,27 +1,28 @@
-package model.modelement3;
+package model.modtree;
 
-import model.modelement3.ModContext.ModContextType;
+import model.modtree.ModContext.ModContextType;
+
 
 /**
  *
  * @author Amineri
  */
-public class ModToken extends ModElement {
+public class ModTreeLeaf extends ModTreeNode {
     
 	/**
 	 * The string data of this token.
 	 */
     protected String data;
     
-	public ModToken(ModElement parent) {
+	public ModTreeLeaf(ModTreeNode parent) {
 		this(parent, "");
 	}
     
-	public ModToken(ModElement parent, String data) {
+	public ModTreeLeaf(ModTreeNode parent, String data) {
 		this(parent, data, false);
 	}
     
-	public ModToken(ModElement parent, String data, boolean isSimpleString) {
+	public ModTreeLeaf(ModTreeNode parent, String data, boolean isSimpleString) {
 		super(parent);
 		init(parent);
 		this.data = data;
@@ -39,7 +40,7 @@ public class ModToken extends ModElement {
         }
     }
     
-    private void init(ModElement o)
+    private void init(ModTreeNode o)
     {
         this.parent = o;
         this.isSimpleString = false;
