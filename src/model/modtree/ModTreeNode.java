@@ -12,40 +12,40 @@ import model.modtree.ModContext.*;
 import static model.modtree.ModContext.ModContextType.*;
 
 /**
- * Basic <code>Element</code> implementation used in structuring <code>ModDocument</code> contents.
+ * Basic <code>TreeNode</code> implementation used in structuring modfile contents.
+ * Tree can be displayed directly via JTree pane or used to format a <code>ModDocument</code>.
  * @author Amineri
  * @see {@link ModDocument}
  */
 public class ModTreeNode implements TreeNode {
-//public class ModTreeNode extends AbstractElement {
 	
 	/**
-	 * The list of child elements.
+	 * The list of child nodes.
 	 */
     private List<ModTreeNode> children;
     
     /**
-     * The reference to the parent element. Is <code>null</code> if this element is the root element.
+     * The reference to the parent node. Is <code>null</code> if this node is the root node.
      */
     protected ModTreeNode parent;
     
     /**
-     * Flag denoting whether this element contains pure textual data.
+     * Flag denoting whether this node contains pure textual data.
      */
     protected boolean isSimpleString;
     
     /**
-     * The name of this element.
+     * The name of this node.
      */
     protected String name;
 
     /**
-     * The start offset of this element in the document.
+     * The start offset of this node in the associated document.
      */
     private int startOffset;
     
     /**
-     * The end offset of this element in the document.
+     * The end offset of this node in the associated document.
      */
     private int endOffset;
     
@@ -55,23 +55,23 @@ public class ModTreeNode implements TreeNode {
     protected ModContext context;
     
     /**
-     * The style attributes of this element.
+     * The style attributes of this node.
      */
     protected AttributeSet attributes;
 
     /**
-     * Constructs a mod element from the specified parent element.
-     * @param parent the parent element
+     * Constructs a mod node from the specified parent node.
+     * @param parent the parent node
      */
 	public ModTreeNode(ModTreeNode parent) {
 		this(parent, false);
 	}
 
 	/**
-	 * Constructs a mod element from the specified parent element and a flag
+	 * Constructs a mod node from the specified parent node and a flag
 	 * denoting whether it contains pure textual data (i.e. non-parseable code).
-	 * @param parent the parent element 
-	 * @param isSimpleString <code>true</code> if this element contains only textual data,
+	 * @param parent the parent node 
+	 * @param isSimpleString <code>true</code> if this node contains only textual data,
 	 *  <code>false</code> otherwise
 	 */
 	public ModTreeNode(ModTreeNode parent, boolean isSimpleString) {
@@ -102,32 +102,22 @@ public class ModTreeNode implements TreeNode {
 		return this.context.getContextFlag(type);
 	}
     
-	/**
-	 * Invoke ModRootElement's Context Flag reset algorithm.
-	 * In practice this function should never be called anywhere but the root element.
-	 * @return 
-	 */
-//	protected void resetContextFlags() {
-//		if(getParentElement() == null) {return;}
-//		getParentElement().resetContextFlags();
-//	}
-    
 	public ModTree getTree() {
-		// fetch document from parent, only the root node carries the actual
-		// reference to the document instance
-		if(getParentElement() != null) {
-			return this.getParentElement().getTree();
+		// fetch tree from parent, only the root node carries the actual
+		// reference to the tree instance
+		if(getParentNode() != null) {
+			return this.getParentNode().getTree();
 		} else {
 			return null;
 		}
 	}
 	
 	/**
-	 * Returns the child element at the specified position.
-	 * @param index the child element's position
-	 * @return the child element or <code>null</code> if the position is out of range
+	 * Returns the child node at the specified position.
+	 * @param index the child node's position
+	 * @return the child node or <code>null</code> if the position is out of range
 	 */
-	public ModTreeNode getChildElementAt(int index) {
+	public ModTreeNode getChildNodeAt(int index) {
 		// obligatory range check
 		if ((index >= 0) && (index < this.children.size())) {
 			return this.children.get(index);
@@ -136,11 +126,11 @@ public class ModTreeNode implements TreeNode {
 	}
 	
 	/**
-	 * Removes the child element at the specified position.
-	 * @param index the position of the element to remove
-	 * @return the removed element or <code>null</code> if the position is out of range
+	 * Removes the child node at the specified position.
+	 * @param index the position of the node to remove
+	 * @return the removed node or <code>null</code> if the position is out of range
 	 */
-	public ModTreeNode removeChildElementAt(int index) {
+	public ModTreeNode removeChildNodeAt(int index) {
 		// obligatory range check
 		if ((index >= 0) && (index < this.children.size())) {
 			return this.children.remove(index);
@@ -149,38 +139,38 @@ public class ModTreeNode implements TreeNode {
 	}
 	
 	/**
-	 * Removes all child elements of this element.
+	 * Removes all child nodes of this node.
 	 */
-	public void removeAllChildElements() {
+	public void removeAllChildNodes() {
 		this.children.clear();
 	}
 	
 	/**
-	 * Returns the number of child elements of this element.
-	 * @return the child element count
+	 * Returns the number of child nodes of this node.
+	 * @return the child node count
 	 */
-	public int getChildElementCount() {
+	public int getChildNodeCount() {
 		return this.children.size();
 	}
 
 	/**
-	 * Returns whether this element contains parseable UnrealScript byte code.
-	 * @return <code>true</code> if this element or its parent contains code, <code>false</code> otherwise
+	 * Returns whether this node contains parseable UnrealScript byte code.
+	 * @return <code>true</code> if this node or its parent contains code, <code>false</code> otherwise
 	 */
 	protected boolean isCode() {
-		if (this.getParentElement() == null) {
-			// this element is the root element which never contains code
+		if (this.getParentNode() == null) {
+			// this node is the root node which never contains code
 			return false;
 		} else {
-			// if this element is not flagged as containing hex code pass check on to parent element
-			return this.getContextFlag(HEX_CODE) || getParentElement().isCode();
+			// if this node is not flagged as containing hex code pass check on to parent node
+			return this.getContextFlag(HEX_CODE) || getParentNode().isCode();
 		}
 	}
 	
 	/**
-	 * Sets the offset range of this element in the document.
-	 * @param startOffset the start offset of this element in the document
-	 * @param endOffset the end offset of this element in the document
+	 * Sets the offset range of this node in the document.
+	 * @param startOffset the start offset of this node in the document
+	 * @param endOffset the end offset of this node in the document
 	 */
 	public void setRange(int startOffset, int endOffset) {
 		this.startOffset = startOffset;
@@ -197,13 +187,13 @@ public class ModTreeNode implements TreeNode {
 		}
 		String oldString = this.toStr();
 		try {
-			// extract initial string representation of this element
+			// extract initial string representation of this node
 			String[] linebreak = this.toHexStringArray();
 
 			// remove all children
 			this.children.clear();
 			
-			// start parsing the document from the beginning of this element
+			// start parsing the document from the beginning of this node
 			int currOffset = this.startOffset;
 			
 			String prefix = linebreak[0];
@@ -211,7 +201,7 @@ public class ModTreeNode implements TreeNode {
 				// wrap leading text data in plain token
 				ModTreeLeaf leadToken = new ModTreeLeaf(this, linebreak[0], true);
 				leadToken.setRange(currOffset, currOffset + linebreak[0].length());
-				this.addElement(leadToken);
+				this.addNode(leadToken);
 				// move offset to end of new token
 				currOffset = leadToken.getEndOffset();
 			}
@@ -225,7 +215,7 @@ public class ModTreeNode implements TreeNode {
 				hex = opElem.parseUnrealHex(hex);
 				int lastLength = oldLength - hex.length();
 				opElem.setRange(currOffset, currOffset + lastLength);
-				this.addElement(opElem);
+				this.addNode(opElem);
 				currOffset += lastLength;
 			}
 			String suffix = linebreak[2];
@@ -233,24 +223,24 @@ public class ModTreeNode implements TreeNode {
 			ModTreeLeaf trailToken = new ModTreeLeaf(this, suffix, true);
 			trailToken.setRange(currOffset, currOffset + suffix.length());
 			// currStart = newToken.endOffset;
-			this.addElement(trailToken);
+			this.addNode(trailToken);
 			this.setContextFlag(VALID_CODE, true);
 			this.isSimpleString = false;
 		} catch (Exception e) {
 			// something went wrong, set error flag...
 			setContextFlag(VALID_CODE, false);
-			// ... remove any child elements that may have been inserted... 
+			// ... remove any child nodes that may have been inserted... 
 			this.children.clear();
 			// ... insert original text data as plain mod token
 			ModTreeLeaf t = new ModTreeLeaf(this, oldString, true);
-			this.addElement(t);
+			this.addNode(t);
 			t.setRange(this.startOffset, this.endOffset);
 		}
 	}
     
 	/**
-	 * Returns whether this element wraps hex string data.
-	 * @return <code>true</code> if this element contains valid hex data, <code>false</code> otherwise
+	 * Returns whether this node wraps hex string data.
+	 * @return <code>true</code> if this node contains valid hex data, <code>false</code> otherwise
 	 */
 	protected boolean isValidHexLine() {
 		String[] tokens = toStr().split("//")[0].trim().split("\\s");
@@ -264,10 +254,10 @@ public class ModTreeNode implements TreeNode {
     
     /**
      * Returns an array containing a concatenated hex tokens and leading/trailing line contents.
-     * @return a 3-element array containing hex tokens in its middle element
+     * @return a 3-element array containing hex tokens in its middle node
      */
 	protected String[] toHexStringArray() {
-		// get initial string representation of this element
+		// get initial string representation of this node
 		String in = this.toStr();
 
 		// pre-allocate result array
@@ -305,29 +295,27 @@ public class ModTreeNode implements TreeNode {
 	}
     
     /**
-     * Appends the specified element to the list of child elements.
-     * @param element the element to append
+     * Appends the specified node to the list of child nodes.
+     * @param node the node to append
      */
-	protected void addElement(ModTreeNode element) {
-		this.addElement(this.children.size(), element);
+	protected void addNode(ModTreeNode node) {
+		this.addNode(this.children.size(), node);
 	}
 
 	/**
-	 * Inserts the specified element at the specified position into the list of
-	 * child elements.
+	 * Inserts the specified node at the specified position into the list of
+	 * child nodes.
 	 * @param index the position index
-	 * @param element the element to insert
+	 * @param node the node to insert
 	 */
-	protected void addElement(int index, ModTreeNode element) {
-		this.children.add(index, element);
+	protected void addNode(int index, ModTreeNode node) {
+		this.children.add(index, node);
 	}
     
 	protected void updateContexts() {
 		if(getTree() == null) {return;}
 		String content = this.toStr().toUpperCase();
 		if (this.isSimpleString) {
-//			ModDocument document = getDocument();
-//			String tagValue = this.getTagValue(content);
 			if (content.startsWith("UPKFILE=")) {
 				getTree().setUpkName(this.getTagValue(content));
 			} else if (content.startsWith("FUNCTION=")) {
@@ -371,19 +359,20 @@ public class ModTreeNode implements TreeNode {
 	}
     
 	/**
-	 * Returns whether this element wraps header-type content.
+	 * Returns whether this node wraps header-type content.
 	 * @return <code>true</code> 
 	 */
 	// TODO: this method would probably better belong in the document itself, i.e. getDocument().hasValidHeader() or somesuch
 	// Amineri : Good point. When updating a file after insert/remove, this header has to be reset
 	//			 and each line the value updated, in case the insert/remove invalidated the header (i.e edits to header lines)
+	// Update : call is made to ModTree owner, which may hold local copy or redirect to document
 	protected boolean foundHeader() {
-		ModTree document = getTree();
-		if(document == null) {return false;}
-		return !document.getUpkName().isEmpty()
-				&& !document.getFunctionName().isEmpty()
-				&& !document.getGuid().isEmpty()
-				&& (document.getFileVersion() > 0);
+		ModTree tree = getTree();
+		if(tree == null) {return false;}
+		return !tree.getUpkName().isEmpty()
+				&& !tree.getFunctionName().isEmpty()
+				&& !tree.getGuid().isEmpty()
+				&& (tree.getFileVersion() > 0);
 	}
 
 	/**
@@ -415,36 +404,36 @@ public class ModTreeNode implements TreeNode {
         int re = offset + length;
         int s = startOffset;
         int e = endOffset;
-        // adjust start and end offsets for element / leaf
-        if(re < e) { // removal end occurs prior to element end -- cases 1, 2, 3
-            if(re < s) { // removal entirely before current element -- case 1
+        // adjust start and end offsets for node / leaf
+        if(re < e) { // removal end occurs prior to node end -- cases 1, 2, 3
+            if(re < s) { // removal entirely before current node -- case 1
                 startOffset -= length;
                 endOffset -= length;
-            } else if (rs < s ) { // removal start occurs prior to element start -- case 2
+            } else if (rs < s ) { // removal start occurs prior to node start -- case 2
                 if(isLeaf()) { // remove early part of data string for leaf
                     setString(getString().substring(re-s, getString().length()));
                 }
                 startOffset -= s - rs;
                 endOffset -= length;
-            } else { // removal start happens within element -- case 3
+            } else { // removal start happens within node -- case 3
                 if(isLeaf()) { // remove middle part of data string for leaf
                     setString(getString().substring(0, rs-s) + getString().substring(e-re, getString().length()));
                 }
                 endOffset -= length;
             }
-        } else { // removal end happens after element end -- cases 4, 5, 6
-            if(rs < s) { // remove start occurs prior to element start -- case 6
+        } else { // removal end happens after node end -- cases 4, 5, 6
+            if(rs < s) { // remove start occurs prior to node start -- case 6
                 if(isLeaf()) { // delete data string
                     setString("");
                 }
                 endOffset = startOffset;
-//                removeModElement();
-            } else if(rs < e) { // remove start happens in middle of element -- case 4
+//                removeModNode();
+            } else if(rs < e) { // remove start happens in middle of node -- case 4
                 if(isLeaf()) { // remove end part of data string for leaf
                     setString(getString().substring(0, e-rs));
                 }
                 endOffset -= e - rs;
-            } else { // removal is after element -- case 5
+            } else { // removal is after node -- case 5
                 // no update needed
                 removeInBranches = false;
             }
@@ -459,12 +448,12 @@ public class ModTreeNode implements TreeNode {
     /**
      * Removes a ModTreeNode, cleaning up references in the parent's branches list
      */
-    protected void removeModElement()
+    protected void removeModNode()
     {
         int count = 0;
-        for(ModTreeNode branch : getParentElement().children) { // scan through parent's branches
-            if(branch.equals(this)) {  // found current element
-                getParentElement().children.remove(count); // unlink element
+        for(ModTreeNode branch : getParentNode().children) { // scan through parent's branches
+            if(branch.equals(this)) {  // found current node
+                getParentNode().children.remove(count); // unlink node
                 return;
             }
             count++;
@@ -473,7 +462,6 @@ public class ModTreeNode implements TreeNode {
     
     /**
      * Inserts string at given offset.
-     * Implements required Document Interface method.
      * @param offset
      * @param string
      * @param as
@@ -514,7 +502,7 @@ public class ModTreeNode implements TreeNode {
             ModTreeNode lineParent = getLineParent();
             String newSimpleString = lineParent.toStr();
             lineParent.children.clear();
-            lineParent.addElement(new ModTreeLeaf(lineParent, newSimpleString, true));
+            lineParent.addNode(new ModTreeLeaf(lineParent, newSimpleString, true));
             
         }
         setString(getString().substring(0, offset - startOffset) + string + getString().substring(offset - startOffset, getString().length()));
@@ -534,19 +522,19 @@ public class ModTreeNode implements TreeNode {
     
     protected ModTreeNode getLineParent()
     {
-		if(getParentElement() == null) { return null;}
-        if(getName().equals("ModTreeNode") || getParentElement().getParentElement() == null) {
+		if(getParentNode() == null) { return null;}
+        if(getName().equals("ModTreeNode") || getParentNode().getParentNode() == null) {
             return this;
         } else {
-            return getParentElement().getLineParent();
+            return getParentNode().getLineParent();
         }
     }
     
     /**
-     * Returns the text data of the element or token as a string.<br>
-     * For elements returns the concatenation of all child elements/tokens.<br>
+     * Returns the text data of the node or token as a string.<br>
+     * For nodes returns the concatenation of all child nodes/tokens.<br>
      * For tokens returns the current token string data.
-     * @return the contents of this element in text form
+     * @return the contents of this node in text form
      */
     public String toStr()
     {
@@ -562,9 +550,9 @@ public class ModTreeNode implements TreeNode {
     
     @Override
 	public String toString(){
-		if(getParentElement() == null) {
+		if(getParentNode() == null) {
 			return "ROOT";
-		} else if (getParentElement().getParentElement() == null) {
+		} else if (getParentNode().getParentNode() == null) {
 //			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
 			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
 			return newString + toStr();
@@ -579,24 +567,24 @@ public class ModTreeNode implements TreeNode {
 	}
 	
     /**
-     * Returns the element of type line that contains offset (measured in characters from start of file).
+     * Returns the node of type line that contains offset (measured in characters from start of file).
      * IMPLEMENTED
      * @param offset
      * @return
      */
+	@Deprecated
     protected ModTreeNode getLine(int offset)
     {
         if(getName().equals("ModLineElement")) {
             return this;
         } else {
-            return getElement(getElementIndex(offset)).getLine(offset);
+            return getNode(getNodeIndex(offset)).getLine(offset);
         }
     }
 
     
     /**
      * Retrieves length characters starting at offset.
-     * Implements the ModDocument.getText required method
      * @param offset - measured in characters from the beginning of the model
      * @param length - measured in characters
      * @return
@@ -609,37 +597,37 @@ public class ModTreeNode implements TreeNode {
         int re = offset + length;
         int s = startOffset;
         int e = endOffset;
-        // adjust start and end offsets for element / leaf
-        if(re < e) { // retrieval end occurs prior to element end -- cases 1, 2, 3
-            if(re <= s) { // retrieval entirely before current element -- case 1
+        // adjust start and end offsets for node / leaf
+        if(re < e) { // retrieval end occurs prior to node end -- cases 1, 2, 3
+            if(re <= s) { // retrieval entirely before current node -- case 1
                 // retrieve no text
-            } else if (rs < s ) { // retrieval start occurs prior to element start -- case 2
+            } else if (rs < s ) { // retrieval start occurs prior to node start -- case 2
                 if(isLeaf()) { // retrieve early part of data string for leaf
                     returnString = getString().substring(0, re-s);
                 } else {
                     retrieveBranches = true;
                 }
-            } else { // retrieval start happens within element -- case 3
+            } else { // retrieval start happens within node -- case 3
                 if(isLeaf()) { // retrieve middle part of data string for leaf
                     returnString = getString().substring(rs-s, rs-s+length);
                 } else {
                     retrieveBranches = true;
                 }
             }
-        } else { // retrieval end happens after element end -- cases 4, 5, 6
-            if(rs <= s) { // retrieve start occurs prior to element start -- case 6
+        } else { // retrieval end happens after node end -- cases 4, 5, 6
+            if(rs <= s) { // retrieve start occurs prior to node start -- case 6
                 if(isLeaf()) { // retrieve entire string
                     returnString = getString();
                 } else {
                     retrieveBranches = true;
                 }
-            } else if(rs < e) { // retrieve start happens in middle of element -- case 4
+            } else if(rs < e) { // retrieve start happens in middle of node -- case 4
                 if(isLeaf()) { // retrieve end part of data string for leaf
                     return getString().substring(rs-s, getString().length());
                 } else {
                     retrieveBranches = true;
                 }
-            } else { // removal is after element -- case 5
+            } else { // removal is after node -- case 5
                 // retrieve no text
             }
         }
@@ -659,6 +647,7 @@ public class ModTreeNode implements TreeNode {
      * @param length
      * @param segment
      */
+	@Deprecated
     public void getText(int offset, int length, Segment segment)
     {
         String s = getText(offset, length);
@@ -672,16 +661,16 @@ public class ModTreeNode implements TreeNode {
     }
 
     /**
-     * Returns this element's parent element.
-     * @return the parent or <code>null</code> if this element is the root element
+     * Returns this node's parent node.
+     * @return the parent or <code>null</code> if this node is the root node
      */
-	public final ModTreeNode getParentElement() {
+	public final ModTreeNode getParentNode() {
 		return this.parent;
 	}
 	
 	/**
-	 * Returns whether this element is a leaf node (e.g. a "token").
-	 * @return <code>true</code> if this element is a leaf node, <code>false</code> otherwise
+	 * Returns whether this node is a leaf node (e.g. a "token").
+	 * @return <code>true</code> if this node is a leaf node, <code>false</code> otherwise
 	 */
 	@Override
 	public boolean isLeaf() {
@@ -689,7 +678,7 @@ public class ModTreeNode implements TreeNode {
 	}
 
     /**
-     * Returns string name of element.
+     * Returns string name of node.
      * @return
      */
     public String getName()
@@ -704,7 +693,7 @@ public class ModTreeNode implements TreeNode {
 	}
 
     /**
-     * Returns the start offset (in characters) of current element, measured from the start of the document.
+     * Returns the start offset (in characters) of current node, measured from the start of the document.
      * @return the start offset
      */
 	public int getStartOffset() {
@@ -712,7 +701,7 @@ public class ModTreeNode implements TreeNode {
 	}
 
     /**
-     * Returns the end offset (in characters) of this element, measured from the start of the document.
+     * Returns the end offset (in characters) of this node, measured from the start of the document.
      * @return the end offset
      */
 	public int getEndOffset() {
@@ -720,12 +709,12 @@ public class ModTreeNode implements TreeNode {
 	}
 
     /**
-     * Returns the child elements closest to offset (measured in characters from start of file).
+     * Returns the child nodes closest to offset (measured in characters from start of file).
      * IMPLEMENTED
      * @param offset
      * @return
      */
-    public int getElementIndex(int offset)
+    public int getNodeIndex(int offset)
     {
         if(children.get(0).getStartOffset() > offset) {
             return 0;
@@ -741,11 +730,11 @@ public class ModTreeNode implements TreeNode {
     }
     
     /**
-     * Returns number of child elements of the current element.
+     * Returns number of child nodes of the current node.
      * IMPLEMENTED
      * @return
      */
-    public int getElementCount()
+    public int getNodeCount()
     {
         if(isLeaf()) {
             return 0;
@@ -755,21 +744,21 @@ public class ModTreeNode implements TreeNode {
     }
 	
 	/**
-	 * Returns the root element of the tree
+	 * Returns the root node of the tree
 	 * @return
 	 */
 	protected ModTreeNode getRoot()
 	{
-		return getParentElement().getRoot();
+		return getParentNode().getRoot();
 	}
 
     /**
-     * Returns the n-th child of the current element.
+     * Returns the n-th child of the current node.
      * IMPLEMENTED
      * @param n
      * @return
      */
-    public ModTreeNode getElement(int n)
+    public ModTreeNode getNode(int n)
     {
         if(n < children.size()) {
             return children.get(n);
@@ -805,19 +794,37 @@ public class ModTreeNode implements TreeNode {
         return -1;
     }
 
+	public ModTreeNode positionToNode(int pos){
+		return getChildNodeAt(getNodeIndex(pos));
+	}
+	
+	public void replace(int offset, int length, ModTreeNode[] elems){
+		remove(offset, length);
+		int index = getParentNode().getNodeIndex(offset);
+		for(ModTreeNode e : elems)
+		{
+			getParentNode().addNode(index, e);
+		}
+	}
+	
+
+	/* 
+	 * Implementation of basic TreeNode compatibility methods
+	 */
+	
 	@Override
 	public TreeNode getChildAt(int i) {
-		return getChildElementAt(i);
+		return getChildNodeAt(i);
 	}
 
 	@Override
 	public int getChildCount() {
-		return getChildElementCount();
+		return getChildNodeCount();
 	}
 
 	@Override
 	public TreeNode getParent() {
-		return getParentElement();
+		return getParentNode();
 	}
 
 	@Override
@@ -842,18 +849,7 @@ public class ModTreeNode implements TreeNode {
 		return (Enumeration) children;
 	}
 
-	public ModTreeNode positionToElement(int pos){
-		return getChildElementAt(getElementIndex(pos));
-	}
-	
-	public void replace(int offset, int length, ModTreeNode[] elems){
-		remove(offset, length);
-		int index = getParentElement().getElementIndex(offset);
-		for(ModTreeNode e : elems)
-		{
-			getParentElement().addElement(index, e);
-		}
-	}
-	
-        
+	/* 
+	 * End Implementation of basic TreeNode compatibility methods
+	 */
 }
