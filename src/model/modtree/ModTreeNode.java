@@ -444,7 +444,7 @@ public class ModTreeNode implements TreeNode {
                 endOffset -= length;
             } else { // removal start happens within node -- case 3
                 if(isLeaf()) { // remove middle part of data string for leaf
-                    setText(getText().substring(0, rs-s) + getText().substring(e-re, getText().length()));
+                    setText(getText().substring(0, rs-s) + getText().substring(re-s, getText().length()));
                 }
                 endOffset -= length;
             }
@@ -498,17 +498,17 @@ public class ModTreeNode implements TreeNode {
         int length = string.length();
         int s = startOffset;
         int e = endOffset;
-        if(isLeaf()){
+		if(offset <= endOffset) {
+			endOffset += length;
+		}
+		if(offset < startOffset) {
+			startOffset += length;
+		}
+		if(isLeaf()){
             if(offset >= s && offset <= e){ // insertion is at leaf
                 insertStringAtLeaf(offset, string, as);
             }
         } else { // recursive step for nodes
-            if(offset <= endOffset) {
-                endOffset += length;
-            }
-            if(offset < startOffset) {
-                startOffset += length;
-            }
             for(ModTreeNode branch : children) {
                 branch.insertString(offset, string, as);
             }
