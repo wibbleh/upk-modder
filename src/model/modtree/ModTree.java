@@ -1,7 +1,6 @@
 package model.modtree;
 
-import static model.modtree.ModContext.ModContextType.HEX_CODE;
-import static model.modtree.ModContext.ModContextType.VALID_CODE;
+import static model.modtree.ModContext.ModContextType.*;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -40,11 +39,13 @@ public class ModTree {
 	 * The tree's document it is listening to.
 	 */
 	protected Document doc = null;
+	protected Document newDoc = null; // temp new doc for testing
 	
 	/**
 	 * The tree's root node.
 	 */
-    private ModTreeRootNode rootNode;
+    private ModTreeRootNode currRootNode;
+	private ModTreeRootNode prevRootNode;
 	
 	// TODO -- Should retrieve this information from ModDocument if stored there
 	// @ XMTS : Would it make more sense to store these values here? Does the document even need them?
@@ -123,7 +124,51 @@ public class ModTree {
 		if (getDocument() == null) {
 			return;
 		}
-		this.updateNodeStyles(this.getRoot());
+		int count = 0;
+		int total = 0;
+		List<Integer> updates = new ArrayList<>();
+		if(this.prevRootNode == null || (this.currRootNode.getChildNodeCount() != this.prevRootNode.getChildCount())) {
+			this.updateNodeStyles(this.currRootNode);
+			System.out.println("ChildCount mismatch");
+		} else {
+			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
+				if(lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(i))) {
+						this.updateNodeStyles(this.currRootNode.getChildNodeAt(i));
+						count ++;
+						updates.add(i+1);
+				}
+				total ++;
+			}
+			System.out.println(count + " lines out of " + total + " re-styled: " + updates);
+		}
+	}
+	
+	protected boolean lineHasChanged(ModTreeNode newLine, ModTreeNode oldLine) {
+		if((oldLine.getContextFlag(HEX_CODE) || newLine.getContextFlag(HEX_CODE))
+						&& newLine.getContextFlag(FILE_HEADER) != oldLine.getContextFlag(FILE_HEADER)) {
+							return true;
+		}
+		if(true
+						&& (newLine.isPlainText() == oldLine.isPlainText()) 
+						&& newLine.getFullText().equals(oldLine.getFullText()) 
+//						&& newLine.getContextFlag(HEX_CODE) == oldLine.getContextFlag(HEX_CODE) 
+//						&& newLine.getContextFlag(VALID_CODE) == oldLine.getContextFlag(VALID_CODE) 
+//						&& newLine.getContextFlag(FILE_HEADER) == oldLine.getContextFlag(FILE_HEADER) 
+//						&& newLine.getContextFlag(AFTER_HEX) == oldLine.getContextFlag(AFTER_HEX) 
+//						&& newLine.getContextFlag(BEFORE_HEX) == oldLine.getContextFlag(BEFORE_HEX) 
+//						&& newLine.getContextFlag(HEX_HEADER) == oldLine.getContextFlag(HEX_HEADER)
+				) {
+							return false;
+		}
+//		System.out.println("Plaintext " + (newLine.isPlainText() == oldLine.isPlainText()) );
+//		System.out.println("FullText " + (newLine.getFullText().equals(oldLine.getFullText())) );
+//		System.out.println("HEX_CODE " + (newLine.getContextFlag(HEX_CODE) == newLine.getContextFlag(HEX_CODE)) );
+//		System.out.println("VALID_CODE " + (newLine.getContextFlag(VALID_CODE) == newLine.getContextFlag(VALID_CODE)) );
+//		System.out.println("FILE_HEADER " + (newLine.getContextFlag(FILE_HEADER) == newLine.getContextFlag(FILE_HEADER) ));
+//		System.out.println("AFTER_HEX " + (newLine.getContextFlag(AFTER_HEX) == newLine.getContextFlag(AFTER_HEX)) );
+//		System.out.println("BEFORE_HEX " + (newLine.getContextFlag(BEFORE_HEX) == newLine.getContextFlag(BEFORE_HEX)) );
+//		System.out.println("HEX_HEADER " + (newLine.getContextFlag(HEX_HEADER) == newLine.getContextFlag(HEX_HEADER)));
+		return true;
 	}
 	
 	/**
@@ -145,10 +190,14 @@ public class ModTree {
 	 * @param node The ModTreeNode originating the style. 
 	 */
 	protected void applyStyles(ModTreeNode node) {
+		if(!node.isLeaf()) {
+			return;
+		}
+
 		int start = node.getStartOffset();
 		int end = node.getEndOffset();
 		boolean replace = true;
-
+		
 		// perform attribute updates
 		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
@@ -162,8 +211,10 @@ public class ModTree {
 				StyleConstants.setUnderline((MutableAttributeSet) as, true);
 			}
 		}
-		if (node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE)) {
-			StyleConstants.setBackground((MutableAttributeSet) as, Color.RED);
+		if ((node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE)) 
+				) {
+			StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128));
+			StyleConstants.setStrikeThrough((MutableAttributeSet) as, replace);
 		}
 		if (node.getName().equals("OperandToken")) {
 			if (node.getFullText().startsWith("0B")) {
@@ -178,9 +229,10 @@ public class ModTree {
 			StyleConstants.setBackground((MutableAttributeSet) as,
 					new Color( 255, 255, 128));
 		}
-		
+//		((StyledDocument) newDoc).setCharacterAttributes( start, end, as, replace);
 		((StyledDocument) this.getDocument()).setCharacterAttributes(
-				start, end, as, replace);
+				start, end-start, as, replace);
+//		System.out.println("Applied Style from : " + start + " to " + end);
 	}
 	
 	/**
@@ -191,7 +243,10 @@ public class ModTree {
 	 */
 	public void processNextEvent() throws BadLocationException {
 		if (!docEvents.isEmpty()) {
+			System.out.print("Starting processing Document Event... \n");
+			long startTime = System.currentTimeMillis();
 			this.processDocumentEvent(docEvents.get(0));
+			System.out.print("Document Event processing done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
 		}
 	}
 	
@@ -205,22 +260,40 @@ public class ModTree {
 		if (de == null) {
 			return;
 		}
-		int offset = de.getOffset();
-		int length = de.getLength();
-		String s = de.getDocument().getText(offset, length);
-		ModTreeRootNode r = this.getRoot();
-		EventType type = de.getType();
-		if (type == EventType.INSERT) {
-			r.insertString(offset, s, null);
-			r.reorganizeAfterInsertion();
-		} else if (type == EventType.REMOVE) {
-			r.remove(offset, length);
-			r.reorganizeAfterDeletion();
+//		int offset = de.getOffset();
+//		int length = de.getLength();
+//		String s = de.getDocument().getText(offset, length);
+//		ModTreeRootNode r = this.getRoot();
+//		r.initUpdateFlags(false);
+//		EventType type = de.getType();
+//		if (type == EventType.INSERT) {
+//			r.insertString(offset, s, null);
+//			r.reorganizeAfterInsertion();
+//		} else if (type == EventType.REMOVE) {
+//			r.remove(offset, length);
+//			r.reorganizeAfterDeletion();
+//		}
+		if (de.getDocument().getLength() > 0) {
+			String s = de.getDocument().getText(0, doc.getLength());
+			this.prevRootNode = currRootNode;
+			this.currRootNode = new ModTreeRootNode(this);
+			System.out.print("Inserting text... ");
+			long startTime = System.currentTimeMillis();
+			this.currRootNode.insertString(0, s, null);
+			System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+			System.out.print("Parsing text... ");
+			startTime = System.currentTimeMillis();
+			this.currRootNode.reorganizeAfterInsertion();
+			System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+//			this.updateDocument();
 		}
-
-		docEvents.remove(de);
-		if (this.getDocument() != null) {
+		docEvents.clear();
+//		docEvents.remove(de);
+		if (this.getDocument() != null && docEvents.isEmpty()) {
+			System.out.print("Styling document ... ");
+			long startTime = System.currentTimeMillis();
 			this.updateDocument();
+			System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
 		}
 	}
 
@@ -229,11 +302,11 @@ public class ModTree {
 	 * @return the root node
 	 */
 	public ModTreeRootNode getRoot() {
-		if (this.rootNode == null) {
+		if (this.currRootNode == null) {
 			// lazily instantiate root node
-			this.rootNode = new ModTreeRootNode(this);
+			this.currRootNode = new ModTreeRootNode(this);
 		}
-		return this.rootNode;
+		return this.currRootNode;
 	}
 
 	// TODO: redirect these calls to the Document if necessary
@@ -318,6 +391,7 @@ public class ModTree {
 
 		@Override
 		public void changedUpdate(DocumentEvent evt) {
+//			System.out.println("new event: " + evt.getType());
 			// do nothing for formatting changes
 		}
 		
@@ -374,7 +448,7 @@ public class ModTree {
 					}
 					System.out.println("done");
 				};
-			}.start();
+		}.start();
 		}
 	}
 
