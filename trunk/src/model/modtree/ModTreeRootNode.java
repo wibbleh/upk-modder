@@ -128,6 +128,8 @@ public class ModTreeRootNode extends ModTreeNode {
 						this.removeChildNodeAt(count);
 					}
 				}
+			} else {
+				count++;
 			}
 		} while (count < numbranches);
 	}
