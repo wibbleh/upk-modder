@@ -5,6 +5,8 @@ import static model.modtree.ModContext.ModContextType.*;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
@@ -69,6 +71,8 @@ public class ModTree {
 	 */
 	private String functionName = "";
 
+	private boolean updatingEnabled = true;
+	
 	/**
 	 * ModTree constructor.
 	 * Initializes queue of 10 DocumentEvents.
@@ -89,6 +93,22 @@ public class ModTree {
 		this(new DefaultStyledDocument());
 	}
 
+	public void disableUpdating() {
+		this.updatingEnabled = false;
+	}
+	
+	public void enableUpdating() {
+		this.updatingEnabled = true;
+	}
+	
+	public void forceRefreshFromDocument() {
+		try {
+			setDocument(this.doc);
+		} catch(BadLocationException ex) {
+			Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
+
 	/**
 	 * Associates a document with the ModTree.
 	 * Registers a DocumentListener with the document.
@@ -102,7 +122,9 @@ public class ModTree {
 			ModTreeRootNode root = this.getRoot();
 			root.insertString(0, s, null);
 			root.reorganizeAfterInsertion();
-			this.updateDocument();
+			if(updatingEnabled) {
+				this.updateDocument();
+			}
 		}
 		doc.addDocumentListener(this.mtListener);
 	}
@@ -273,27 +295,32 @@ public class ModTree {
 //			r.remove(offset, length);
 //			r.reorganizeAfterDeletion();
 //		}
-		if (de.getDocument().getLength() > 0) {
-			String s = de.getDocument().getText(0, doc.getLength());
-			this.prevRootNode = currRootNode;
-			this.currRootNode = new ModTreeRootNode(this);
-			System.out.print("Inserting text... ");
-			long startTime = System.currentTimeMillis();
-			this.currRootNode.insertString(0, s, null);
-			System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
-			System.out.print("Parsing text... ");
-			startTime = System.currentTimeMillis();
-			this.currRootNode.reorganizeAfterInsertion();
-			System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
-//			this.updateDocument();
+		if(updatingEnabled) {
+			if (de.getDocument().getLength() > 0) {
+				String s = de.getDocument().getText(0, doc.getLength());
+				this.prevRootNode = currRootNode;
+				this.currRootNode = new ModTreeRootNode(this);
+				System.out.print("Inserting text... ");
+				long startTime = System.currentTimeMillis();
+				this.currRootNode.insertString(0, s, null);
+				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+				System.out.print("Parsing text... ");
+				startTime = System.currentTimeMillis();
+				this.currRootNode.reorganizeAfterInsertion();
+				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+	//			this.updateDocument();
+			}
 		}
+
 		docEvents.clear();
-//		docEvents.remove(de);
-		if (this.getDocument() != null && docEvents.isEmpty()) {
-			System.out.print("Styling document ... ");
-			long startTime = System.currentTimeMillis();
-			this.updateDocument();
-			System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+		if(updatingEnabled) {
+	//		docEvents.remove(de);
+			if (this.getDocument() != null && docEvents.isEmpty()) {
+				System.out.print("Styling document ... ");
+				long startTime = System.currentTimeMillis();
+				this.updateDocument();
+				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+			}
 		}
 	}
 

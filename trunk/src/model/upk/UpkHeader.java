@@ -150,32 +150,32 @@ public class UpkHeader {
         }
         
 	private void constructImportNames(List<ImportEntry> list) {
-	    int iPrevOuterIndex, iOuterIndex;
+		int iPrevOuterIndex, iOuterIndex;
 
-            importListStrings = new ArrayList(list.size());
-            importListStrings.add("");
-            for (int i = 1; i < list.size(); i++) 
-            {
-                String name;
-                iPrevOuterIndex = -1;
-                if (list.get(i).getPackageIdx() != 0) {
-                    name = nameList.get(list.get(i).getPackageIdx()).getName() + ":";
-                } else {
-                    name = "";
-                }
-                name += nameList.get(list.get(i).getNameIdx()).getName();
-                iOuterIndex = -list.get(i).getOuterIdx();
-                while ((iOuterIndex <= list.size())
-                                    && (iOuterIndex > 0)
-                                    && (iOuterIndex != i)
-                                    && (iPrevOuterIndex != iOuterIndex)){
-                    name += "." + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
-                    iPrevOuterIndex = iOuterIndex;
-                    iOuterIndex = -list.get(iOuterIndex).getOuterIdx();
-                }
-                importListStrings.add(name);
-                list.get(i).setName(name);
-	    }
+		importListStrings = new ArrayList(list.size());
+		importListStrings.add("");
+		for(int i = 1; i < list.size(); i ++) {
+			String name;
+			iPrevOuterIndex = -1;
+			if(list.get(i).getPackageIdx() != 0) {
+				name = nameList.get(list.get(i).getPackageIdx()).getName() + ":";
+			} else {
+				name = "";
+			}
+			name += nameList.get(list.get(i).getNameIdx()).getName();
+			iOuterIndex =  - list.get(i).getOuterIdx();
+			while((iOuterIndex <= list.size())
+					&& (iOuterIndex > 0)
+					&& (iOuterIndex != i)
+					&& (iPrevOuterIndex != iOuterIndex)) {
+				name += "@" + nameList.get(list.get(iOuterIndex).getNameIdx()).getName();
+				iPrevOuterIndex = iOuterIndex;
+				iOuterIndex =  - list.get(iOuterIndex).getOuterIdx();
+			}
+			importListStrings.add(name);
+			list.get(i).setName(name);
+//			System.out.println(i + " : " + name);
+		}
 	}
 
 	public byte[] getGUID() {

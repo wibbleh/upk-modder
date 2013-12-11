@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package UPKmodder;
+package util.unrealhex;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -26,7 +26,8 @@ import java.nio.ByteOrder;
  */
 public class HexStringLibrary 
 {
-    public String convertIntToHexString(int I)
+
+	public static String convertIntToHexString(int I)
     {
         String sOutString = "";
         ByteBuffer b = ByteBuffer.allocate(4);
@@ -37,9 +38,17 @@ public class HexStringLibrary
         for(int J = 0; J < 4 ; J++)
         {
             int temp = result[J] & 0xFF;
-            sOutString = sOutString + " " + String.format("%2s", Integer.toHexString(temp)).replace(' ', '0').toUpperCase();
+            sOutString = sOutString + String.format("%2s", Integer.toHexString(temp)).replace(' ', '0').toUpperCase()+ " " ;
         }
         return sOutString;
     }
+	
+	public static String convertByteArrayToHexString(byte[] bytes) {
+		StringBuilder sb = new StringBuilder();
+		for(byte b: bytes) {
+		   sb.append(String.format("%02x ", b&0xff));
+		}
+		return sb.toString().toUpperCase();
+	}
     
 }

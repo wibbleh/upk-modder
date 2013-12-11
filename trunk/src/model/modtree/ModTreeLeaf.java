@@ -66,13 +66,18 @@ public class ModTreeLeaf extends ModTreeNode {
 	public String getName() {
 		return "ModToken";
 	}
-    
-    @Override
+
+	/**
+	 * Computes unreal engine memory size of hex bytecodes represented as text
+	 * @return
+	 */
+	@Override
 	public int getMemorySize() {
 		if (this.isPlainText()) {
-//			return 0;
+			return 0;
+			// @ XMTS this is present to prevent calculation of memory size for non hex bytes
 			// ony byte per character plus termination byte
-			return this.getText().length() + 1;
+//			return this.getText().length() + 1;
 		} else {
 			return text.length() / 3;
 		}
