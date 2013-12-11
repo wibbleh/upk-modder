@@ -294,12 +294,12 @@ public class MainFrame extends JFrame {
 				}
 				
 				// expand trees
-				for (int i = 0; i < modElemTree.getRowCount(); i++) {
-					modElemTree.expandRow(i);
-				}
-				for (int i = 0; i < modViewTree.getRowCount(); i++) {
-					modViewTree.expandRow(i);
-				}
+//				for (int i = 0; i < modElemTree.getRowCount(); i++) {
+//					modElemTree.expandRow(i);
+//				}
+//				for (int i = 0; i < modViewTree.getRowCount(); i++) {
+//					modViewTree.expandRow(i);
+//				}
 			}
 		});
 

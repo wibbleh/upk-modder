@@ -111,10 +111,10 @@ public class ModRootElement extends ModElement {
 						ModElement branchBranch = branch.getChildElementAt(0);
 						branchBranch.setString(gluedString);
 						branch.setRange(branch.getStartOffset(),
-								branch.getEndOffset() + gluedString.length());
+								branch.getStartOffset() + gluedString.length());
 						branchBranch.setRange(
 								branchBranch.getStartOffset(),
-								branchBranch.getEndOffset() + gluedString.length());
+								branchBranch.getStartOffset() + gluedString.length());
 						this.removeChildElementAt(count + 1);
 					} else {
 						count++;

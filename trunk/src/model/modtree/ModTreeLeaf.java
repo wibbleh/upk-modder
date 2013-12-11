@@ -41,6 +41,7 @@ public class ModTreeLeaf extends ModTreeNode {
         this.setContextFlag(ModContextType.HEX_CODE, this.isCode());
 		this.text = text;
 		this.setPlainText(plainText);
+		this.hasBeenUpdated = true;
 	}
 	
 	/**
@@ -84,6 +85,7 @@ public class ModTreeLeaf extends ModTreeNode {
 
 	@Override
 	public void setText(String text) {
+		this.getLineParent().setPlainText(true);
 		this.text = text;
 	}
 

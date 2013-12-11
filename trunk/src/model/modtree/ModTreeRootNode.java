@@ -73,7 +73,9 @@ public class ModTreeRootNode extends ModTreeNode {
         					grandChild.setRange(child.getStartOffset(), childEndOffset);
 
         					ModTreeNode newElement = new ModTreeNode(this, true);
+							newElement.setUpdateFlag(true);
         					ModTreeLeaf newToken = new ModTreeLeaf(newElement, strings[1], true);
+							newToken.setUpdateFlag(true);
 
         					this.addNode(index, newElement);
         					newElement.addNode(newToken);
@@ -114,6 +116,8 @@ public class ModTreeRootNode extends ModTreeNode {
 						branchBranch.setText(gluedString);
 						branch.setRange(branch.getStartOffset(),branch.getStartOffset() + gluedString.length());
 						branchBranch.setRange(branchBranch.getStartOffset(),branchBranch.getStartOffset() + gluedString.length());
+						branch.setUpdateFlag(true);
+						branchBranch.setUpdateFlag(true);
 						this.removeChildNodeAt(count + 1);
 					} else {
 						count++;
@@ -172,6 +176,7 @@ public class ModTreeRootNode extends ModTreeNode {
     	return "ModRootElement";
     }
 	
+	@Override
 	public ModTree getTree() {
 		return this.tree;
 	}
@@ -192,12 +197,12 @@ public class ModTreeRootNode extends ModTreeNode {
 		super.resetContextFlags();
 		this.setContextFlag(FILE_HEADER, true);
 		
-		ModTree tree = this.getTree();
-		if (tree != null) {
-			tree.setFileVersion(-1);
-			tree.setUpkName("");
-			tree.setGuid("");
-			tree.setFunctionName("");
+		ModTree aTree = this.getTree();
+		if (aTree != null) {
+			aTree.setFileVersion(-1);
+			aTree.setUpkName("");
+			aTree.setGuid("");
+			aTree.setFunctionName("");
 		}
 	}
 

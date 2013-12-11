@@ -54,6 +54,11 @@ public class ModTreeNode implements TreeNode {
      */
     protected AttributeSet attributes;
 
+	/**
+	 * Flag indicating if the current node has been updated during the most recent insert/remove operation.
+	 */
+	protected boolean hasBeenUpdated;
+	
     /**
      * Constructs a mod node from the specified parent node.
      * @param parent the parent node
@@ -62,6 +67,36 @@ public class ModTreeNode implements TreeNode {
 		this(parent, false);
 	}
 
+	/**
+	 * Indicates whether the node was updated during the most recent insert/remove operation.
+	 * @return
+	 */
+	public boolean hasBeenUpdated() {
+		return hasBeenUpdated;
+	}
+	
+	/**
+	 * Inits update flag of current node and all child nodes.
+	 * @param b value to init flags to.
+	 */
+	public void initUpdateFlags(boolean b) {
+		this.hasBeenUpdated = b;
+		if(isLeaf()) {
+			return;
+		}
+		for (int i = 0; i < this.getNodeCount(); i++) {
+			this.getChildNodeAt(i).initUpdateFlags(b);
+		}
+	}
+	
+	/**
+	 * Sets update flag for the current node.
+	 * @param b
+	 */
+	protected void setUpdateFlag(boolean b) {
+		this.hasBeenUpdated = b;
+	}
+	
 	/**
 	 * Constructs a mod node from the specified parent node and a flag
 	 * denoting whether it contains pure textual data (i.e. non-parseable code).
@@ -250,6 +285,8 @@ public class ModTreeNode implements TreeNode {
 		} catch (Exception e) {
 			// something went wrong, set error flag...
 			setContextFlag(VALID_CODE, false);
+			// mark node as plain text
+			this.setPlainText(true);
 			// ... remove any child nodes that may have been inserted... 
 			this.children.clear();
 			// ... insert original text data as plain mod token
@@ -442,11 +479,13 @@ public class ModTreeNode implements TreeNode {
                 }
                 startOffset -= s - rs;
                 endOffset -= length;
+				this.setUpdateFlag(true);
             } else { // removal start happens within node -- case 3
                 if(isLeaf()) { // remove middle part of data string for leaf
                     setText(getText().substring(0, rs-s) + getText().substring(re-s, getText().length()));
                 }
                 endOffset -= length;
+				this.setUpdateFlag(true);
             }
         } else { // removal end happens after node end -- cases 4, 5, 6
             if(rs < s) { // remove start occurs prior to node start -- case 6
@@ -454,12 +493,14 @@ public class ModTreeNode implements TreeNode {
                     setText("");
                 }
                 endOffset = startOffset;
+				this.setUpdateFlag(true);
 //                removeModNode();
             } else if(rs < e) { // remove start happens in middle of node -- case 4
                 if(isLeaf()) { // remove end part of data string for leaf
                     setText(getText().substring(0, e-rs));
                 }
                 endOffset -= e - rs;
+				this.setUpdateFlag(true);
             } else { // removal is after node -- case 5
                 // no update needed
                 removeInBranches = false;
@@ -509,6 +550,9 @@ public class ModTreeNode implements TreeNode {
                 insertStringAtLeaf(offset, string, as);
             }
         } else { // recursive step for nodes
+            if(offset >= s && offset <= e){ // insertion is at leaf
+				this.setUpdateFlag(true);
+			}
             for(ModTreeNode branch : children) {
                 branch.insertString(offset, string, as);
             }
@@ -524,17 +568,22 @@ public class ModTreeNode implements TreeNode {
      */
 	protected void insertStringAtLeaf(int offset, String string, AttributeSet as) {
 		if (this.plainText) {
-			// do nothing
+			String text = this.getText();
+			this.setText(text.substring(0, offset - startOffset) + string
+					+ text.substring(offset - startOffset, text.length()));
+			this.endOffset += string.length();
+			this.setUpdateFlag(true);
 		} else {
 			ModTreeNode lineParent = getLineParent();
 			String lineText = lineParent.getFullText();
 			lineParent.children.clear();
-			lineParent.addNode(new ModTreeLeaf(lineParent, lineText, true));
+			ModTreeLeaf newChild = new ModTreeLeaf(lineParent, lineText, true);
+			newChild.setUpdateFlag(true);
+			lineParent.addNode(newChild);
+			lineParent.setPlainText(true);
+			lineParent.setUpdateFlag(true);
+			
 		}
-		String text = this.getText();
-		this.setText(text.substring(0, offset - startOffset) + string
-				+ text.substring(offset - startOffset, text.length()));
-		this.endOffset += string.length();
 	}
 
 	public void setText(String text) {
