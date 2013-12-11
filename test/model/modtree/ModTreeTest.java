@@ -84,37 +84,39 @@ public class ModTreeTest
     }
 
 
-		private class MyDE implements DocumentEvent {
-		private String newline = "\n";
-		String[] initString =
-				{ "This is an editable JTextPane, ",            //regular
-				  "another ",                                   //italic
-				  "styled ",                                    //bold
-				  "text ",                                      //small
-				  "component, ",                                //large
-				  "which supports embedded components..." + newline,//regular
-				  " " + newline,                                //button
-				  "...and embedded icons..." + newline,         //regular
-				  " ",                                          //icon
-				  newline + "JTextPane is a subclass of JEditorPane that " +
-					"uses a StyledEditorKit and StyledDocument, and provides " +
-					"cover methods for interacting with those objects."
-				 };
+	private class MyDE implements DocumentEvent {
 
-		String[] initStyles =
-				{ "regular", "italic", "bold", "small", "large",
-				  "regular", "button", "regular", "icon",
-				  "regular"
+		private String newline = "\n";
+		String[] initString
+				= {"This is an editable JTextPane, ", //regular
+					"another ", //italic
+					"styled ", //bold
+					"text ", //small
+					"component, ", //large
+					"which supports embedded components..." + newline,//regular
+					" " + newline, //button
+					"...and embedded icons..." + newline, //regular
+					" ", //icon
+					newline + "JTextPane is a subclass of JEditorPane that "
+					+ "uses a StyledEditorKit and StyledDocument, and provides "
+					+ "cover methods for interacting with those objects."
+				};
+
+		String[] initStyles
+				= {"regular", "italic", "bold", "small", "large",
+					"regular", "button", "regular", "icon",
+					"regular"
 				};
 
 		DefaultStyledDocument testdoc = new DefaultStyledDocument();
+
 		public MyDE() {
 			try {
-				for (int i=0; i < initString.length; i++) {
+				for(int i = 0; i < initString.length; i ++) {
 					testdoc.insertString(testdoc.getLength(), initString[i],
-									 testdoc.getStyle(initStyles[i]));
+							testdoc.getStyle(initStyles[i]));
 				}
-			} catch (BadLocationException ble) {
+			} catch(BadLocationException ble) {
 				System.err.println("Couldn't insert initial text into text pane.");
 			}
 		}
@@ -501,9 +503,9 @@ public class ModTreeTest
     {
         System.out.println("setString");
         String s = "foo";
-        ModTreeLeaf instance = new ModTreeLeaf(null);
-        instance.setText(s);
-		String result = instance.getText();
+		ModTreeNode node = new ModTreeNode(null, true);
+        ModTreeLeaf leaf = new ModTreeLeaf(node, s, true);
+		String result = leaf.getText();
 		String expResult = "foo";
 		assertEquals(expResult, result);
     }
@@ -880,9 +882,8 @@ public class ModTreeTest
 	public void testGetDocument() throws BadLocationException {
 		System.out.println("getDocument");
 		ModTree instance = new ModTree();
-		StyledDocument expResult = null;
 		StyledDocument result = (StyledDocument) instance.getDocument();
-		assertEquals(expResult, result);
+		assertNotNull(result);
 	}
 
 	/**
