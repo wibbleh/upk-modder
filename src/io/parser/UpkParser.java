@@ -9,10 +9,12 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
 import model.upk.UpkHeader;
+import util.unrealhex.HexStringLibrary;
 
 /**
  * Class featuring UPK file parsing capabilities.
@@ -30,6 +32,12 @@ public class UpkParser {
 	 * The reader instance.
 	 */
 	private RandomAccessFile raf;
+	
+	byte[] buf = new byte[256];
+	int strLen;
+	long namePosition;
+	String temp;
+	String encoding = System.getProperty("file.encoding");
 	
 	/**
 	 * Constructs an UPK parser from the specified UPK file.
@@ -91,9 +99,10 @@ public class UpkParser {
 		List<NameEntry> entryList = new ArrayList<NameEntry>(nameListSize);
 		
 		this.raf.seek(nameListPos);
+		namePosition = nameListPos;
 		for (int i = 0; i < nameListSize; i++) {
 			entryList.add(readNameEntry());
-			raf.skipBytes(8);	// consume 8 extra flag bytes (2 words)
+//			raf.skipBytes(8);	// consume 8 extra flag bytes (2 words)
 		}
 		
 		return entryList;
@@ -105,12 +114,19 @@ public class UpkParser {
 	 * @throws IOException
 	 */
 	private NameEntry readNameEntry() throws IOException {
-		int strLen = Integer.reverseBytes(this.raf.readInt());
-		byte[] strBuf = new byte[strLen - 1];	// omit termination character 0x00
-		this.raf.read(strBuf);
-		this.raf.skipBytes(1);	// skip termination character
+//		int strLen = Integer.reverseBytes(this.raf.readInt());
+//		byte[] strBuf = new byte[strLen - 1];	// omit termination character 0x00
+//		this.raf.read(strBuf);
+//		this.raf.skipBytes(1);	// skip termination character
+//		
+//		return new NameEntry(new String(strBuf));
 		
-		return new NameEntry(new String(strBuf));
+		raf.seek(namePosition);
+		raf.read(buf);
+		strLen = HexStringLibrary.byteArrayToInt(buf);
+		namePosition += (strLen + 12);
+		temp = new String(buf);
+		return new NameEntry(temp.substring(4, strLen+3));
 	}
 
 	/**
