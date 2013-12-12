@@ -75,9 +75,6 @@ public class ModTreeLeaf extends ModTreeNode {
 	public int getMemorySize() {
 		if (this.isPlainText()) {
 			return 0;
-			// @ XMTS this is present to prevent calculation of memory size for non hex bytes
-			// ony byte per character plus termination byte
-//			return this.getText().length() + 1;
 		} else {
 			return text.length() / 3;
 		}

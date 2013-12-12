@@ -841,17 +841,15 @@ public class ModTreeNode implements TreeNode {
         }
     }
 
-    public int getMemorySize()
-    {
-        int num = 0;
-        for(ModTreeNode branch : children)
-        {
-            num += branch.getMemorySize();
-        }
-        if(num < 0)
-            return 0;
-        return num;
-    }
+	public int getMemorySize() {
+		int num = 0;
+		for (ModTreeNode branch : children) {
+			num += branch.getMemorySize();
+		}
+		if (num < 0)
+			return 0;
+		return num;
+	}
 
     public boolean isVirtualFunctionRef()
     {

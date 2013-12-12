@@ -22,7 +22,7 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 	 * TODO: API
 	 * @param parent
 	 */
-	ModOffsetLeaf(ModOperandNode parent) {
+	public ModOffsetLeaf(ModOperandNode parent) {
 		this(parent, null);
 	}
 
@@ -31,7 +31,7 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 	 * @param parent
 	 * @param operand
 	 */
-	ModOffsetLeaf(ModOperandNode parent, String operand) {
+	public ModOffsetLeaf(ModOperandNode parent, String operand) {
 		super(parent);
 		this.operand = operand;
 		
