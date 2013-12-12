@@ -125,7 +125,7 @@ public class ReferenceUpdate {
 	 * @return true if mapping completed successfully. false on error.
 	 */
 	public boolean updateDocumentToName() {
-		boolean success = testUpdateDocumentToValue(false);
+		boolean success = testUpdateDocumentToName(false);
 		success = success && replaceGUID();
 		if(success) {
 			int offsetIncrease = 0;
@@ -262,7 +262,7 @@ public class ReferenceUpdate {
 			failureMode = 1; // 1 = UNEQUAL ARRAY SIZE DURING REPLACEMENT
 			return false;
 		}
-		return success && (this.failedMappings.isEmpty());
+		return success; // && (this.failedMappings.isEmpty());
 	}
 
 	/**

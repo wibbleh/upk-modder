@@ -159,16 +159,16 @@ public class ReferenceUpdateDialog extends JDialog {
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
 		// create bottom panel containing 'OK' and 'Cancel' buttons
-		FormLayout buttonLyt = new FormLayout("0px:g, p, 5px, p, 5px, p, 5px, p", "p");
+		FormLayout buttonLyt = new FormLayout("0px:g, p, 5px, p, 5px, p, 5px, p, 5px, p", "p");
 		buttonLyt.setColumnGroups(new int[][] { { 2, 4 } });
 		JPanel buttonPnl = new JPanel(buttonLyt);
 		
-		final JButton okayBtn = new JButton("OK");
-		okayBtn.setEnabled(false);
-		okayBtn.addActionListener(new ActionListener() {
+		final JButton closeBtn = new JButton("Close");
+		closeBtn.setEnabled(true);
+		closeBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
-				apply();
+//				apply();
 				close();
 			}
 		});
@@ -190,6 +190,15 @@ public class ReferenceUpdateDialog extends JDialog {
 			}
 		});
 
+		final JButton namesBtn = new JButton("To Names");
+		namesBtn.setEnabled(false);
+		namesBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				applyNames();
+			}
+		});
+
 		final JButton testBtn = new JButton("Test");
 		testBtn.setEnabled(false);
 		testBtn.addActionListener(new ActionListener() {
@@ -199,10 +208,11 @@ public class ReferenceUpdateDialog extends JDialog {
 			}
 		});
 
-		buttonPnl.add(okayBtn, CC.xy(2, 1));
+		buttonPnl.add(closeBtn, CC.xy(2, 1));
 		buttonPnl.add(cancelBtn, CC.xy(4, 1));
 		buttonPnl.add(testBtn, CC.xy(6, 1));
-		buttonPnl.add(applyBtn, CC.xy(8, 1));
+		buttonPnl.add(namesBtn, CC.xy(8, 1));
+		buttonPnl.add(applyBtn, CC.xy(10, 1));
 		
 		// install listeners on source/destination buttons to populate/update the table
 		sourceBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
@@ -215,17 +225,18 @@ public class ReferenceUpdateDialog extends JDialog {
 				updater = new ReferenceUpdate(modTree, modTree.getDocument(), upkSrcFile);
 				List<Integer> sourceRefs = updater.getSourceReferences();
 				List<String> sourceRefNames = updater.getReferenceNames();
-				String sourceRefString = HexStringLibrary.convertIntToHexString(sourceRefs.get(0));
-				for(int i = 0; i < updater.getSourceReferences().size(); i++) {
-					sourceRefString = HexStringLibrary.convertIntToHexString(sourceRefs.get(i));
-					refTblMdl.addRow(new Object[] { true, sourceRefString, sourceRefNames.get(i), null });
-				}
+				String sourceRefString;
 				// check GUID
-				if(!updater.verifySourceGUID()) {
+				if(updater.verifySourceGUID()) {
 					// put here the visual indicator of a GUID mismatch
+					for(int i = 0; i < updater.getSourceReferences().size(); i++) {
+						sourceRefString = HexStringLibrary.convertIntToHexString(sourceRefs.get(i));
+						refTblMdl.addRow(new Object[] { true, sourceRefString, sourceRefNames.get(i), null });
+					}
+					// enable destination button
+					destBtn.setEnabled(true);
+					namesBtn.setEnabled(true);
 				}
-				// enable destination button
-				destBtn.setEnabled(true);
 			}
 		});
 		
@@ -252,10 +263,16 @@ public class ReferenceUpdateDialog extends JDialog {
 							refTblMdl.setValueAt(refAfter, row, 3);
 						}
 				}
-				// enable 'OK' and 'Apply' buttons
-				okayBtn.setEnabled(true);
+				// enable test button 
 				testBtn.setEnabled(true);
-				applyBtn.setEnabled(true);
+				// enable 'OK' and 'Apply' buttons if all references are valid
+				if(updater.testUpdateDocumentToValue(false)) {
+//					closeBtn.setEnabled(true);
+					applyBtn.setEnabled(true);
+				} else {
+					closeBtn.setEnabled(false);
+//					applyBtn.setEnabled(false);
+				}
 			}
 		});
 		
@@ -284,9 +301,22 @@ public class ReferenceUpdateDialog extends JDialog {
 	/**
 	 * TODO: API
 	 */
+	private void applyNames() {
+		if(updater.updateDocumentToName()) {
+//				closeBtn.setEnabled(true);
+//				applyBtn.setEnabled(true);
+			// TODO : provide visual feedback that test was successful
+		} else {
+			// TODO: provide visual feedback that test failed
+		}
+	}
+
+	/**
+	 * TODO: API
+	 */
 	private void test() {
 		if(updater.testUpdateDocumentToValue(false)) {
-//				okayBtn.setEnabled(true);
+//				closeBtn.setEnabled(true);
 //				applyBtn.setEnabled(true);
 			// TODO : provide visual feedback that test was successful
 		} else {
