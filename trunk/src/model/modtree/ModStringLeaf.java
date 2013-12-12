@@ -13,7 +13,7 @@ public class ModStringLeaf extends ModTreeLeaf {
 	 * 
 	 * @param parent
 	 */
-	ModStringLeaf(ModOperandNode parent) {
+	public ModStringLeaf(ModOperandNode parent) {
 		super(parent);
 		
 		this.setContextFlag(ModContextType.VALID_CODE, true);

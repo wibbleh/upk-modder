@@ -4,7 +4,6 @@ package ui;
 import io.parser.OperandTableParser;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -21,7 +20,6 @@ import java.nio.file.Paths;
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -37,7 +35,6 @@ import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.filechooser.FileFilter;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
 import javax.swing.text.ComponentView;
@@ -65,6 +62,8 @@ import org.bounce.text.xml.XMLEditorKit;
 import org.bounce.text.xml.XMLFoldingMargin;
 import org.bounce.text.xml.XMLScanner;
 import org.bounce.text.xml.XMLStyleConstants;
+
+import ui.dialogs.ReferenceUpdateDialog;
 // use these for plain text
 //import ui.editor.ModEditorKit;
 // use these for broken text display
@@ -92,6 +91,11 @@ public class MainFrame extends JFrame {
 	 * The modfile editor instance.
 	 */
 	private JEditorPane modEditor;
+
+	/**
+	 * The modfile tree structure.
+	 */
+	private ModTree modTree;
 	
 	/**
 	 * Constructs the application's main frame.
@@ -244,7 +248,7 @@ public class MainFrame extends JFrame {
 
 		// create tree view of right-hand mod editor
 		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
-		final ModTree modTree = new ModTree(modDocument);
+		this.modTree = new ModTree(modDocument);
 //			final JTree modElemTree = new JTree((TreeNode) modDocument.getDefaultRootElement()); // draw from document
 		final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
 		JScrollPane modElemTreePane = new JScrollPane(modElemTree,
@@ -284,7 +288,7 @@ public class MainFrame extends JFrame {
 				// reset view tree
 				((DefaultTreeModel) modViewTree.getModel()).setRoot(
 						createViewBranch(modEditor.getUI().getRootView(modEditor)));
-				
+
 				// expand trees
 				for (int i = 0; i < modElemTree.getRowCount(); i++) {
 					modElemTree.expandRow(i);
@@ -292,7 +296,7 @@ public class MainFrame extends JFrame {
 				for (int i = 0; i < modViewTree.getRowCount(); i++) {
 					modViewTree.expandRow(i);
 				}
-				
+
 				// expand trees
 //				for (int i = 0; i < modElemTree.getRowCount(); i++) {
 //					modElemTree.expandRow(i);
@@ -472,6 +476,20 @@ public class MainFrame extends JFrame {
 		fileMenu.addSeparator();
 		fileMenu.add(exitItem);
 		
+		// create edit menu
+		JMenu editMenu = new JMenu("Edit");
+		
+		JMenuItem updateItem = new JMenuItem("Update References...");
+		updateItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				showRefUpdateDialog();
+			}
+		});
+		
+		// add items to edit menu
+		editMenu.add(updateItem);
+		
 		// create help menu
 		JMenu helpMenu = new JMenu("Help");
 		
@@ -484,7 +502,7 @@ public class MainFrame extends JFrame {
 		aboutItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
-				MainFrame.this.showAboutDialog();
+				showAboutDialog();
 			}
 		});
 		
@@ -495,11 +513,18 @@ public class MainFrame extends JFrame {
 		
 		// add menus to menu bar
 		menuBar.add(fileMenu);
+		menuBar.add(editMenu);
 		menuBar.add(helpMenu);
 		
 		return menuBar;
 	}
 	
+	private void showRefUpdateDialog() {
+		ReferenceUpdateDialog refDialog = ReferenceUpdateDialog.getInstance();
+		refDialog.setModTree(this.modTree);
+		refDialog.setVisible(true);
+	}
+
 	/**
 	 * Creates and displays the application's About dialog.
 	 */
@@ -518,74 +543,6 @@ public class MainFrame extends JFrame {
 		aboutDlg.setResizable(false);
 		aboutDlg.setLocationRelativeTo(this);
 		aboutDlg.setVisible(true);
-	}
-	
-	/**
-	 * Convenience implementation of the action listener interface for selecting a file and doing an operation on it.
-	 * 
-	 * @author XMS
-	 */
-	private abstract static class BrowseActionListener implements ActionListener {
-
-		/**
-		 * The shared reference to the last selected file.
-		 */
-		private static File lastSelectedFile;
-		
-		/**
-		 * The parent component of the file selection dialog.
-		 */
-		private Component parent;
-
-		/**
-		 * The file filter used in the file selection dialog.
-		 */
-		private FileFilter filter;
-		
-		/**
-		 * Constructs a browse action listener showing its file selection dialog
-		 * atop the specified parent component.
-		 * 
-		 * @param parent
-		 */
-		public BrowseActionListener(Component parent, FileFilter filter) {
-			this.parent = parent;
-			this.filter = filter;
-		}
-
-		@Override
-		public void actionPerformed(ActionEvent evt) {
-			// create and configure file chooser instance
-			JFileChooser chooser = new JFileChooser(getLastSelectedFile());
-			chooser.setFileFilter(this.filter);
-			chooser.setMultiSelectionEnabled(false);
-			chooser.setAcceptAllFileFilterUsed(false);
-			// show file selection dialog
-			int res = chooser.showOpenDialog(this.parent);
-			if (res == JFileChooser.APPROVE_OPTION) {
-				File selectedFile = chooser.getSelectedFile();
-				// execute operation
-				this.execute(selectedFile);
-				// store reference to selected file
-				lastSelectedFile = selectedFile;
-			}
-		}
-		
-		/**
-		 * Executes upon successfully seleting a file. Subclasses need to
-		 * implement this to perform operations on the selected file.
-		 * @param file the file to perform operations on
-		 */
-		protected abstract void execute(File file);
-		
-		/**
-		 * Returns the reference to the last selected file.
-		 * @return the last selected file
-		 */
-		public static File getLastSelectedFile() {
-			return lastSelectedFile;
-		}
-		
 	}
 	
 }

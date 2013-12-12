@@ -1,6 +1,8 @@
 package model.modtree;
 
-import static model.modtree.ModContext.ModContextType.*;
+import static model.modtree.ModContext.ModContextType.FILE_HEADER;
+import static model.modtree.ModContext.ModContextType.HEX_CODE;
+import static model.modtree.ModContext.ModContextType.VALID_CODE;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -10,7 +12,6 @@ import java.util.logging.Logger;
 
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentEvent.EventType;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
@@ -143,7 +144,7 @@ public class ModTree {
 	 * Later may modify text to implement reference/offset corrections.
 	 */
 	protected void updateDocument() {
-		if (getDocument() == null) {
+		if (this.getDocument() == null) {
 			return;
 		}
 		int count = 0;
