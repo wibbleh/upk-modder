@@ -38,7 +38,8 @@ public class ReferenceUpdate {
 	private List<String> referenceFullNames = new ArrayList<>();	// FullyReference names for each reference in SourceReferences
 	private List<Integer> destReferences = new ArrayList<>();		// New reference value for target upk
 	private List<Boolean> isVirtualFunction = new ArrayList<>();	// boolean recording which references are virtual functions, so are references to namelist
-
+	private List<Boolean> destRefError = new ArrayList<>();			// boolean recording whether destination reference found
+	
 	private List<Integer> failedMappings = new ArrayList<>();		// list of references that failed to map to a valid name
 	private List<Integer> failedOffsets = new ArrayList<>();		// list of file offset positions of failed references
 	private List<Integer> failedTypes = new ArrayList<>();			// TODO-- convert to enumeration of failure modes
@@ -63,7 +64,7 @@ public class ReferenceUpdate {
 		buildSourceReferences();
 		buildReferenceFullNames();
 		buildDestReferences();
-		dumpData();
+//		dumpData();
 	}
 
 	public ReferenceUpdate(ModTree tree, Document doc, UpkFile src) {
@@ -75,7 +76,7 @@ public class ReferenceUpdate {
 		buildReferenceFullNames();
 	}
 	
-	public void dumpData() {
+	private void dumpData() {
 		for(int i = 0 ; i < sourceReferences.size(); i ++) {
 			System.out.println("(" + isVirtualFunction.get(i) + ")" + i + " : " 
 					+ sourceReferences.get(i) + " : " 
@@ -83,6 +84,22 @@ public class ReferenceUpdate {
 					+ destReferences.get(i) + " : " 
 					+ referenceOffsets.get(i)); 
 		}
+	}
+	
+	public List<Integer> getSourceReferences() {
+		return sourceReferences;
+	}
+	
+	public List<Integer> getDestReferences() {
+		return destReferences;
+	}
+	
+	public List<Boolean> getDestRefErrors() {
+		return destRefError;
+	}
+	
+	public List<String> getReferenceNames() {
+		return referenceFullNames;
 	}
 	
 	// TODO : replace with new methods based on enumeration
@@ -131,7 +148,7 @@ public class ReferenceUpdate {
 					
 					// remove old reference and insert new one
 					document.remove(this.referenceOffsets.get(i) + offsetIncrease, 12);
-					document.insertString(this.referenceOffsets.get(i), name, as);
+					document.insertString(this.referenceOffsets.get(i) + offsetIncrease, name, as);
 					offsetIncrease += (name.length() - 12);
 				} catch(BadLocationException ex) {
 					Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
@@ -157,20 +174,25 @@ public class ReferenceUpdate {
 		success = success && replaceGUID();
 		if(success) {
 			for(int i = 0; i < sourceReferences.size(); i ++) {
-				try {
-					// arbitrary default AttributeSet
-					AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
-					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
-					StyleConstants.setItalic((MutableAttributeSet) as, false);
-					
-					// remove old reference and insert new one
-					document.remove(this.referenceOffsets.get(i), 12);
-					String docNewString = convertIntToHexString(destReferences.get(i));
-					document.insertString(this.referenceOffsets.get(i), docNewString, as);
-				} catch(BadLocationException ex) {
-					Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
-					failureMode = 4; // 2 = FILE WRITE ERROR
-					return false;
+				if((this.destReferences.get(i) <= 0 && isVirtualFunction.get(i))
+						|| (this.destReferences.get(i) == 0 && !isVirtualFunction.get(i))){
+					success = false;
+				} else {
+					try {
+						// arbitrary default AttributeSet
+						AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+						StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+						StyleConstants.setItalic((MutableAttributeSet) as, false);
+
+						// remove old reference and insert new one
+						document.remove(this.referenceOffsets.get(i), 12);
+						String docNewString = convertIntToHexString(destReferences.get(i));
+						document.insertString(this.referenceOffsets.get(i), docNewString, as);
+					} catch(BadLocationException ex) {
+						Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
+						failureMode = 4; // 2 = FILE WRITE ERROR
+						return false;
+					}
 				}
 			}
 		}
@@ -215,7 +237,7 @@ public class ReferenceUpdate {
 	 * Verifies that the document GUID and designated source GUID match
 	 * @return true if match, false if no match
 	 */
-	protected boolean verifySourceGUID() {
+	public boolean verifySourceGUID() {
 		if(tree.getGuid().trim().equalsIgnoreCase(convertByteArrayToHexString(sourceUpk.getHeader().getGUID()).trim())) {
 			return true;
 		} else {
@@ -261,21 +283,29 @@ public class ReferenceUpdate {
 		}
 		for(int i = 0; i < sourceReferences.size(); i++) {
 			String docOriginalString;
-			try {
-				docOriginalString = this.document.getText(this.referenceOffsets.get(i), 12);
-				String treeOriginalString = convertIntToHexString(sourceReferences.get(i));
-				if(!docOriginalString.equals(treeOriginalString)) {
-					success = false;
-					if(recordFailures) {
-						failedMappings.add(sourceReferences.get(i));
-						failedOffsets.add(referenceOffsets.get(i));
-						failedTypes.add(3); // 3 = SOURCE STRING MISMATCH 
+			if(!failedMappings.isEmpty()) {
+				success = false;
+			}
+			if((this.destReferences.get(i) <= 0 && isVirtualFunction.get(i))
+					|| (this.destReferences.get(i) == 0 && !isVirtualFunction.get(i))){
+				success = false;
+			} else {
+				try {
+					docOriginalString = this.document.getText(this.referenceOffsets.get(i), 12);
+					String treeOriginalString = convertIntToHexString(sourceReferences.get(i));
+					if(!docOriginalString.equals(treeOriginalString)) {
+						success = false;
+						if(recordFailures) {
+							failedMappings.add(sourceReferences.get(i));
+							failedOffsets.add(referenceOffsets.get(i));
+							failedTypes.add(3); // 3 = SOURCE STRING MISMATCH 
+						}
 					}
+				} catch(BadLocationException ex) {
+					Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
+					failureMode = 2; // 2 = FILE READ ERROR
+					return false;
 				}
-			} catch(BadLocationException ex) {
-				Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
-				failureMode = 2; // 2 = FILE READ ERROR
-				return false;
 			}
 		}
 		return success;
@@ -294,11 +324,15 @@ public class ReferenceUpdate {
 			} else {
 				this.destReferences.add(this.destUpk.findRefName(referenceFullNames.get(i)));
 			}
-			if(this.destReferences.get(i) == 0 ) {
+			if((this.destReferences.get(i) <= 0 && isVirtualFunction.get(i))
+					|| (this.destReferences.get(i) == 0 && !isVirtualFunction.get(i))){
+				destRefError.add(true);
 				success = false;
 				failedMappings.add(sourceReferences.get(i));
 				failedOffsets.add(referenceOffsets.get(i));
 				failedTypes.add(2); // 2 = NAME_TO_DST_FAIL
+			} else {
+				destRefError.add(false);
 			}
 		}
 		return success;

@@ -304,7 +304,12 @@ public class ModTreeNode implements TreeNode {
 	protected boolean isValidHexLine() {
 		String[] tokens = getFullText().split("//")[0].trim().split("\\s");
 		for (String token : tokens) {
-			if (!token.matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
+			if (token.matches("[0-9A-Fa-f][0-9A-Fa-f]")
+					|| (token.startsWith("<|") && token.endsWith("|>"))
+					|| (token.startsWith("{|") && token.endsWith("|}"))
+					) {
+				continue;
+			} else {
 				return false;
 			}
 		}
@@ -326,7 +331,10 @@ public class ModTreeNode implements TreeNode {
 		// tokenize string representation
 		String[] tokens = in.split("//")[0].split("\\s");
 		for (String token : tokens) {
-			if (token.toUpperCase().matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
+			if (token.toUpperCase().matches("[0-9A-Fa-f][0-9A-Fa-f]")
+					|| (token.startsWith("<|") && token.endsWith("|>"))
+					|| (token.startsWith("{|") && token.endsWith("|}"))
+					) {
 				// concatenate hex tokens with whitespace delimiter
 				outString[1] += token + " ";
 			}

@@ -11,7 +11,7 @@ public class ModTreeLeaf extends ModTreeNode {
 	/**
 	 * The string data of this token.
 	 */
-    private String text;
+    protected String text;
     
     /**
      * TODO: API

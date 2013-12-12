@@ -47,11 +47,21 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	@Override
 	public String parseUnrealHex(String s, int num) {
 		this.value = 0;
-		String[] tokens = s.split("\\s");
-		for (int i = 0; i < 4; i++) {
-			this.value += Integer.parseInt(tokens[i], 16) << (8 * i);
+		int endOffset;
+		if(s.startsWith("{|") || s.startsWith("<|")) {
+			text = s.split("\\s",2)[0].trim() + " ";
+			endOffset = this.getEndOffset();
+			endOffset += text.length();
+			s = s.split("\\s",2)[1];
+			this.setRange(this.getStartOffset(), endOffset);
+			return s;
+		} else 
+		{
+			String[] tokens = s.split("\\s");
+			for (int i = 0; i < 4; i++) {
+				this.value += Integer.parseInt(tokens[i], 16) << (8 * i);
+			}
 		}
-		
 		return super.parseUnrealHex(s, 4);
 	}
 
