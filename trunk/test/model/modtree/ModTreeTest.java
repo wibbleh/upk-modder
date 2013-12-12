@@ -60,7 +60,7 @@ public class ModTreeTest
     public static void setUpClass()
     {
 		// initialize Operand Table for all tests that use it
-		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
 		try {
 			parser.parseFile();
 		} catch(IOException ex) {

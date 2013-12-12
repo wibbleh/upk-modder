@@ -27,6 +27,10 @@ import java.nio.ByteOrder;
 public class HexStringLibrary 
 {
 
+	public static int byteArrayToInt(byte[] b) {
+		return ((b[3]&0xff)<<24)+((b[2]&0xff)<<16)+((b[1]&0xff)<<8)+(b[0]&0xff);
+	}
+
 	public static String convertIntToHexString(int I)
     {
         String sOutString = "";

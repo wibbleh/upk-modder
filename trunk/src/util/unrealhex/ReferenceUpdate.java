@@ -1,6 +1,5 @@
 package util.unrealhex;
 
-import static util.unrealhex.HexStringLibrary.convertIntToHexString;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +13,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import model.modtree.*;
 import model.upk.UpkFile;
-import util.unrealhex.HexStringLibrary;
+import util.unrealhex.HexStringLibrary.*;
+import static util.unrealhex.HexStringLibrary.convertIntToHexString;
 import static util.unrealhex.HexStringLibrary.convertByteArrayToHexString;
 
 /**
@@ -38,7 +38,7 @@ public class ReferenceUpdate {
 	private List<String> referenceFullNames = new ArrayList<>();	// FullyReference names for each reference in SourceReferences
 	private List<Integer> destReferences = new ArrayList<>();		// New reference value for target upk
 	private List<Boolean> isVirtualFunction = new ArrayList<>();	// boolean recording which references are virtual functions, so are references to namelist
-	private List<Boolean> destRefError = new ArrayList<>();			// boolean recording whether destination reference found
+	private List<Boolean> hasDestRefError = new ArrayList<>();			// boolean recording whether destination reference found
 	
 	private List<Integer> failedMappings = new ArrayList<>();		// list of references that failed to map to a valid name
 	private List<Integer> failedOffsets = new ArrayList<>();		// list of file offset positions of failed references
@@ -56,9 +56,9 @@ public class ReferenceUpdate {
 									// 5 = GUID MISMATCH
 									// 6 = NO DEST UPK
 	
-	public ReferenceUpdate(ModTree tree, Document doc, UpkFile src, UpkFile dst) {
-		this.document = doc;
+	public ReferenceUpdate(ModTree tree, UpkFile src, UpkFile dst) {
 		this.tree = tree;
+		this.document = tree.getDocument();
 		this.sourceUpk = src;
 		this.destUpk = dst;
 		buildSourceReferences();
@@ -67,13 +67,41 @@ public class ReferenceUpdate {
 //		dumpData();
 	}
 
-	public ReferenceUpdate(ModTree tree, Document doc, UpkFile src) {
-		this.document = doc;
+	public ReferenceUpdate(ModTree tree, UpkFile src) {
 		this.tree = tree;
+		this.document = tree.getDocument();
 		this.sourceUpk = src;
 		this.destUpk = null;
 		buildSourceReferences();
 		buildReferenceFullNames();
+	}
+	
+	public ReferenceUpdate(ModTree tree) {
+		this.sourceUpk = null;
+		this.destUpk = null;
+		this.tree = tree;
+		if(this.tree != null) {
+			this.document = this.tree.getDocument();
+			buildSourceReferences();
+		}
+	}
+	
+	public void setSourceUpk(UpkFile src) {
+		if(src == null)
+			return;
+		this.sourceUpk = src;
+		buildSourceReferences();
+		buildReferenceFullNames();
+		if(this.destUpk != null) {
+			buildDestReferences();
+		}
+	}
+	
+	public void setDestUpk(UpkFile dst) {
+		this.destUpk = dst;
+		if(this.sourceUpk != null) {
+			buildDestReferences();
+		}
 	}
 	
 	private void dumpData() {
@@ -86,22 +114,82 @@ public class ReferenceUpdate {
 		}
 	}
 	
-	public List<Integer> getSourceReferences() {
-		return sourceReferences;
+	public int length() {
+		return sourceReferences.size();
 	}
 	
-	public List<Integer> getDestReferences() {
-		return destReferences;
+	public int getSrcCount() {
+		int count = 0;
+		for(int i = 0; i< length(); i++) {
+			if(!getSourceReference(i).isEmpty()) {
+				count++;
+			}
+		}
+		return count;
 	}
 	
-	public List<Boolean> getDestRefErrors() {
-		return destRefError;
+	public int getNameCount() {
+		return referenceFullNames.size();
 	}
 	
-	public List<String> getReferenceNames() {
-		return referenceFullNames;
+	public int getDstCount() {
+		return destReferences.size();
 	}
 	
+	public String getSourceReference(int num) {
+		if(num >=0 && num < sourceReferences.size()) {
+			int val = sourceReferences.get(num);
+			if(val == 0) {
+				return "";
+			} else {
+				return convertIntToHexString(val);
+			}
+		} else {
+			return "";
+		}
+	}
+	
+	public String getDestReference(int num) {
+		if(num >=0 && num < destReferences.size()) {
+			int val = destReferences.get(num);
+			if(val == 0) {
+				return "";
+			} else {
+				return convertIntToHexString(val);
+			}
+		} else {
+			return "";
+		}
+	}
+	
+	public boolean hasDestRefError(int num) {
+		if(num >=0 && num < hasDestRefError.size()) {
+			return hasDestRefError.get(num);
+		} else {
+			return true;
+		}
+	}
+	
+	public String getReferenceName(int num) {
+		if(num >=0 && num < referenceFullNames.size()) {
+			String name = referenceFullNames.get(num);
+			if(sourceReferences.get(num) == 0) {
+				name = name.substring(2, name.length()-2);
+			}
+			return name;
+		} else {
+			return "";
+		}
+	}
+	
+	protected String getReferenceNameWithTags(int num) {
+		if(num >=0 && num < referenceFullNames.size()) {
+			String name = referenceFullNames.get(num);
+			return name;
+		} else {
+			return "";
+		}
+	}
 	// TODO : replace with new methods based on enumeration
 	// temporary error reporting methods
 	public int getFailureMode(){
@@ -126,7 +214,7 @@ public class ReferenceUpdate {
 	 */
 	public boolean updateDocumentToName() {
 		boolean success = testUpdateDocumentToName(false);
-		success = success && replaceGUID();
+//		success = success && replaceGUID();
 		if(success) {
 			int offsetIncrease = 0;
 			String name;
@@ -137,19 +225,22 @@ public class ReferenceUpdate {
 					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 					StyleConstants.setItalic((MutableAttributeSet) as, false);
 					
-					// format name replacement
-					name = this.referenceFullNames.get(i);
-					if(this.isVirtualFunction.get(i)) {
-						name = "<|" + name + "|> ";
+					if(this.sourceReferences.get(i) != 0) {
+						// format name replacement
+						name = this.referenceFullNames.get(i);
+						if(this.sourceReferences.get(i) != 0) {
+							if(this.isVirtualFunction.get(i)) {
+								name = "<|" + name + "|> ";
+							}
+							else {
+								name = "{|" + name + "|} ";
+							}
+						}
+						// remove old reference and insert new one
+						document.remove(this.referenceOffsets.get(i) + offsetIncrease, 12);
+						document.insertString(this.referenceOffsets.get(i) + offsetIncrease, name, as);
+						offsetIncrease += (name.length() - 12);
 					}
-					else {
-						name = "{|" + name + "|} ";
-					}
-					
-					// remove old reference and insert new one
-					document.remove(this.referenceOffsets.get(i) + offsetIncrease, 12);
-					document.insertString(this.referenceOffsets.get(i) + offsetIncrease, name, as);
-					offsetIncrease += (name.length() - 12);
 				} catch(BadLocationException ex) {
 					Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
 					failureMode = 4; // 2 = FILE WRITE ERROR
@@ -171,8 +262,10 @@ public class ReferenceUpdate {
 			return false;
 		}
 		boolean success = testUpdateDocumentToValue(false);
-		success = success && replaceGUID();
+		boolean guidReplaced = replaceGUID();
+		success = success && ((getSrcCount()==0) || guidReplaced);
 		if(success) {
+			int offsetIncrease = 0;
 			for(int i = 0; i < sourceReferences.size(); i ++) {
 				if((this.destReferences.get(i) <= 0 && isVirtualFunction.get(i))
 						|| (this.destReferences.get(i) == 0 && !isVirtualFunction.get(i))){
@@ -185,9 +278,17 @@ public class ReferenceUpdate {
 						StyleConstants.setItalic((MutableAttributeSet) as, false);
 
 						// remove old reference and insert new one
-						document.remove(this.referenceOffsets.get(i), 12);
-						String docNewString = convertIntToHexString(destReferences.get(i));
-						document.insertString(this.referenceOffsets.get(i), docNewString, as);
+						if(sourceReferences.get(i) == 0) { // was a name reference in document
+							int strLen = this.getReferenceNameWithTags(i).length() + 1;
+							document.remove(this.referenceOffsets.get(i) + offsetIncrease, strLen);
+							String docNewString = convertIntToHexString(destReferences.get(i));
+							document.insertString(this.referenceOffsets.get(i) + offsetIncrease, docNewString, as);
+							offsetIncrease += 12 - strLen;
+						} else {  // was a value reference in document
+							document.remove(this.referenceOffsets.get(i) + offsetIncrease, 12);
+							String docNewString = convertIntToHexString(destReferences.get(i));
+							document.insertString(this.referenceOffsets.get(i) + offsetIncrease, docNewString, as);
+						}
 					} catch(BadLocationException ex) {
 						Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
 						failureMode = 4; // 2 = FILE WRITE ERROR
@@ -238,10 +339,14 @@ public class ReferenceUpdate {
 	 * @return true if match, false if no match
 	 */
 	public boolean verifySourceGUID() {
-		if(tree.getGuid().trim().equalsIgnoreCase(convertByteArrayToHexString(sourceUpk.getHeader().getGUID()).trim())) {
-			return true;
+		if(sourceUpk != null) {
+			if(tree.getGuid().trim().equalsIgnoreCase(convertByteArrayToHexString(sourceUpk.getHeader().getGUID()).trim())) {
+				return true;
+			} else {
+				failureMode = 5; // 5 = GUID MISMATCH 
+				return false;
+			}
 		} else {
-			failureMode = 5; // 5 = GUID MISMATCH 
 			return false;
 		}
 	}
@@ -274,26 +379,35 @@ public class ReferenceUpdate {
 	{
 		boolean success = verifySourceGUID();
 		if(sourceReferences.size() != destReferences.size()) {
+			System.out.println("Cannot update - source and dest lists different size.");
 			failureMode = 1; // 1 = UNEQUAL ARRAY SIZE DURING REPLACEMENT
 			return false;
 		}
 		if(sourceReferences.size() != referenceOffsets.size()) {
+			System.out.println("Cannot update - source and dest file pos lists different size.");
 			failureMode = 1; // 1 = UNEQUAL ARRAY SIZE DURING REPLACEMENT
 			return false;
 		}
+		if(!failedMappings.isEmpty()) {
+			success = false;
+		}
+		String docOriginalString;
+		String treeOriginalString;
 		for(int i = 0; i < sourceReferences.size(); i++) {
-			String docOriginalString;
-			if(!failedMappings.isEmpty()) {
-				success = false;
-			}
-			if((this.destReferences.get(i) <= 0 && isVirtualFunction.get(i))
+			if((this.destReferences.get(i) < 0 && isVirtualFunction.get(i))
 					|| (this.destReferences.get(i) == 0 && !isVirtualFunction.get(i))){
 				success = false;
 			} else {
 				try {
-					docOriginalString = this.document.getText(this.referenceOffsets.get(i), 12);
-					String treeOriginalString = convertIntToHexString(sourceReferences.get(i));
+					if(this.sourceReferences.get(i) == 0) {
+						treeOriginalString = getReferenceNameWithTags(i);
+						docOriginalString = this.document.getText(this.referenceOffsets.get(i), treeOriginalString.length());
+					} else {
+						docOriginalString = this.document.getText(this.referenceOffsets.get(i), 12);
+						treeOriginalString = convertIntToHexString(sourceReferences.get(i));
+					}
 					if(!docOriginalString.equals(treeOriginalString)) {
+						System.out.println("Cannot update - tree/document source reference " + i + "mismatch.");
 						success = false;
 						if(recordFailures) {
 							failedMappings.add(sourceReferences.get(i));
@@ -308,6 +422,9 @@ public class ReferenceUpdate {
 				}
 			}
 		}
+		if(getSrcCount() == 0) {
+			success = true; // allow partial updating if there are no current source reference values
+		}
 		return success;
 	}
 	
@@ -318,21 +435,23 @@ public class ReferenceUpdate {
 	 */
 	private boolean buildDestReferences() {
 		boolean success = true;
-		for (int i = 0; i < referenceFullNames.size(); i++) {
+		destReferences.clear();
+		hasDestRefError.clear();
+		for (int i = 0; i < sourceReferences.size(); i++) {
 			if(isVirtualFunction.get(i)) {
-				this.destReferences.add(this.destUpk.findVFRefName(referenceFullNames.get(i)));
+				this.destReferences.add(this.destUpk.findVFRefName(getReferenceName(i)));
 			} else {
-				this.destReferences.add(this.destUpk.findRefName(referenceFullNames.get(i)));
+				this.destReferences.add(this.destUpk.findRefName(getReferenceName(i)));
 			}
-			if((this.destReferences.get(i) <= 0 && isVirtualFunction.get(i))
+			if((this.destReferences.get(i) < 0 && isVirtualFunction.get(i))
 					|| (this.destReferences.get(i) == 0 && !isVirtualFunction.get(i))){
-				destRefError.add(true);
+				hasDestRefError.add(true);
 				success = false;
 				failedMappings.add(sourceReferences.get(i));
 				failedOffsets.add(referenceOffsets.get(i));
 				failedTypes.add(2); // 2 = NAME_TO_DST_FAIL
 			} else {
-				destRefError.add(false);
+				hasDestRefError.add(false);
 			}
 		}
 		return success;
@@ -346,11 +465,17 @@ public class ReferenceUpdate {
 	 */
 	private boolean buildReferenceFullNames() {
 		boolean success = true;
+		failedMappings.clear();
+		failedOffsets.clear();
+		failedTypes.clear();
+
 		for (int i = 0; i < sourceReferences.size(); i++) {
-			if(isVirtualFunction.get(i)) {
-				this.referenceFullNames.add(this.sourceUpk.getVFRefName(sourceReferences.get(i)));
-			} else {
-				this.referenceFullNames.add(this.sourceUpk.getRefName(sourceReferences.get(i)));
+			if(this.referenceFullNames.get(i).isEmpty()) {
+				if(isVirtualFunction.get(i)) {
+					this.referenceFullNames.set(i, this.sourceUpk.getVFRefName(sourceReferences.get(i)));
+				} else {
+					this.referenceFullNames.set(i, this.sourceUpk.getRefName(sourceReferences.get(i)));
+				}
 			}
 			if(this.referenceFullNames.get(i).isEmpty()) {
 				success = false;
@@ -368,6 +493,10 @@ public class ReferenceUpdate {
 	 * @return true if all references found, false if error
 	 */
 	private boolean buildSourceReferences() {
+		referenceFullNames.clear();
+		sourceReferences.clear();
+		isVirtualFunction.clear();
+		referenceOffsets.clear();
 		// DFS through ModTree, building SourceReferences List
 		getReferences(this.tree.getRoot());
 		return true;
@@ -382,6 +511,12 @@ public class ReferenceUpdate {
 		// recursive element for reference retrieval
 		if(node.isLeaf()) {
 			if(node.getName().equals("ModReferenceToken")) {
+				if(node.getRefValue() == 0) {
+					String name = node.getText().trim();
+					referenceFullNames.add(name);
+				} else {
+					referenceFullNames.add("");
+				}
 				sourceReferences.add(node.getRefValue());
 				isVirtualFunction.add(node.isVirtualFunctionRef());
 				referenceOffsets.add(node.getStartOffset());

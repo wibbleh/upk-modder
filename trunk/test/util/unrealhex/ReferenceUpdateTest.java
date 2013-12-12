@@ -62,7 +62,7 @@ public class ReferenceUpdateTest {
 
 		// initialize Operand Table for all tests that use it
 		System.out.println("Reading operand data.");
-		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
 		try {
 			parser.parseFile();
 		} catch(IOException ex) {
@@ -78,14 +78,14 @@ public class ReferenceUpdateTest {
 	@Before
 	public void setUp() throws BadLocationException {
 		// initialize document from test file
-		System.out.println("Read test_mod_v3.upk_mod");
+		System.out.println("Read test_mod_RefUpdate.upk_mod");
 		document = new DefaultStyledDocument();
 		// arbitrary default AttributeSet
 		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 		StyleConstants.setItalic((MutableAttributeSet) as, false);
 		String encoding = System.getProperty("file.encoding");
-		try(Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_v3.upk_mod"), Charset.forName(encoding)))) {
+		try(Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_RefUpdate.upk_mod"), Charset.forName(encoding)))) {
 			while(s.hasNext()) {
 				document.insertString(document.getLength(), s.nextLine() + "\n", as);
 			}
@@ -105,18 +105,18 @@ public class ReferenceUpdateTest {
 	 * Test of ReferenceUpdate constructor with three args.
 	 */
 	@Test
-	public void testReferenceUpdate_three_args() {
+	public void testReferenceUpdate_two_args() {
 		System.out.println("getReferenceUpdateConstructor_three_args");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid));
 	}
 	
 	/**
 	 * Test of ReferenceUpdate constructor with four args.
 	 */
 	@Test
-	public void testReferenceUpdate_four_args() {
+	public void testReferenceUpdate_three_args() {
 		System.out.println("getReferenceUpdateConstructor_four_args");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 	}
 
 	/**
@@ -125,7 +125,7 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testGetFailureMode() {
 		System.out.println("getFailureMode");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 		int expResult = 0;
 		int result = r.getFailureMode();
 		assertEquals(expResult, result);
@@ -137,12 +137,12 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testGetFailedMappings() {
 		System.out.println("getFailedMappings");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
 		List<Integer> expResult = new ArrayList<>();
 		List<Integer> result = r.getFailedMappings();
 		assertEquals(expResult, result);
 
-		r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 		expResult = new ArrayList<>();
 		expResult.add(38046); // ReturnValue@HasFoundHistory removed in EW
 		expResult.add(13946); // HasFoundHistory removed in EW
@@ -158,12 +158,12 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testGetFailedOffsets() {
 		System.out.println("getFailedOffsets");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
 		List<Integer> expResult = new ArrayList<>();
 		List<Integer> result = r.getFailedOffsets();
 		assertEquals(expResult, result);
 
-		r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 		expResult = new ArrayList<>();
 		expResult.add(1459); // ReturnValue@HasFoundHistory removed in EW
 		expResult.add(1477); // HasFoundHistory removed in EW
@@ -179,13 +179,13 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testGetFailedTypes() {
 		System.out.println("getFailedTypes");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
 		List<Integer> expResult = new ArrayList<>();
 		List<Integer> result = r.getFailedTypes();
 		assertEquals(expResult, result);
 
 	
-		r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 		expResult = new ArrayList<>();
 		expResult.add(2); // ReturnValue@HasFoundHistory removed in EW
 		expResult.add(2); // HasFoundHistory removed in EW
@@ -202,7 +202,7 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testUpdateDocumentToName_P5Success() throws BadLocationException {
 		System.out.println("updateDocumentToName");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
 		boolean expResult = true;
 		tree.disableUpdating();
 		boolean result = r.updateDocumentToName();
@@ -210,7 +210,7 @@ public class ReferenceUpdateTest {
 		
 		String expResult2 = "MODFILEVERSION=3\n" +
 						"UPKFILE=XComGame.upk \n" +
-						"GUID= 01 E9 EB 29 23 F4 DB 4F A8 2B 8E 46 A7 25 E5 D6 // EU patch 4\n" +
+						"GUID= 33 2E 29 6A A5 DD FC 40 B5 CC 57 A5 A7 AA 8C 41 // EU patch 4\n" +
 						"FUNCTION=ApplyActionCost@XGAbilityTree\n" +
 						"// Increase max pod size Mod\n" +
 						"// Author: Amineri \n" +
@@ -246,8 +246,8 @@ public class ReferenceUpdateTest {
 						"0B 0B 0B 0B 0B 0B 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 00 {|iCost@ApplyActionCost@XGAbilityTree|} 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B \n" +
 						"[/CODE]\n" +
 						"[/AFTER_HEX]\n";
+		System.out.println(document.getText(0, document.getLength()));
 		assertEquals(expResult2, document.getText(0, document.getLength()));
-//		System.out.println(document.getText(0, document.getLength()));
 
 	}
 
@@ -255,11 +255,11 @@ public class ReferenceUpdateTest {
 	 * Test of updateDocumentToName method, of class ReferenceUpdate.
 	 */
 	@Test
-	public void testUpdateDocumentToName_EWFail() throws BadLocationException {
+	public void testUpdateDocumentToName_EWSuccess() throws BadLocationException {
 		System.out.println("updateDocumentToName");
 		
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
-		boolean expResult = false;
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		boolean expResult = true;
 		tree.disableUpdating();
 		boolean result = r.updateDocumentToName();
 		assertEquals(expResult, result);
@@ -271,7 +271,7 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testUpdateDocumentToValue_P5Success() throws BadLocationException {
 		System.out.println("updateDocumentToValue");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
 		boolean expResult = true;
 		tree.disableUpdating();
 		boolean result = r.updateDocumentToValue();
@@ -325,7 +325,7 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testUpdateDocumentToValue_EWFail() throws BadLocationException {
 		System.out.println("updateDocumentToValue");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 		boolean expResult = false;
 		tree.disableUpdating();
 		boolean result = r.updateDocumentToValue();
@@ -339,7 +339,7 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testReplaceGUID() throws BadLocationException {
 		System.out.println("replaceGUID");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 		tree.disableUpdating();
 		boolean result = r.replaceGUID();
 		assertEquals(true, result);
@@ -355,7 +355,7 @@ public class ReferenceUpdateTest {
 	@Test
 	public void testVerifySourceGUID() {
 		System.out.println("verifySourceGUID");
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid));
 		boolean expResult = true;
 		boolean result = r.verifySourceGUID();
 		assertEquals(expResult, result);
@@ -368,21 +368,21 @@ public class ReferenceUpdateTest {
 	public void testTestUpdateDocumentToName_P5Success() {
 		System.out.println("testUpdateDocumentToName");
 		boolean recordFailures = false;
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
 		boolean expResult = true;
 		boolean result = r.testUpdateDocumentToName(recordFailures);
 		assertEquals(expResult, result);
 	}
 
 	/**
-	 * Test of testUpdateDocumentToName method, of class ReferenceUpdate with expected failure.
+	 * Test of testUpdateDocumentToName method, of class ReferenceUpdate with expected success.
 	 */
 	@Test
-	public void testTestUpdateDocumentToName_EWFail() {
+	public void testTestUpdateDocumentToName_EWSuccess() {
 		System.out.println("testUpdateDocumentToName");
 		boolean recordFailures = false;
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
-		boolean expResult = false;
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		boolean expResult = true;
 		boolean result = r.testUpdateDocumentToName(recordFailures);
 		assertEquals(expResult, result);
 	}
@@ -394,7 +394,7 @@ public class ReferenceUpdateTest {
 	public void testTestUpdateDocumentToValue_P5Success() {
 		System.out.println("testUpdateDocumentToValue");
 		boolean recordFailures = false;
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_p5, dstGuid_p5));
 		boolean expResult = true;
 		boolean result = r.testUpdateDocumentToValue(recordFailures);
 		assertEquals(expResult, result);
@@ -407,7 +407,7 @@ public class ReferenceUpdateTest {
 	public void testTestUpdateDocumentToValue_EWFail() {
 		System.out.println("testUpdateDocumentToValue");
 		boolean recordFailures = true;
-		ReferenceUpdate r = new ReferenceUpdate(tree, document, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
+		ReferenceUpdate r = new ReferenceUpdate(tree, upks.getUpk(upkSrcName, srcGuid), upks.getUpk(upkDstName_ew, dstGuid_ew));
 		boolean expResult = false;
 		boolean result = r.testUpdateDocumentToValue(recordFailures);
 		assertEquals(expResult, result);
