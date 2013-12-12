@@ -150,7 +150,7 @@ public class UpkParser {
 		buf.asIntBuffer().get(ints);
 		
 		// eleventh item represents number of extra bytes to read
-		int numExtraInts = ints[10];
+		int numExtraInts = ints[11];
 		byte[] extraBytes = new byte[numExtraInts * 4];
 		raf.read(extraBytes);
 		// wrap read extra bytes in buffer

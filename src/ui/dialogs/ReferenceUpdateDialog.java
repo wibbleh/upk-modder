@@ -26,6 +26,10 @@ import ui.MainFrame;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import java.util.List;
+import model.upk.UpkFile;
+import util.unrealhex.HexStringLibrary;
+import util.unrealhex.ReferenceUpdate;
 
 /**
  * TODO: API
@@ -35,7 +39,11 @@ import com.jgoodies.forms.layout.FormLayout;
 @SuppressWarnings("serial")
 public class ReferenceUpdateDialog extends JDialog {
 	
-	/**
+	private static UpkFile upkSrcFile;
+	private static UpkFile upkDstFile;
+	private static ReferenceUpdate updater ;
+
+				/**
 	 * The reference to the singleton instance of the reference update dialog.
 	 */
 	private static ReferenceUpdateDialog instance;
@@ -84,7 +92,8 @@ public class ReferenceUpdateDialog extends JDialog {
 	private void initComponents() {
 		Container contentPane = this.getContentPane();
 		
-		contentPane.setLayout(new FormLayout("5px, m:g, 5px", "5px, t:p, 5px, f:200px:g, 5px, b:p, 5px"));
+//		contentPane.setLayout(new FormLayout("5px, m:g, 5px", "5px, t:p, 5px, f:300px:g, 5px, b:p, 5px"));
+		contentPane.setLayout(new FormLayout("5px, f:600px:g, 5px", "5px, t:p, 5px, f:300px:g, 5px, b:p, 5px"));
 
 		// create panel containing update controls
 		FormLayout controlLyt = new FormLayout("p:g, 5px, p:g", "p");
@@ -150,7 +159,7 @@ public class ReferenceUpdateDialog extends JDialog {
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		
 		// create bottom panel containing 'OK' and 'Cancel' buttons
-		FormLayout buttonLyt = new FormLayout("0px:g, p, 5px, p, 5px, p", "p");
+		FormLayout buttonLyt = new FormLayout("0px:g, p, 5px, p, 5px, p, 5px, p", "p");
 		buttonLyt.setColumnGroups(new int[][] { { 2, 4 } });
 		JPanel buttonPnl = new JPanel(buttonLyt);
 		
@@ -181,9 +190,19 @@ public class ReferenceUpdateDialog extends JDialog {
 			}
 		});
 
+		final JButton testBtn = new JButton("Test");
+		testBtn.setEnabled(false);
+		testBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				test();
+			}
+		});
+
 		buttonPnl.add(okayBtn, CC.xy(2, 1));
 		buttonPnl.add(cancelBtn, CC.xy(4, 1));
-		buttonPnl.add(applyBtn, CC.xy(6, 1));
+		buttonPnl.add(testBtn, CC.xy(6, 1));
+		buttonPnl.add(applyBtn, CC.xy(8, 1));
 		
 		// install listeners on source/destination buttons to populate/update the table
 		sourceBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
@@ -191,10 +210,20 @@ public class ReferenceUpdateDialog extends JDialog {
 			protected void execute(File file) {
 				// clear table
 				refTblMdl.setRowCount(0);
-				// TODO: read selected UPK, parse header, check GUID, look up references
 				// populate table
-				refTblMdl.addRow(new Object[] { true, "00 01 02 03", "iCount", null });
-				refTblMdl.addRow(new Object[] { true, "04 05 06 07", "fRange", null });
+				upkSrcFile = new UpkFile(file);
+				updater = new ReferenceUpdate(modTree, modTree.getDocument(), upkSrcFile);
+				List<Integer> sourceRefs = updater.getSourceReferences();
+				List<String> sourceRefNames = updater.getReferenceNames();
+				String sourceRefString = HexStringLibrary.convertIntToHexString(sourceRefs.get(0));
+				for(int i = 0; i < updater.getSourceReferences().size(); i++) {
+					sourceRefString = HexStringLibrary.convertIntToHexString(sourceRefs.get(i));
+					refTblMdl.addRow(new Object[] { true, sourceRefString, sourceRefNames.get(i), null });
+				}
+				// check GUID
+				if(!updater.verifySourceGUID()) {
+					// put here the visual indicator of a GUID mismatch
+				}
 				// enable destination button
 				destBtn.setEnabled(true);
 			}
@@ -204,21 +233,29 @@ public class ReferenceUpdateDialog extends JDialog {
 			@Override
 			protected void execute(File file) {
 				// TODO: read selected UPK, parse header, match references
+				upkDstFile = new UpkFile(file);
+				updater = new ReferenceUpdate(modTree, modTree.getDocument(), upkSrcFile, upkDstFile);
+//				List<Integer> sourceRefs = updater.getSourceReferences();
+//				List<String> sourceRefNames = updater.getReferenceNames();
+				List<Integer> destRefs = updater.getDestReferences();
+				List<Boolean> destRefErrs = updater.getDestRefErrors();
 				// iterate table
 				for (int row = 0; row < refTblMdl.getRowCount(); row++) {
-					String refBefore = (String) refTblMdl.getValueAt(row, 1);
-					String refName = (String) refTblMdl.getValueAt(row, 2);
+//					String refBefore = (String) refTblMdl.getValueAt(row, 1);
+//					String refName = (String) refTblMdl.getValueAt(row, 2);
 					// TODO: do reference lookup
-					String refAfter = (row == 0) ? "AA BB CC DD" : "not found!";
-					// update table
-					if ("not found!".equals(refAfter)) {
-						refTblMdl.setValueAt(false, row, 0);
-					}
-					refTblMdl.setValueAt(refAfter, row, 3);
-					// enable 'OK' and 'Apply' buttons
-					okayBtn.setEnabled(true);
-					applyBtn.setEnabled(true);
+						String refAfter = HexStringLibrary.convertIntToHexString(destRefs.get(row));
+						// update table
+						if (destRefErrs.get(row)) {
+							refTblMdl.setValueAt(false, row, 0);
+						} else {
+							refTblMdl.setValueAt(refAfter, row, 3);
+						}
 				}
+				// enable 'OK' and 'Apply' buttons
+				okayBtn.setEnabled(true);
+				testBtn.setEnabled(true);
+				applyBtn.setEnabled(true);
 			}
 		});
 		
@@ -232,7 +269,8 @@ public class ReferenceUpdateDialog extends JDialog {
 	 * TODO: API
 	 */
 	private void apply() {
-		// TODO: apply reference updating in modfile tree using the selected table rows
+		// TODO -- currently applies all references -- check boxes don't do anything.
+		updater.updateDocumentToValue();
 	}
 	
 	/**
@@ -241,6 +279,19 @@ public class ReferenceUpdateDialog extends JDialog {
 	private void close() {
 		// TODO: do some clean-up if necessary
 		this.dispose();
+	}
+
+	/**
+	 * TODO: API
+	 */
+	private void test() {
+		if(updater.testUpdateDocumentToValue(false)) {
+//				okayBtn.setEnabled(true);
+//				applyBtn.setEnabled(true);
+			// TODO : provide visual feedback that test was successful
+		} else {
+			// TODO: provide visual feedback that test failed
+		}
 	}
 
 	/**

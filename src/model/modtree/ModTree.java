@@ -152,7 +152,7 @@ public class ModTree {
 		List<Integer> updates = new ArrayList<>();
 		if(this.prevRootNode == null || (this.currRootNode.getChildNodeCount() != this.prevRootNode.getChildCount())) {
 			this.updateNodeStyles(this.currRootNode);
-			System.out.println("ChildCount mismatch");
+//			System.out.println("ChildCount mismatch");
 		} else {
 			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
 				if(lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(i))) {
@@ -162,7 +162,7 @@ public class ModTree {
 				}
 				total ++;
 			}
-			System.out.println(count + " lines out of " + total + " re-styled: " + updates);
+//			System.out.println(count + " lines out of " + total + " re-styled: " + updates);
 		}
 	}
 	
@@ -266,10 +266,10 @@ public class ModTree {
 	 */
 	public void processNextEvent() throws BadLocationException {
 		if (!docEvents.isEmpty()) {
-			System.out.print("Starting processing Document Event... \n");
-			long startTime = System.currentTimeMillis();
+//			System.out.print("Starting processing Document Event... \n");
+//			long startTime = System.currentTimeMillis();
 			this.processDocumentEvent(docEvents.get(0));
-			System.out.print("Document Event processing done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+//			System.out.print("Document Event processing done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
 		}
 	}
 	
@@ -424,7 +424,7 @@ public class ModTree {
 		}
 		
 		private void update(DocumentEvent evt) {
-			System.out.println("new event: " + evt.getType());
+//			System.out.println("new event: " + evt.getType());
 			docEvents.add(evt);
 //			new SwingWorker<Object, Object>() {
 //
@@ -474,7 +474,7 @@ public class ModTree {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					System.out.println("done");
+//					System.out.println("done");
 				};
 		}.start();
 		}

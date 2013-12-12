@@ -102,8 +102,12 @@ public class UpkFile {
 		int index;
 		if(name.contains(":")) {
 			index = -upkHeader.importListStrings.indexOf(name);
+			if(index >=0)
+				index = 0;
 		} else {
 			index = upkHeader.objectListStrings.indexOf(name);
+			if(index <= 0)
+				index = 0;
 		}
 		return index;
 	}
