@@ -19,8 +19,7 @@ import static util.unrealhex.HexStringLibrary.convertIntToHexString;
 import static util.unrealhex.HexStringLibrary.convertByteArrayToHexString;
 
 /**
- * Purpose of this class is to build a complete mapping of references for a given ModTree.
- * If the mapping is completely successful then the changes are applied to a given Document.
+ * Utility class for performing reference updating functions.
  * @author Amineri
  */
 
@@ -56,7 +55,7 @@ public class ReferenceUpdate {
 									// 4 = FILE WRITE ERROR
 									// 5 = GUID MISMATCH
 									// 6 = NO DEST UPK
-	
+	@Deprecated
 	public ReferenceUpdate(ModTree tree, UpkFile src, UpkFile dst) {
 		this.tree = tree;
 		this.document = tree.getDocument();
@@ -68,6 +67,7 @@ public class ReferenceUpdate {
 //		dumpData();
 	}
 
+	@Deprecated
 	public ReferenceUpdate(ModTree tree, UpkFile src) {
 		this.tree = tree;
 		this.document = tree.getDocument();
@@ -77,6 +77,7 @@ public class ReferenceUpdate {
 		buildReferenceFullNames();
 	}
 	
+	@Deprecated
 	public ReferenceUpdate(ModTree tree) {
 		this.sourceUpk = null;
 		this.destUpk = null;
@@ -87,6 +88,7 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	public void setSourceUpk(UpkFile src) {
 		if(src == null)
 			return;
@@ -98,6 +100,7 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	public void setDestUpk(UpkFile dst) {
 		this.destUpk = dst;
 		if(this.sourceUpk != null) {
@@ -105,6 +108,7 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	private void dumpData() {
 		for(int i = 0 ; i < sourceReferences.size(); i ++) {
 			System.out.println("(" + isVirtualFunction.get(i) + ")" + i + " : " 
@@ -115,10 +119,12 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	public int length() {
 		return sourceReferences.size();
 	}
 	
+	@Deprecated
 	public int getSrcCount() {
 		int count = 0;
 		for(int i = 0; i< length(); i++) {
@@ -129,14 +135,17 @@ public class ReferenceUpdate {
 		return count;
 	}
 	
+	@Deprecated
 	public int getNameCount() {
 		return referenceFullNames.size();
 	}
 	
+	@Deprecated
 	public int getDstCount() {
 		return destReferences.size();
 	}
 	
+	@Deprecated
 	public String getSourceReference(int num) {
 		if(num >=0 && num < sourceReferences.size()) {
 			int val = sourceReferences.get(num);
@@ -150,6 +159,7 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	public String getDestReference(int num) {
 		if(num >=0 && num < destReferences.size()) {
 			int val = destReferences.get(num);
@@ -163,6 +173,7 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	public boolean hasDestRefError(int num) {
 		if(num >=0 && num < hasDestRefError.size()) {
 			return hasDestRefError.get(num);
@@ -171,6 +182,7 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	public String getReferenceName(int num) {
 		if(num >=0 && num < referenceFullNames.size()) {
 			String name = referenceFullNames.get(num);
@@ -183,6 +195,7 @@ public class ReferenceUpdate {
 		}
 	}
 	
+	@Deprecated
 	protected String getReferenceNameWithTags(int num) {
 		if(num >=0 && num < referenceFullNames.size()) {
 			String name = referenceFullNames.get(num);
@@ -193,18 +206,22 @@ public class ReferenceUpdate {
 	}
 	// TODO : replace with new methods based on enumeration
 	// temporary error reporting methods
+	@Deprecated
 	public int getFailureMode(){
 		return failureMode;
 	}
 	
+	@Deprecated
 	public List<Integer> getFailedMappings(){
 		return failedMappings;
 	}
 	
+	@Deprecated
 	public List<Integer> getFailedOffsets(){
 		return failedOffsets;
 	}
 	
+	@Deprecated
 	public List<Integer> getFailedTypes(){
 		return failedTypes;
 	}
@@ -213,6 +230,7 @@ public class ReferenceUpdate {
 	 * Updates all reference values in document to the source upk name
 	 * @return true if mapping completed successfully. false on error.
 	 */
+	@Deprecated
 	public boolean updateDocumentToName() {
 		boolean success = testUpdateDocumentToName(false);
 //		success = success && replaceGUID();
@@ -257,6 +275,7 @@ public class ReferenceUpdate {
 	 * Updates all reference values in document to the destination UPK's value
 	 * @return true if mapping completed successfully. false on error.
 	 */
+	@Deprecated
 	public boolean updateDocumentToValue() {
 		if(destUpk == null) {
 			failureMode = 6; // 6 = NO DEST UPK
@@ -305,6 +324,7 @@ public class ReferenceUpdate {
 	 * Replaces the GUID in the document with the GUID from the destination upk
 	 * @return true if success, false if failure
 	 */
+	@Deprecated
 	protected boolean replaceGUID() {
 		boolean success = true;
 		for (int i = 0; i < this.tree.getRoot().getChildNodeCount() ; i++) {
@@ -339,6 +359,7 @@ public class ReferenceUpdate {
 	 * Verifies that the document GUID and designated source GUID match
 	 * @return true if match, false if no match
 	 */
+	@Deprecated
 	public boolean verifySourceGUID() {
 		if(sourceUpk != null) {
 			if(tree.getGuid().trim().equalsIgnoreCase(convertByteArrayToHexString(sourceUpk.getHeader().getGUID()).trim())) {
@@ -357,6 +378,7 @@ public class ReferenceUpdate {
 	 * @param recordFailures flag - record failed references to failure list
 	 * @return true if success, false if failure
 	 */
+	@Deprecated
 	public boolean testUpdateDocumentToName(boolean recordFailures)
 	{
 		boolean success = verifySourceGUID();
@@ -376,6 +398,7 @@ public class ReferenceUpdate {
 	 * @param recordFailures flag - record failed references to failure list
 	 * @return true if success, false if failure
 	 */
+	@Deprecated
 	public boolean testUpdateDocumentToValue(boolean recordFailures)
 	{
 		boolean success = verifySourceGUID();
@@ -434,6 +457,7 @@ public class ReferenceUpdate {
 	 * Uses destUpk to perform mapping.
 	 * @return true if mapping completed successfully. false on error.
 	 */
+	@Deprecated
 	private boolean buildDestReferences() {
 		boolean success = true;
 		destReferences.clear();
@@ -464,6 +488,7 @@ public class ReferenceUpdate {
 	 * Performs error checking to ensure GUIDs match.
 	 * @return true if mapping completed successfully. false on error.
 	 */
+	@Deprecated
 	private boolean buildReferenceFullNames() {
 		boolean success = true;
 		failedMappings.clear();
@@ -493,6 +518,7 @@ public class ReferenceUpdate {
 	 * Uses tree supplied with constructor.
 	 * @return true if all references found, false if error
 	 */
+	@Deprecated
 	private boolean buildSourceReferences() {
 		referenceFullNames.clear();
 		sourceReferences.clear();
@@ -509,6 +535,7 @@ public class ReferenceUpdate {
 	 * @return true if references found, false if error
 	 */
 	// FIXME: this getter does not return what its name suggests
+	@Deprecated
 	private boolean getReferences(ModTreeNode node) {
 		// recursive element for reference retrieval
 		if(node.isLeaf()) {

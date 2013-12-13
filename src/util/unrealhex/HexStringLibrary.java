@@ -19,9 +19,10 @@ package util.unrealhex;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 
 /**
- *
+ * Utility class for manipulating hexadecimal between various formats
  * @author Amineri
  */
 public class HexStringLibrary 
@@ -54,5 +55,12 @@ public class HexStringLibrary
 		}
 		return sb.toString().toUpperCase();
 	}
-    
+
+    public static byte[] convertIntArrayListToByteArray(ArrayList<Integer> list)
+    {
+        byte[] bytes = new byte[list.size()];
+        for(int i=0, len = list.size(); i < len; i++)
+           bytes[i] = (byte) (list.get(i) & 0xFF);
+        return bytes;
+    }
 }

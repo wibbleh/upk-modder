@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Scanner;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
 import model.moddocument3.ModDocument;
 
 /**
@@ -31,7 +32,7 @@ public class ModDocumentFileReader {
 		this.source = source;
 	}
 	
-	public ModDocument parse()
+	public ModDocument parse() throws BadLocationException
 	{
 		ModDocument doc = new ModDocument();
 		doc.getDefaultRootElement();

@@ -244,6 +244,7 @@ public class ModTreeNode implements TreeNode {
 	 * Operates at the line level.
 	 * @param s
 	 * @param num
+	 * @return 
 	 */
 	public String parseUnrealHex(String s, int num) {
 		if (!this.isValidHexLine()) {
@@ -309,7 +310,7 @@ public class ModTreeNode implements TreeNode {
 	 * Returns whether this node wraps hex string data.
 	 * @return <code>true</code> if this node contains valid hex data, <code>false</code> otherwise
 	 */
-	protected boolean isValidHexLine() {
+	public boolean isValidHexLine() {
 		String[] tokens = getFullText().split("//")[0].trim().split("\\s");
 		for (String token : tokens) {
 			if (token.matches("[0-9A-Fa-f][0-9A-Fa-f]")
@@ -328,7 +329,7 @@ public class ModTreeNode implements TreeNode {
      * Returns an array containing a concatenated hex tokens and leading/trailing line contents.
      * @return a 3-element array containing hex tokens in its middle node
      */
-	protected String[] toHexStringArray() {
+	public String[] toHexStringArray() {
 		// get initial string representation of this node
 		String in = this.getFullText();
 
@@ -392,14 +393,14 @@ public class ModTreeNode implements TreeNode {
 		String content = this.getFullText().toUpperCase();
 		if (this.plainText) {
 			if (content.startsWith("UPKFILE=")) {
-				getTree().setUpkName(this.getTagValue(content));
+				getTree().setUpkName(this.getTagValue(this.getFullText()));
 			} else if (content.startsWith("FUNCTION=")) {
-				getTree().setFunctionName(this.getTagValue(content));
+				getTree().setFunctionName(this.getTagValue(this.getFullText()));
 			} else if (content.startsWith("GUID=")) {
-				getTree().setGuid(this.getTagValue(content));
+				getTree().setGuid(this.getTagValue(this.getFullText()));
 			} else if (content.startsWith("MODFILEVERSION=")) {
 				try {
-					getTree().setFileVersion(Integer.parseInt(this.getTagValue(content)));
+					getTree().setFileVersion(Integer.parseInt(this.getTagValue(this.getFullText())));
 				}
 				catch (NumberFormatException x) {
 					System.out.println("Invalid FileVersion: " +x);
