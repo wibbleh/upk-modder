@@ -36,10 +36,12 @@ public class ModDocumentTest
     public ModDocumentTest()
     {
     }
-    
+	static OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
+	
     @BeforeClass
-    public static void setUpClass()
+    public static void setUpClass() throws IOException
     {
+		parser.parseFile();
     }
     
     @AfterClass
@@ -263,8 +265,8 @@ public class ModDocumentTest
     {
         System.out.println("Read test_mod_v3.upk_mod");
         AttributeSet as = null;
-		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
-		parser.parseFile();
+//		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
+//		parser.parseFile();
         ModDocument myDoc = new ModDocument();
 		ModElement r = myDoc.getDefaultRootElement();
 //        myDoc.createRoot();
@@ -320,8 +322,8 @@ public class ModDocumentTest
     public void testReadAndEditUpkModFile() throws IOException, BadLocationException {
         System.out.println("Edit test_mod_v3.upk_mod");
         AttributeSet as = null;
-		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
-		parser.parseFile();
+//		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
+//		parser.parseFile();
         ModDocument myDoc = new ModDocument();
 		ModElement r = myDoc.getDefaultRootElement();
 //        myDoc.createRoot();

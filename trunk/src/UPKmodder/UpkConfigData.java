@@ -63,8 +63,8 @@ public class UpkConfigData
         this.m_mod_filename_input = "";
         this.m_mod_filename_output = "";
         this.m_sVersion = "XComModTool v 0.11";
-        this.upkConfig = "upk_config.ini";
-        this.m_sOperandData = "operand_data.ini";
+        this.upkConfig = "config/upk_config.ini";
+        this.m_sOperandData = "config/operand_data.ini";
         this.m_sHelpText = "XCOMMOD helper tool \n"
                 + "Usage: XComModTool <options> -i <InputFile> -o <OutputFile>\n"
                 + "Options:\n"

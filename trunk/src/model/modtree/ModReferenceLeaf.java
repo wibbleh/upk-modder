@@ -79,6 +79,11 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 		return this.value;
 	}
 	
+	public String getTextNoTags() {
+		String s = this.text.trim();
+		return s.substring(2, s.length()-2);
+	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof ModReferenceLeaf) {
