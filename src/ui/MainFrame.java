@@ -190,7 +190,7 @@ public class MainFrame extends JFrame {
 		/*
 		 * use this for broken ModDocument3 -- Amineri's experiment
 		 */
-		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
+		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
 		parser.parseFile();
 //		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
 
@@ -519,11 +519,11 @@ public class MainFrame extends JFrame {
 		return menuBar;
 	}
 	
+	/**
+	 * TODO: API
+	 */
 	private void showRefUpdateDialog() {
-		ReferenceUpdateDialog refDialog = ReferenceUpdateDialog.getInstance();
-		refDialog.setModTree(this.modTree);
-		refDialog.initilizeRefs();
-		refDialog.setVisible(true);
+		new ReferenceUpdateDialog(this.modTree).setVisible(true);
 	}
 
 	/**

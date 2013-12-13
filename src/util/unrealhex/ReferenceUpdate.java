@@ -2,6 +2,7 @@ package util.unrealhex;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -507,9 +508,11 @@ public class ReferenceUpdate {
 	 * @param node current subtree root 
 	 * @return true if references found, false if error
 	 */
+	// FIXME: this getter does not return what its name suggests
 	private boolean getReferences(ModTreeNode node) {
 		// recursive element for reference retrieval
 		if(node.isLeaf()) {
+			// FIXME: instanceof checks are faster than string equals
 			if(node.getName().equals("ModReferenceToken")) {
 				if(node.getRefValue() == 0) {
 					String name = node.getText().trim();
@@ -528,4 +531,33 @@ public class ReferenceUpdate {
 		}
 		return true;
 	}
+	
+	/**
+	 * Returns a list of all reference leaf nodes of the specified <code>ModTree</code> instance.
+	 * @param modTree the modfile tree model to gather references from
+	 * @return the reference leaf nodes
+	 */
+	public static List<ModReferenceLeaf> getReferences(ModTree modTree) {
+		return getChildReferences(modTree.getRoot());
+	}
+	
+	/**
+	 * Recursively gathers all reference leaf nodes below the specified parent tree node.
+	 * @param parent the parent node
+	 * @return the reference leaf nodes
+	 */
+	private static List<ModReferenceLeaf> getChildReferences(ModTreeNode parent) {
+		List<ModReferenceLeaf> references = new ArrayList<>();
+		if (parent instanceof ModReferenceLeaf) {
+			references.add((ModReferenceLeaf) parent);
+		} else if (!parent.isLeaf()) {
+			Enumeration<ModTreeNode> children = parent.children();
+			while (children.hasMoreElements()) {
+				ModTreeNode child = children.nextElement();
+				references.addAll(getChildReferences(child));
+			}
+		}
+		return references;
+	}
+	
 }
