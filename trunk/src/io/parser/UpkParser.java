@@ -9,12 +9,11 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import model.upk.UpkHeader;
-import util.unrealhex.HexStringLibrary;
 
 /**
  * Class featuring UPK file parsing capabilities.
@@ -33,11 +32,10 @@ public class UpkParser {
 	 */
 	private RandomAccessFile raf;
 	
-	byte[] buf = new byte[256];
-	int strLen;
-	long namePosition;
-	String temp;
-	String encoding = System.getProperty("file.encoding");
+	/**
+	 * The buffer size.
+	 */
+	private int bufSize = 10240;
 	
 	/**
 	 * Constructs an UPK parser from the specified UPK file.
@@ -96,37 +94,52 @@ public class UpkParser {
 	 * @throws IOException if an I/O error occurs
 	 */
 	private List<NameEntry> parseNameList(int nameListPos, int nameListSize) throws IOException {
+		// init namelist
 		List<NameEntry> entryList = new ArrayList<NameEntry>(nameListSize);
 		
+		// init double buffer
+		byte[] buf = new byte[this.bufSize * 2];
 		this.raf.seek(nameListPos);
-		namePosition = nameListPos;
+		this.raf.read(buf);
+		
+		ByteBuffer byteBuf = ByteBuffer.wrap(buf);
+		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < nameListSize; i++) {
-			entryList.add(readNameEntry());
-//			raf.skipBytes(8);	// consume 8 extra flag bytes (2 words)
+			// extract name entry from buffer
+			entryList.add(this.readNameEntry(byteBuf));
+
+			// check whether we reached into back buffer range
+			int position = byteBuf.position();
+			if (position > this.bufSize) {
+				// rewind buffer position
+				byteBuf.position(position - this.bufSize);
+				// copy back buffer to front buffer range
+				System.arraycopy(buf, this.bufSize, buf, 0, this.bufSize);
+				// read new bytes into back buffer
+				this.raf.read(buf, this.bufSize, this.bufSize);
+			}
 		}
 		
 		return entryList;
 	}
 
 	/**
-	 * Reads a single namelist entry at the reader's current position.
+	 * Reads a single namelist entry at the specified byte buffer's current position.
+	 * @param byteBuf the byte buffer to extract the namelist entry from
 	 * @return the namelist entry
-	 * @throws IOException
 	 */
-	private NameEntry readNameEntry() throws IOException {
-//		int strLen = Integer.reverseBytes(this.raf.readInt());
-//		byte[] strBuf = new byte[strLen - 1];	// omit termination character 0x00
-//		this.raf.read(strBuf);
-//		this.raf.skipBytes(1);	// skip termination character
-//		
-//		return new NameEntry(new String(strBuf));
+	private NameEntry readNameEntry(ByteBuffer byteBuf) {
+		// extract string length from first 4 bytes
+		int strLen = byteBuf.getInt();
 		
-		raf.seek(namePosition);
-		raf.read(buf);
-		strLen = HexStringLibrary.byteArrayToInt(buf);
-		namePosition += (strLen + 12);
-		temp = new String(buf);
-		return new NameEntry(temp.substring(4, strLen+3));
+		// extract string (without termination character)
+		byte[] strBuf = new byte[strLen - 1];
+		byteBuf.get(strBuf);
+		
+		// skip termination character and 8 extra flag bytes
+		byteBuf.position(byteBuf.position() + 9);
+		
+		return new NameEntry(new String(strBuf));
 	}
 
 	/**
@@ -137,50 +150,58 @@ public class UpkParser {
 	 * @throws IOException if an I/O error occurs
 	 */
 	private List<ObjectEntry> parseObjectList(int objectListPos, int objectListSize) throws IOException {
+		// init objectlist
 		List<ObjectEntry> objectList = new ArrayList<ObjectEntry>(objectListSize);
+		objectList.add(null);   // add dummy element so count starts at 1
 		
+		// init double buffer
+		byte[] buf = new byte[this.bufSize * 2];
 		this.raf.seek(objectListPos);
-		objectList.add(null);   // extra object so count starts at 1
+		this.raf.read(buf);
+
+		ByteBuffer byteBuf = ByteBuffer.wrap(buf);
+		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < objectListSize; i++) {
-			objectList.add(readObjectEntry());
+			// extract object entry from buffer
+			objectList.add(this.readObjectEntry(byteBuf));
+
+			// check whether we reached into back buffer range
+			int position = byteBuf.position();
+			if (position > this.bufSize) {
+				// rewind buffer position
+				byteBuf.position(position - this.bufSize);
+				// copy back buffer to front buffer range
+				System.arraycopy(buf, this.bufSize, buf, 0, this.bufSize);
+				// read new bytes into back buffer
+				this.raf.read(buf, this.bufSize, this.bufSize);
+			}
 		}
 		
 		return objectList;
 	}
 
 	/**
-	 * Reads a single objectlist entry at the reader's current position.
+	 * Reads a single objectlist entry at the specified byte buffer's current position.
+	 * @param byteBuf the byte buffer to extract the objectlist entry from
 	 * @return the objectlist entry
-	 * @throws IOException if an I/O error occurs
 	 */
-	private ObjectEntry readObjectEntry() throws IOException {
-		// read first 17 integers that are guaranteed to be there 
-		int numInts = 17;
-		byte[] bytes = new byte[numInts * 4];
-		raf.read(bytes);
-		// wrap read bytes in buffer
-		ByteBuffer buf = ByteBuffer.wrap(bytes);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
-		// extract little endian integers from buffer
+	private ObjectEntry readObjectEntry(ByteBuffer byteBuf) {
+		// create int buffer view of byte buffer
+		IntBuffer intBuf = byteBuf.asIntBuffer();
+		
+		// number of ints of objectlist entry is 17 plus whatever is encoded in the eleventh int
+		int numInts = 17 + intBuf.get(11);
 		int[] ints = new int[numInts];
-		buf.asIntBuffer().get(ints);
 		
-		// eleventh item represents number of extra bytes to read
-		int numExtraInts = ints[11];
-		byte[] extraBytes = new byte[numExtraInts * 4];
-		raf.read(extraBytes);
-		// wrap read extra bytes in buffer
-		buf = ByteBuffer.wrap(extraBytes);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
-		// init data array, copy the 17 guaranteed ints into it
-		int[] data = new int[numInts + numExtraInts];
-		System.arraycopy(ints, 0, data, 0, numInts);
-		// extract extra ints into data array tail
-		buf.asIntBuffer().get(data, numInts, numExtraInts);
+		// extract ints
+		intBuf.get(ints);
 		
-		return new ObjectEntry(data);
+		// manually move byte buffer position
+		byteBuf.position(byteBuf.position() + numInts * 4);
+		
+		return new ObjectEntry(ints);
 	}
-	
+
 	/**
 	 * Parses the importlist entries located after the specified byte position. 
 	 * @param objectListPos the byte position of the importlist
@@ -189,39 +210,56 @@ public class UpkParser {
 	 * @throws IOException if an I/O error occurs
 	 */
 	private List<ImportEntry> parseImportList(int importListPos, int importListSize) throws IOException {
+		// init importlist
 		List<ImportEntry> importList = new ArrayList<ImportEntry>(importListSize);
+		importList.add(null);  // add dummy element so count starts at 1
 		
+		// init double buffer
+		byte[] buf = new byte[this.bufSize * 2];
 		this.raf.seek(importListPos);
-		importList.add(null);  // export import entry so count starts at 1
+		this.raf.read(buf);
+
+		ByteBuffer byteBuf = ByteBuffer.wrap(buf);
+		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < importListSize; i++) {
-			importList.add(readImportEntry());
+			// extract import entry from buffer
+			importList.add(this.readImportEntry(byteBuf));
+
+			// check whether we reached into back buffer range
+			int position = byteBuf.position();
+			if (position > this.bufSize) {
+				// rewind buffer position
+				byteBuf.position(position - this.bufSize);
+				// copy back buffer to front buffer range
+				System.arraycopy(buf, this.bufSize, buf, 0, this.bufSize);
+				// read new bytes into back buffer
+				this.raf.read(buf, this.bufSize, this.bufSize);
+			}
 		}
 		
 		return importList;
 	}
 
 	/**
-	 * Reads a single importlist entry at the reader's current position.
+	 * Reads a single importlist entry at the specified byte buffer's current position.
+	 * @param byteBuf the byte buffer to extract the importlist entry from
 	 * @return the importlist entry
-	 * @throws IOException if an I/O error occurs
 	 */
-	private ImportEntry readImportEntry() throws IOException {
-//		List<Integer> data = new ArrayList<Integer>();
-//		for (int i = 0; i < 7; i++) {
-//			data.add(this.raf.readInt());
-//		}
+	private ImportEntry readImportEntry(ByteBuffer byteBuf) {
+		// create int buffer view of byte buffer
+		IntBuffer intBuf = byteBuf.asIntBuffer();
 		
+		// number of ints of importlist entry is always 7
 		int numInts = 7;
-		byte[] bytes = new byte[numInts * 4];
-		raf.read(bytes);
+		int[] ints = new int[numInts];
 		
-		ByteBuffer buf = ByteBuffer.wrap(bytes);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
-
-		int[] data = new int[numInts];
-		buf.asIntBuffer().get(data);
+		// extract ints
+		intBuf.get(ints);
 		
-		return new ImportEntry(data);
+		// manually move byte buffer position
+		byteBuf.position(byteBuf.position() + numInts * 4);
+		
+		return new ImportEntry(ints);
 	}
-	
+
 }
