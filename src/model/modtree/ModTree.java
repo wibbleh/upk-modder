@@ -94,10 +94,12 @@ public class ModTree {
 		this(new DefaultStyledDocument());
 	}
 
+	// TODO : turn off the listener
 	public void disableUpdating() {
 		this.updatingEnabled = false;
 	}
 	
+	// TODO : turn on the listener
 	public void enableUpdating() {
 		this.updatingEnabled = true;
 	}

@@ -155,7 +155,7 @@ public class ModElementTest
     {
         System.out.println("parseUnrealHex");
 		String in = "\t\t0F 00 34 D2 00 00 25 // comment\n";
-		OperandTableParser parser = new OperandTableParser(Paths.get("operand_data.ini"));
+		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
 		parser.parseFile();
 		ModElement e1 = new ModElement(null, true);
 		e1.setRange(0, 34);

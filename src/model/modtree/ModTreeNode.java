@@ -17,7 +17,6 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.Segment;
 import javax.swing.tree.TreeNode;
 
-import model.moddocument3.ModDocument;
 import model.modtree.ModContext.ModContextType;
 
 /**

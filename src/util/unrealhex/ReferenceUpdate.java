@@ -560,4 +560,89 @@ public class ReferenceUpdate {
 		return references;
 	}
 	
+	/**
+	 * Add appropriate tags to the supplied reference name.
+	 * @param refName reference name in string form
+	 * @param leaf the corresponding ReferenceLeaf from the ModTree
+	 * @return the reference string with tags
+	 */
+	public static String tagReference(String refName, ModReferenceLeaf leaf) {
+		if(leaf.isVirtualFunctionRef()) {
+			return "<|" + refName.trim() + "|>";
+		} else {
+			return "{|" + refName.trim() + "|}";
+		}
+	}
+	
+	/**
+	 * Replaces one string for another in the document associated with leaf.
+	 * @param findString string in document that is being replaced
+	 * @param replString replacement string to place in document
+	 * @param leaf the corresponding ReferenceLeaf from the ModTree
+	 * @param offsetIncrease delta offset to apply relative to offset given in leaf
+	 * @return change in file length due to replacement operation
+	 * @throws javax.swing.text.BadLocationException
+	 */
+	public static int replaceRefStringInDocument(String findString, String replString, ModReferenceLeaf leaf, int offsetIncrease) throws BadLocationException {
+		// arbitrary default AttributeSet
+		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+		StyleConstants.setItalic((MutableAttributeSet) as, false);
+
+		// remove old reference and insert new one
+		int findLength = findString.length();
+		int replLength = replString.length();
+		leaf.getTree().getDocument().remove(leaf.getStartOffset() + offsetIncrease, findLength);
+		leaf.getTree().getDocument().insertString(leaf.getStartOffset() + offsetIncrease, replString, as);
+		return replLength - findLength;
+	}
+	
+	/**
+	 * Matches the GUIDs in supplied ModTree and UpkFile.
+	 * @param upkFile UpkFile to compare
+	 * @param modTree ModTree to compare
+	 * @return true if the two object's GUID's match, false if not
+	 */
+	public static boolean matchGUID(UpkFile upkFile, ModTree modTree) {
+		// compare file GUID with tree GUID
+		return (modTree.getGuid().trim().equalsIgnoreCase(HexStringLibrary.convertByteArrayToHexString(upkFile.getHeader().getGUID()).trim()));
+	}
+	
+	/**
+	 * Replaces the GUID in the document associated with the given tree to that given by the upk.
+	 * If upk is null replaces with "UNSPECIFIED"
+	 * @param tree tree provides direction to document
+	 * @param upk upk provides replacement guid
+	 * @return change in file length due to replacement operation
+	 */
+	public static int replaceGUID(ModTree tree, UpkFile upk) throws BadLocationException {
+		String originalLine = "", newLine = "";
+		// scan through lines in tree
+		for (int i = 0; i < tree.getRoot().getChildNodeCount() ; i++) {
+			ModTreeNode line = tree.getRoot().getChildNodeAt(i);
+			if(line.getFullText().startsWith("GUID=")) {
+				originalLine = line.getFullText();
+				int offset = line.getStartOffset();
+
+				// construct replacement line, using upk filename for comment
+				if(upk == null) {
+					newLine = "GUID=UNSPECIFIED // no hex references in file\n";
+				} else {
+					String destGUID = convertByteArrayToHexString(upk.getHeader().getGUID()).trim();
+					newLine = "GUID=" + destGUID + " // " + upk.getFile().getName() + "\n";
+				}
+				
+				tree.getDocument().remove(offset, originalLine.length());
+				
+				// arbitrary default AttributeSet
+				AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+				StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+				StyleConstants.setItalic((MutableAttributeSet) as, false);
+				
+				tree.getDocument().insertString(offset, newLine, as);
+			}
+		}
+		return newLine.length() - originalLine.length();
+	}
+
 }
