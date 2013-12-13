@@ -48,15 +48,14 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	public String parseUnrealHex(String s, int num) {
 		this.value = 0;
 		int endOffset;
-		if(s.startsWith("{|") || s.startsWith("<|")) {
-			text = s.split("\\s",2)[0].trim() + " ";
+		if (s.startsWith("{|") || s.startsWith("<|")) {
+			this.text = s.split("\\s", 2)[0].trim() + " ";
 			endOffset = this.getEndOffset();
-			endOffset += text.length();
-			s = s.split("\\s",2)[1];
+			endOffset += this.text.length();
+			s = s.split("\\s", 2)[1];
 			this.setRange(this.getStartOffset(), endOffset);
 			return s;
-		} else 
-		{
+		} else {
 			String[] tokens = s.split("\\s");
 			for (int i = 0; i < 4; i++) {
 				this.value += Integer.parseInt(tokens[i], 16) << (8 * i);
@@ -67,7 +66,7 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 
 	@Override
 	public boolean isVirtualFunctionRef() {
-		return virtualFunction;
+		return this.virtualFunction;
 	}
 
 	@Override
@@ -77,6 +76,20 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 
 	@Override
 	public int getRefValue() {
-		return value;
+		return this.value;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof ModReferenceLeaf) {
+			ModReferenceLeaf that = (ModReferenceLeaf) obj;
+			return (that.getRefValue() == this.getRefValue());
+		}
+		return false;
+	}
+	
+	@Override
+	public int hashCode() {
+		return this.value;
 	}
 }

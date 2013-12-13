@@ -1,15 +1,24 @@
 package model.modtree;
 
+import static model.modtree.ModContext.ModContextType.AFTER_HEX;
+import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
+import static model.modtree.ModContext.ModContextType.FILE_HEADER;
+import static model.modtree.ModContext.ModContextType.HEX_CODE;
+import static model.modtree.ModContext.ModContextType.HEX_HEADER;
+import static model.modtree.ModContext.ModContextType.VALID_CODE;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.Segment;
 import javax.swing.tree.TreeNode;
-import model.modtree.ModContext.*;
-import static model.modtree.ModContext.ModContextType.*;
+
+import model.moddocument3.ModDocument;
+import model.modtree.ModContext.ModContextType;
 
 /**
  * Basic <code>TreeNode</code> implementation used in structuring modfile contents.
@@ -910,7 +919,7 @@ public class ModTreeNode implements TreeNode {
 	@Override
 	public int getIndex(TreeNode tn) {
 		int count = 0;
-		for(ModTreeNode e : children) {
+		for(ModTreeNode e : this.children) {
 			if(e.equals(tn)) {
 				return count;
 			}
@@ -924,9 +933,10 @@ public class ModTreeNode implements TreeNode {
 		return !isLeaf();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public Enumeration children() {
-		return (Enumeration) children;
+	public Enumeration<ModTreeNode> children() {
+		return Collections.enumeration(this.children);
 	}
 
 	/* 
