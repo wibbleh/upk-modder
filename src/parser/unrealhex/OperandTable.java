@@ -27,33 +27,99 @@ public class OperandTable {
 	/**
 	 * The list of operand codes.
 	 */
-	private static final String[] m_arrOperandDecodes = new String[256];
+	private static String[] operandDecodes = new String[256];
+	
+	
+	/**
+	 * The list of operand names (for display only).
+	 */
+	private static String[] operandNames = new String[256];
 
+	/**
+	 * Display initialization flag
+	 */
+	private static boolean initialized = false;
+	
+	/**
+	 * Reinitializes the operand table.
+	 */
+	public static void reinit() {
+		if (!initialized) {
+			operandDecodes = new String[256];
+			operandNames = new String[256];
+		}
+	}
+
+	/**
+	 * Sets operand table as initialized.
+	 */
+	public static void setInitialized() {
+		initialized = true;
+	}
+	
 	/**
 	 * Parses the specified string and stores its contents in the list of operand codes.
 	 * @param data the operand code string to parse
 	 */
 	public static void parseData(String data) {
-//		if(m_arrOperandDecodes[0]!= null)  // TODO : handle re-initialization of the operand table -- this doesn't work
+//		if(operandDecodes[0]!= null)  // TODO : handle re-initialization of the operand table -- this doesn't work
 //				return;
 		int iOpIndex = Integer.parseInt(data.split("\\s")[0], 16);
-		if (m_arrOperandDecodes[iOpIndex] == null) {
-			m_arrOperandDecodes[iOpIndex] = data;
+		if (operandDecodes[iOpIndex] == null) {
+			operandDecodes[iOpIndex] = data.split(";")[0];
 		} else {
 			System.out.println("Duplicate opcode " + iOpIndex);
-			System.out.println(m_arrOperandDecodes[iOpIndex]);
+			System.out.println(operandDecodes[iOpIndex]);
 			System.out.println(data);
 			System.exit(1);
 		}
+		operandNames[iOpIndex] = data.split(";",3)[1];
 	}
-
+	
 	/**
 	 * Returns the operand code string associated with the specified opcode.
 	 * @param opcode the opcode
 	 * @return the operand code string
 	 */
 	public static String getOperandString(String opcode) {
-		return m_arrOperandDecodes[Integer.parseInt(opcode, 16)];
+		try
+		{
+			int i = Integer.parseInt(opcode, 16);
+			if(i >= 0 && i < 256) {
+				if(operandDecodes[i] != null) {
+					return operandDecodes[i];
+				} else {
+					return "";
+				}
+			} else {
+				return "";
+			}
+		}
+		catch (NumberFormatException x)
+		{
+			return "";
+		}
 	}
 
+	
+	public static String getOperandName(String opcode) {
+		try
+		{
+			int i = Integer.parseInt(opcode, 16);
+			if(i >= 0 && i < 256) {
+				if(operandNames[i] != null) {
+					return operandNames[i];
+				} else {
+					return "";
+				}
+			} else {
+				return "";
+			}
+		}
+		catch (NumberFormatException x)
+		{
+			return "";
+		}
+	}
+	
 }

@@ -4,6 +4,7 @@ package ui;
 import io.parser.OperandTableParser;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -49,10 +50,12 @@ import javax.swing.text.StyledEditorKit;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.xml.stream.events.XMLEvent;
+import model.modtree.ModOperandNode;
 
 import model.modtree.ModTree;
 
@@ -204,7 +207,7 @@ public class MainFrame extends JFrame {
 		/*
 		 * Amineri's experiment with ModTree and Styled Document
 		 */
-		modEditor.setEditorKit(new StyledEditorKit() {
+		modEditor.setEditorKit(new ModStyledEditorKit() {
 			@Override
 			public ViewFactory getViewFactory() {
 				// TODO Auto-generated method stub
@@ -217,15 +220,15 @@ public class MainFrame extends JFrame {
 			                    return new LabelView(elem);
 			                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
 			                	return new ParagraphView(elem) {
-			                    	/* hack to prevent line wrapping */
-			                    	@Override
-									public void layout(int width, int height) {
-										super.layout(Short.MAX_VALUE, height);
-									}
-			                    	@Override
-									public float getMinimumSpan(int axis) {
-										return super.getPreferredSpan(axis);
-									}
+//			                    	/* hack to prevent line wrapping */
+//			                    	@Override
+//									public void layout(int width, int height) {
+//										super.layout(Short.MAX_VALUE, height);
+//									}
+//			                    	@Override
+//									public float getMinimumSpan(int axis) {
+//										return super.getPreferredSpan(axis);
+//									}
 			                    };
 			                } else if (kind.equals(AbstractDocument.SectionElementName)) {
 			                    return new BoxView(elem, View.Y_AXIS);
@@ -245,6 +248,7 @@ public class MainFrame extends JFrame {
 		}); 
 		modEditor.read(new FileInputStream(modFile), modFile);
 		Document modDocument = modEditor.getDocument();
+		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
 
 		// create tree view of right-hand mod editor
 		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
@@ -255,7 +259,41 @@ public class MainFrame extends JFrame {
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		modElemTreePane.setPreferredSize(new Dimension(350, 300));
-		
+		// configure look and feel of tree viewer
+		modElemTree.setRootVisible(false);
+		modElemTree.putClientProperty("JTree.lineStyle", "Angled");
+		modElemTree.setShowsRootHandles(false);
+		// Display alternate operand text info for opened ModOperandNodes
+		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
+			
+			@Override
+			public Component getTreeCellRendererComponent(
+									JTree tree,
+									Object value,
+									boolean sel,
+									boolean expanded,
+									boolean leaf,
+									int row,
+									boolean hasFocus) {
+
+					if(value instanceof ModOperandNode) {
+							((ModOperandNode) value ).expanded = expanded;
+							if(expanded) {
+								
+							}
+					} 
+					super.getTreeCellRendererComponent(
+									tree, value, sel,
+									expanded, leaf, row,
+									hasFocus);
+					return this;
+				}		
+		};
+		renderer.setLeafIcon(null);
+		renderer.setClosedIcon(null);
+		renderer.setOpenIcon(null);
+		modElemTree.setCellRenderer(renderer);	
+			
 		View modRootView = modEditor.getUI().getRootView(modEditor);
 		TreeNode modViewRoot = this.createViewBranch(modRootView);	// sorry about the names :S
 		
@@ -278,7 +316,7 @@ public class MainFrame extends JFrame {
 			}
 			@Override
 			public void changedUpdate(DocumentEvent evt) {
-//				this.updateTree(evt);
+				this.updateTree(evt);
 			}
 			/** Updates the tree views on document changes */
 			private void updateTree(DocumentEvent evt) {
@@ -290,30 +328,22 @@ public class MainFrame extends JFrame {
 						createViewBranch(modEditor.getUI().getRootView(modEditor)));
 
 				// expand trees
-				for (int i = 0; i < modElemTree.getRowCount(); i++) {
-					modElemTree.expandRow(i);
-				}
-				for (int i = 0; i < modViewTree.getRowCount(); i++) {
-					modViewTree.expandRow(i);
-				}
-
-				// expand trees
 //				for (int i = 0; i < modElemTree.getRowCount(); i++) {
 //					modElemTree.expandRow(i);
 //				}
-//				for (int i = 0; i < modViewTree.getRowCount(); i++) {
-//					modViewTree.expandRow(i);
-//				}
+				for (int i = 0; i < modViewTree.getRowCount(); i++) {
+					modViewTree.expandRow(i);
+				}
 			}
 		});
 
 		// expand trees
-		for (int i = 0; i < modElemTree.getRowCount(); i++) {
-			modElemTree.expandRow(i);
-		}
-		for (int i = 0; i < modViewTree.getRowCount(); i++) {
-			modViewTree.expandRow(i);
-		}
+//		for (int i = 0; i < modElemTree.getRowCount(); i++) {
+//			modElemTree.expandRow(i);
+//		}
+//		for (int i = 0; i < modViewTree.getRowCount(); i++) {
+//			modViewTree.expandRow(i);
+//		}
 		
 		JSplitPane modTreeSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, modElemTreePane, modViewTreePane);
 		

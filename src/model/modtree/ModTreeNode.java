@@ -76,9 +76,15 @@ public class ModTreeNode implements TreeNode {
 	}
 
 	/**
+	 * Indicates whether the node is expanded in the current view.
+	 */
+	public boolean expanded;
+
+	/**
 	 * Indicates whether the node was updated during the most recent insert/remove operation.
 	 * @return
 	 */
+	@Deprecated
 	public boolean hasBeenUpdated() {
 		return hasBeenUpdated;
 	}
@@ -642,20 +648,21 @@ public class ModTreeNode implements TreeNode {
     
     @Override
 	public String toString(){
-		if (getParentNode() == null) {
-			return "ROOT";
-		} else if (getParentNode().getParentNode() == null) {
-//			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-			return newString + getFullText();
-		} else if(isLeaf()) {
-//			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-			return newString + getFullText() + " (" + getName() + ")";
-		} else {
-			return "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: " + " (" + getName() + ")";
-//			return "(" + getName() + ")";
-		}
+		return getFullText();
+//		if (getParentNode() == null) {
+//			return "ROOT";
+//		} else if (getParentNode().getParentNode() == null) {
+////			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
+//			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
+//			return newString + getFullText();
+//		} else if(isLeaf()) {
+////			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
+//			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
+//			return newString + getFullText() + " (" + getName() + ")";
+//		} else {
+//			return "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: " + " (" + getName() + ")";
+////			return "(" + getName() + ")";
+//		}
 	}
 	
     /**

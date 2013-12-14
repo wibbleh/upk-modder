@@ -8,7 +8,7 @@ import model.modtree.ModContext.ModContextType;
  */
 public class ModGenericLeaf extends ModTreeLeaf {
 	
-	private boolean operand;
+	private boolean isOperand;
 
 	/**
 	 * TODO: API
@@ -19,19 +19,40 @@ public class ModGenericLeaf extends ModTreeLeaf {
 	}
 
 	/**
+	 * Overrides string naming for display via JTreePane
+	 * @return
+	 */
+	@Override
+	public String toString() {
+		if(getParentNode().expanded) {
+			if(this.isOperand) {
+				return super.toString() + "  (Operand Token)";
+			} else {
+				if(this.text.startsWith("16") || this.text.startsWith("15")) {
+					return super.toString() + "  (Function terminator)";
+				} else {
+					return super.toString() + "  (Unknown)";
+				}
+			}
+		} else {
+			return super.toString();
+		}
+	}
+	
+	/**
 	 * TODO API
 	 * @param parent
 	 * @param operand
 	 */
 	public ModGenericLeaf(ModTreeNode parent, boolean operand) {
 		super(parent);
-		
+		this.isOperand = operand;
 		this.setContextFlag(ModContextType.VALID_CODE, true);
 	}
 	
 	@Override
 	public String getName() {
-		return (this.operand) ? "OperandToken" : "GenericToken";
+		return (this.isOperand) ? "OperandToken" : "GenericToken";
 	}
 
 }

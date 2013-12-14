@@ -52,8 +52,8 @@ public class OperandTableParser {
 		try (Scanner kScanner = new Scanner(Files.newBufferedReader(
 				m_kOpTableFile, Charset.forName(encoding)))) {
 			while (kScanner.hasNextLine()) {
-				String currLine = kScanner.nextLine().split(";")[0];
-				if (currLine.isEmpty()) {
+				String currLine = kScanner.nextLine();
+				if (currLine.split(";")[0].isEmpty()) {
 					continue;
 				}
 				OperandTable.parseData(currLine);
