@@ -141,7 +141,7 @@ public class ModOperandNode extends ModTreeNode {
 					ModGenericLeaf n = new ModGenericLeaf(this);
 					n.setRange(lastEnd, lastEnd);
 					addNode(n);
-					s = n.parseUnrealHex(s, Integer.parseInt(sParseItem));
+					s = n.parseUnrealHex(s, 2);
 					lastEnd = n.getEndOffset();
 				} else {
 					ModOffsetLeaf n1 = new ModOffsetLeaf(this);
