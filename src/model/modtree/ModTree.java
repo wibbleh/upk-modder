@@ -23,6 +23,9 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import javax.swing.tree.DefaultTreeModel;
+import static model.modtree.ModContext.ModContextType.AFTER_HEX;
+import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
+import static model.modtree.ModContext.ModContextType.HEX_HEADER;
 
 /**
  *
@@ -194,12 +197,12 @@ public class ModTree {
 		if(true
 						&& (newLine.isPlainText() == oldLine.isPlainText()) 
 						&& newLine.getFullText().equals(oldLine.getFullText()) 
-//						&& newLine.getContextFlag(HEX_CODE) == oldLine.getContextFlag(HEX_CODE) 
-//						&& newLine.getContextFlag(VALID_CODE) == oldLine.getContextFlag(VALID_CODE) 
-//						&& newLine.getContextFlag(FILE_HEADER) == oldLine.getContextFlag(FILE_HEADER) 
-//						&& newLine.getContextFlag(AFTER_HEX) == oldLine.getContextFlag(AFTER_HEX) 
-//						&& newLine.getContextFlag(BEFORE_HEX) == oldLine.getContextFlag(BEFORE_HEX) 
-//						&& newLine.getContextFlag(HEX_HEADER) == oldLine.getContextFlag(HEX_HEADER)
+						&& newLine.getContextFlag(HEX_CODE) == oldLine.getContextFlag(HEX_CODE) 
+						&& newLine.getContextFlag(VALID_CODE) == oldLine.getContextFlag(VALID_CODE) 
+						&& newLine.getContextFlag(FILE_HEADER) == oldLine.getContextFlag(FILE_HEADER) 
+						&& newLine.getContextFlag(AFTER_HEX) == oldLine.getContextFlag(AFTER_HEX) 
+						&& newLine.getContextFlag(BEFORE_HEX) == oldLine.getContextFlag(BEFORE_HEX) 
+						&& newLine.getContextFlag(HEX_HEADER) == oldLine.getContextFlag(HEX_HEADER)
 				) {
 							return false;
 		}
@@ -245,22 +248,35 @@ public class ModTree {
 		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 		StyleConstants.setItalic((MutableAttributeSet) as, false);
+		// attempt to style comments separately. 
+//		if(node.isPlainText()) {
+//			// find comment marker
+//			String s = node.getFullText();
+//			if(s.contains("//")) {
+//				int startComment = s.indexOf("//");
+//				start = node.getStartOffset() + startComment;
+//				end = node.getEndOffset();
+//				StyleConstants.setForeground((MutableAttributeSet) as, new Color( 80, 80, 80));  // grey
+//				StyleConstants.setItalic((MutableAttributeSet) as, replace);
+//			}
+//		}
 		if (node instanceof ModReferenceLeaf) {
 			if (node.isVirtualFunctionRef()) {
-				StyleConstants.setForeground((MutableAttributeSet) as, Color.MAGENTA);
+				StyleConstants.setForeground((MutableAttributeSet) as, new Color(160, 140, 100)); //Color.MAGENTA);
 				StyleConstants.setUnderline((MutableAttributeSet) as, true);
 			} else {
-				StyleConstants.setForeground((MutableAttributeSet) as, Color.ORANGE);
+				StyleConstants.setForeground((MutableAttributeSet) as, new Color(220, 180, 50)); //Color.ORANGE);
 				StyleConstants.setUnderline((MutableAttributeSet) as, true);
 			}
 		}
-		if ((node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE)) 
-				) {
-			StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128));
+		// invalid code
+		if ((node.getContextFlag(HEX_CODE) &&  ! node.getContextFlag(VALID_CODE))) {
+			StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
 			StyleConstants.setStrikeThrough((MutableAttributeSet) as, replace);
+			end--;
 		}
-		if (node.getName().equals("OperandToken")) {
-			if (node.getFullText().startsWith("0B")) {
+		if(node.getName().equals("OperandToken")) {
+			if(node.getFullText().startsWith("0B")) {
 				StyleConstants.setForeground((MutableAttributeSet) as, Color.DARK_GRAY);
 				StyleConstants.setBold((MutableAttributeSet) as, false);
 			} else {
@@ -270,12 +286,9 @@ public class ModTree {
 		}
 		if (node.getName().contains("Jump")) {
 			StyleConstants.setBackground((MutableAttributeSet) as,
-					new Color( 255, 255, 128));
+					new Color( 255, 255, 180));  // yellow
 		}
-//		((StyledDocument) newDoc).setCharacterAttributes( start, end, as, replace);
-		((StyledDocument) this.getDocument()).setCharacterAttributes(
-				start, end-start, as, replace);
-//		System.out.println("Applied Style from : " + start + " to " + end);
+		((StyledDocument) this.getDocument()).setCharacterAttributes(start, end-start, as, replace);
 	}
 	
 	/**

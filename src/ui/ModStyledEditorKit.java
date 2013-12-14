@@ -6,6 +6,7 @@ import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
 import javax.swing.text.ComponentView;
 import javax.swing.text.Element;
+import javax.swing.text.FlowView;
 import javax.swing.text.IconView;
 import javax.swing.text.LabelView;
 import javax.swing.text.ParagraphView;
@@ -58,28 +59,30 @@ class MyFactory implements ViewFactory {
 
 class MyParagraphView extends ParagraphView {
 
-    public MyParagraphView(Element elem) {
-        super(elem);
-    }
+	public MyParagraphView(Element elem) {
+		super(elem);
+	}
+
 	@Override
 	public void removeUpdate(DocumentEvent e, Shape a, ViewFactory f) {
-    super.removeUpdate(e, a, f);
-    resetBreakSpots();
-}
+		super.removeUpdate(e, a, f);
+		resetBreakSpots();
+	}
+
 	@Override
 	public void insertUpdate(DocumentEvent e, Shape a, ViewFactory f) {
-    super.insertUpdate(e, a, f);
-    resetBreakSpots();
-}
+		super.insertUpdate(e, a, f);
+		resetBreakSpots();
+	}
 
-private void resetBreakSpots() {
-    for (int i=0; i<layoutPool.getViewCount(); i++) {
-        View v=layoutPool.getView(i);
-        if (v instanceof MyLabelView) {
-            ((MyLabelView)v).resetBreakSpots();
-        }
-    }
-}
+	private void resetBreakSpots() {
+		for(int i = 0; i < layoutPool.getViewCount(); i ++) {
+			View v = layoutPool.getView(i);
+			if(v instanceof MyLabelView) {
+				((MyLabelView) v).resetBreakSpots();
+			}
+		}
+	}
 
 }
 
