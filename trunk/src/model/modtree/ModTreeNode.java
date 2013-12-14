@@ -272,6 +272,8 @@ public class ModTreeNode implements TreeNode {
 				// wrap leading text data in plain token
 				ModTreeLeaf leadToken = new ModTreeLeaf(this, linebreak[0], true);
 				leadToken.setRange(currOffset, currOffset + linebreak[0].length());
+				leadToken.setContextFlag(HEX_CODE, false);
+				leadToken.setContextFlag(VALID_CODE, false);
 				this.addNode(leadToken);
 				// move offset to end of new token
 				currOffset = leadToken.getEndOffset();
@@ -293,6 +295,8 @@ public class ModTreeNode implements TreeNode {
 			// wrap trailing text data in plain token
 			ModTreeLeaf trailToken = new ModTreeLeaf(this, suffix, true);
 			trailToken.setRange(currOffset, currOffset + suffix.length());
+			trailToken.setContextFlag(HEX_CODE, false);
+			trailToken.setContextFlag(VALID_CODE, false);
 			// currStart = newToken.endOffset;
 			this.addNode(trailToken);
 			this.setContextFlag(VALID_CODE, true);
