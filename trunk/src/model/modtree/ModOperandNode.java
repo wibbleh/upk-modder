@@ -13,7 +13,7 @@ public class ModOperandNode extends ModTreeNode {
 	 * TODO: API
 	 */
     private String operand = "";
-    
+	
     /**
      * TODO: API
      * @param parent
@@ -28,6 +28,19 @@ public class ModOperandNode extends ModTreeNode {
     @Override
 	public String getName() {
 		return "ModOperandNode_" + this.operand;
+	}
+	
+	/**
+	 * Overrides string naming for display via JTreePane
+	 * @return
+	 */
+	@Override
+	public String toString() {
+		if(this.expanded) {
+			return OperandTable.getOperandName(operand);
+		} else {
+			return super.toString();
+		}
 	}
     
     /**

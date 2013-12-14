@@ -36,6 +36,19 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	}
 
 	/**
+	 * Overrides string naming for display via JTreePane
+	 * @return
+	 */
+	@Override
+	public String toString() {
+		if(getParentNode().expanded) {
+			return super.toString() + "  (Reference)";
+		} else {
+			return super.toString();
+		}
+	}
+	
+	/**
 	 * TODO: API
 	 * @param s
 	 * @return

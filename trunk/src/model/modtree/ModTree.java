@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JTree;
 
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
@@ -21,6 +22,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+import javax.swing.tree.DefaultTreeModel;
 
 /**
  *
@@ -45,10 +47,15 @@ public class ModTree {
 	protected Document newDoc = null; // temp new doc for testing
 	
 	/**
-	 * The tree's root node.
+	 * Currently registered 
 	 */
-    private ModTreeRootNode currRootNode;
-	private ModTreeRootNode prevRootNode;
+	private JTree treeViewer;
+	
+	/**
+	 * The tree's root nodes.
+	 */
+    private ModTreeRootNode currRootNode; // current root node
+	private ModTreeRootNode prevRootNode; // copy of previous tree -- used to determine what styles to re-apply
 	
 	// TODO -- Should retrieve this information from ModDocument if stored there
 	// @ XMTS : Would it make more sense to store these values here? Does the document even need them?
@@ -72,6 +79,9 @@ public class ModTree {
 	 */
 	private String functionName = "";
 
+	/**
+	 * Flag indicating whether the tree is listening to document updates
+	 */
 	private boolean updatingEnabled = true;
 	
 	/**
@@ -104,6 +114,11 @@ public class ModTree {
 		this.updatingEnabled = true;
 	}
 	
+	public void setTreeViewer(JTree viewer) {
+		this.treeViewer = viewer;
+	}
+	
+	
 	public void forceRefreshFromDocument() {
 		try {
 			setDocument(this.doc);
@@ -127,6 +142,9 @@ public class ModTree {
 			root.reorganizeAfterInsertion();
 			if(updatingEnabled) {
 				this.updateDocument();
+				// TODO: figure out how to refresh JTreePane when tree gets updated
+//				if(treeViewer != null)
+//					treeViewer.repaint();
 			}
 		}
 		doc.addDocumentListener(this.mtListener);
@@ -311,7 +329,6 @@ public class ModTree {
 				startTime = System.currentTimeMillis();
 				this.currRootNode.reorganizeAfterInsertion();
 				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
-	//			this.updateDocument();
 			}
 		}
 
@@ -322,6 +339,12 @@ public class ModTree {
 				System.out.print("Styling document ... ");
 				long startTime = System.currentTimeMillis();
 				this.updateDocument();
+				// TODO: figure out how to refresh JTreePane when tree gets updated
+//				if(treeViewer != null) {
+//					// reset mod tree
+//					((DefaultTreeModel) treeViewer.getModel()).setRoot(this.getRoot());
+//					treeViewer.repaint();
+//				}
 				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
 			}
 		}
