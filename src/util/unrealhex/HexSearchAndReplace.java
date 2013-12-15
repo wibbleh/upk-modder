@@ -1,6 +1,7 @@
 package util.unrealhex;
 
 import io.model.upk.ObjectEntry;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
@@ -9,9 +10,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import model.modtree.ModContext;
+
 import model.modtree.ModContext.ModContextType;
-import model.modtree.ModReferenceLeaf;
 import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
@@ -20,8 +20,6 @@ import model.upk.UpkFile;
  * Utility class for consolidating hex and performing apply/revert operations to upks
  * @author Amineri
  */
-
-
 public class HexSearchAndReplace {
 	
 	/**
@@ -53,49 +51,50 @@ public class HexSearchAndReplace {
 	 * @param context the context to search for
 	 * @return List of byte arrays containing hex, or null if there is none
 	 */
-	private static List<byte[]> consolidateHex(ModTree tree, UpkFile upk, ModContextType context) {
+	public static List<byte[]> consolidateHex(ModTree tree, UpkFile upk, ModContextType context) {
 		List<byte[]> hexBlocks = new ArrayList<>();
 		List<Integer> currentBlock = new ArrayList<>();
 		Enumeration<ModTreeNode> lines = tree.getRoot().children();
 		while (lines.hasMoreElements()) {
 			ModTreeNode line = lines.nextElement();
-			if(line.getContextFlag(context)) {
-				if(line.isValidHexLine()) {
+			if (line.getContextFlag(context)) {
+				if (line.isValidHexLine()) {
 					String hex = line.toHexStringArray()[1];
 					String[] tokens = hex.split("\\s+");
 					for (String token : tokens) {
-						if(token.startsWith("{|") && (upk != null)) {
-							int value = upk.findRefByName(token.substring(2, token.length()-2));
-							if(value == 0) {
+						if (token.startsWith("{|") && (upk != null)) {
+							int value = upk.findRefByName(token.substring(2, token.length() - 2));
+							if (value == 0) {
 								return null;
 							}
 							String[] subtokens = HexStringLibrary.convertIntToHexString(value).split("\\s+");
-							for(String subtoken : subtokens) {
+							for (String subtoken : subtokens) {
 								currentBlock.add(Integer.parseInt(subtoken, 16));
 							}
-						} else if(token.startsWith("<|") && (upk != null)) {
-							int value = upk.findVFRefByName(token.substring(2, token.length()-2));
-							if(value < 0) {
+						} else if (token.startsWith("<|") && (upk != null)) {
+							int value = upk.findVFRefByName(token.substring(2, token.length() - 2));
+							if (value < 0) {
 								return null;
 							}
 							String[] subtokens = HexStringLibrary.convertIntToHexString(value).split("\\s+");
-							for(String subtoken : subtokens) {
+							for (String subtoken : subtokens) {
 								currentBlock.add(Integer.parseInt(subtoken, 16));
 							}
 						} else {
 							try {
 								currentBlock.add(Integer.parseInt(token, 16));
-							}
-							catch (NumberFormatException x)
-							{
+							} catch (NumberFormatException x) {
 								return null;
 							}
 						}
 					}
 				}
-			} else { // found line without required context. if current block is non-empty stop adding to it and start a new block
-				if(!currentBlock.isEmpty()) {
-					hexBlocks.add(HexStringLibrary.convertIntArrayListToByteArray((ArrayList<Integer>) currentBlock));
+			} else { // found line without required context. if current block is
+						// non-empty stop adding to it and start a new block
+				if (!currentBlock.isEmpty()) {
+					hexBlocks
+							.add(HexStringLibrary
+									.convertIntArrayListToByteArray((ArrayList<Integer>) currentBlock));
 					currentBlock.clear();
 				}
 			}
@@ -112,8 +111,8 @@ public class HexSearchAndReplace {
 	 * @return file offset of found hex, or -1 if not found
 	 * @throws IOException
 	 */
-	public static long findFilePosition(byte[] hex, UpkFile upk, ModTree tree) throws IOException
-    {
+	public static long findFilePosition(byte[] hex, UpkFile upk, ModTree tree)
+			throws IOException {
         long replaceOffset = -1;
         
 		// find possible destination
@@ -139,24 +138,49 @@ public class HexSearchAndReplace {
 		//open channel to upk for read-only
 		SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.READ);
 		long endSearch = functPos + functLength - hex.length;
-		for(long currPos = functPos; currPos < endSearch; currPos ++) {
+		for (long currPos = functPos; currPos < endSearch; currPos++) {
 			
 			// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
+			// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?
+			// TODO: @Amineri we could also implement Knuth-Morris-Pratt or Boyer-Moore algorithm for maximum pattern matching performance
 			boolean bMatch = true;
 			sbc.position(currPos); // set file position
 			sbc.read(fileBuf);
-			for(int jCount = 0; jCount < hex.length; jCount ++) {
-				if(fileBuf.get(jCount) != hex[jCount]) {
+			for (int jCount = 0; jCount < hex.length; jCount++) {
+				if (fileBuf.get(jCount) != hex[jCount]) {
 					bMatch = false;
 					break;
 				}
 			}
-			if(bMatch) {
+			if (bMatch) {
 				replaceOffset = currPos;
 				break;
 			}
 			fileBuf.clear();
 		}
 		return replaceOffset;
-	} 
+	}
+	
+	/**
+	 * Concatenates the contents of the byte arrays in the provided list into a single byte array.
+	 * @param bytesList the list of byte arrays to concatenate
+	 * @return a byte array containing all bytes of the list
+	 */
+	public static byte[] concatenate(List<byte[]> bytesList) {
+		int size = 0;
+		for (byte[] bytes : bytesList) {
+			size += bytes.length;
+		}
+		
+		byte[] res = new byte[size];
+		int index = 0;
+		for (byte[] bytes : bytesList) {
+			int len = bytes.length;
+			System.arraycopy(bytes, 0, res, index, len);
+			index += len;
+		}
+		
+		return res;
+	}
+	
 }

@@ -15,20 +15,20 @@ public class UpkFile {
 	/**
 	 * The file descriptor pointing to the *.upk file.
 	 */
-	private File upkFile;
+	private File file;
 
 	/**
 	 * The header of this UPK file.
 	 */
-	private UpkHeader upkHeader;
+	private UpkHeader header;
 
 	/**
 	 * Constructs a UPK file model class from the specified file.
 	 * @param upkFile the file descriptor pointing to the referenced *.upk file
 	 */
 	public UpkFile(File upkFile) {
-		this.upkFile = upkFile;
-		this.upkHeader = this.parseHeader(upkFile);
+		this.file = upkFile;
+		this.header = this.parseHeader(upkFile);
 	}
 
 	/**
@@ -51,7 +51,7 @@ public class UpkFile {
 	 * @return the UPK header
 	 */
 	public UpkHeader getHeader() {
-		return this.upkHeader;
+		return this.header;
 	}
 
 	/**
@@ -59,7 +59,7 @@ public class UpkFile {
 	 * @return the name
 	 */
 	public String getName() {
-		String name = this.upkFile.getName();
+		String name = this.file.getName();
 		// return file name without extension
 		return name.substring(0, name.length() - 4);
 	}
@@ -69,20 +69,20 @@ public class UpkFile {
 	 * @return the file descriptor pointing to the referenced *.upk file
 	 */
 	public File getFile() {
-		return this.upkFile;
+		return this.file;
 	}
 
 	public String getRefName(int ref) {
 		String s = "";
 		if(ref > 0) {
 			try {
-				s = upkHeader.getObjectList().get(ref).getName();
+				s = header.getObjectList().get(ref).getName();
 			} catch(Throwable x) {
 			}
 		} else if(ref < 0) {
 			try {
 				int i = -ref;
-				s = upkHeader.getImportList().get(i).getName();
+				s = header.getImportList().get(i).getName();
 			} catch(Throwable x) {
 			}
 		}
@@ -92,7 +92,7 @@ public class UpkFile {
 	public String getVFRefName(int ref) {
 		String s = "";
 		try {
-			s = upkHeader.getNameList().get(ref).getName();
+			s = header.getNameList().get(ref).getName();
 		} catch(Throwable x) {
 		}
 		return s;
@@ -106,12 +106,12 @@ public class UpkFile {
 	public int findRefByName(String name) {
 		int index;
 		if (name.contains(":")) {
-			index = -upkHeader.importListStrings.indexOf(name);
+			index = -header.importListStrings.indexOf(name);
 			if (index > 0) {
 				index = 0;
 			}
 		} else {
-			index = upkHeader.objectListStrings.indexOf(name);
+			index = header.objectListStrings.indexOf(name);
 			if (index < 0) {
 				index = 0;
 			}
@@ -126,7 +126,7 @@ public class UpkFile {
 	 * @return the virtual function reference value
 	 */
 	public int findVFRefByName(String name) {
-		return upkHeader.nameListStrings.indexOf(name);
+		return header.nameListStrings.indexOf(name);
 	}
 
 }
