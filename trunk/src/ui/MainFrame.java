@@ -1,5 +1,7 @@
 package ui;
 
+import io.parser.OperandTableParser;
+
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -18,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -97,6 +100,13 @@ public class MainFrame extends JFrame {
 		
 		// create and lay out the frame's components
 		this.initComponents();
+		
+		// TODO: move this elsewhere
+		try {
+			new OperandTableParser(Paths.get("config/operand_data.ini")).parseFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 		// make closing the main frame terminate the application
 		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
