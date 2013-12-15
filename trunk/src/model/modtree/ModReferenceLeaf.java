@@ -92,6 +92,14 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 		return this.value;
 	}
 	
+	/**
+	 * Sets the reference value;
+	 * @param value the reference value to set
+	 */
+	public void setRefValue(int value) {
+		this.value = value;
+	}
+	
 	public String getTextNoTags() {
 		String s = this.text.trim();
 		return s.substring(2, s.length()-2);

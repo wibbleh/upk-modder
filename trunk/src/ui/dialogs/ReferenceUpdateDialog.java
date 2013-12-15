@@ -10,8 +10,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -26,6 +27,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
+import javax.swing.text.BadLocationException;
 
 import model.modtree.ModReferenceLeaf;
 import model.modtree.ModTree;
@@ -38,11 +40,6 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.text.BadLocationException;
 
 /**
  * Dialog implementation listing distinct references of a modfile tree model.
@@ -69,6 +66,12 @@ public class ReferenceUpdateDialog extends JDialog {
 	 * The reference to the reference table.
 	 */
 	private JTable refTbl;
+	
+	/**
+	 * Flag denoting whether an attempt to look up source references has been
+	 * made.
+	 */
+	private boolean triedSrcLookup;
 
 	/** The index of the Source Reference column. */
 	private final int SOURCE_REF_COLUMN = 0;
@@ -141,21 +144,12 @@ public class ReferenceUpdateDialog extends JDialog {
 		List<ModReferenceLeaf> refNodes = ReferenceUpdate.getReferences(this.modTree);
 		// populate table model
 		for (ModReferenceLeaf refNode : refNodes) {
-			if(refNode.getRefValue() == 0) {
-				refTblMdl.addRow(new Object[] {
+			refTblMdl.addRow(new Object[] {
 					refNode,
 					refNode.isVirtualFunctionRef(),
-					refNode.getTextNoTags(),
+					(refNode.getRefValue() == 0) ? refNode.getTextNoTags() : null,
 					null
-				});
-			} else {
-				refTblMdl.addRow(new Object[] {
-					refNode,
-					refNode.isVirtualFunctionRef(),
-					null,
-					null
-				});
-			}
+			});
 		}
 		
 		refTbl = new JTable(refTblMdl);
@@ -165,6 +159,8 @@ public class ReferenceUpdateDialog extends JDialog {
 		
 		TableColumnModel refColMdl = refTbl.getColumnModel();
 		
+		// create a custom renderer for checkbox column to make it visually
+		// consistent with other cells, this is really just a visual hack
 		final TableCellRenderer delegate = refTbl.getDefaultRenderer(Boolean.class);
 		DefaultTableCellRenderer booleanRenderer = new DefaultTableCellRenderer() {
 			@Override
@@ -199,7 +195,7 @@ public class ReferenceUpdateDialog extends JDialog {
 						value = HexStringLibrary.convertIntToHexString(
 								refValue).trim();
 					} else {
-						value = REF_NOT_FOUND;
+						value = (triedSrcLookup) ? REF_NOT_FOUND : null;
 					}
 				}
 				Component comp = super.getTableCellRendererComponent(
@@ -258,9 +254,11 @@ public class ReferenceUpdateDialog extends JDialog {
 		JPanel sourcePnl = new JPanel(new FormLayout("p:g", "p, 5px, p, 2px"));
 		sourcePnl.setBorder(BorderFactory.createTitledBorder("Source References"));
 		
-		JButton lookupSrcBtn = new JButton("Look Up Source Reference Names");
-		lookupSrcBtn.setEnabled(hasSourceRefs());
+		JButton lookupSrcBtn = new JButton("Look Up Source References");
+		lookupSrcBtn.setToolTipText("Prompts selection of a UPK file and tries to look up missing reference names and hex values");
+		lookupSrcBtn.setEnabled(this.hasSourceRefs());
 		final JButton hexToNamesBtn = new JButton("Convert Hex References to Names");
+		hexToNamesBtn.setToolTipText("Converts all hex references in the editor to their named counterparts");
 		hexToNamesBtn.setEnabled(false);
 		
 		sourcePnl.add(lookupSrcBtn, CC.xy(1, 1));
@@ -271,8 +269,10 @@ public class ReferenceUpdateDialog extends JDialog {
 		destPnl.setBorder(BorderFactory.createTitledBorder("Destination References"));
 
 		final JButton lookupDestBtn = new JButton("Look Up Destination Reference Values");
-		lookupDestBtn.setEnabled(!hasSourceRefs());
-		final JButton srcToDestBtn = new JButton("Convert Source Hex to Destination Hex");
+		lookupDestBtn.setToolTipText("Prompts selection of a UPK file and tries to look up hex values for all named references");
+		lookupDestBtn.setEnabled(!this.hasSourceRefs());
+		final JButton srcToDestBtn = new JButton("Convert Source Refs to Destination Refs");
+		srcToDestBtn.setToolTipText("Converts all source references in the editor to their corresponding destination hex values");
 		srcToDestBtn.setEnabled(false);
 
 		destPnl.add(lookupDestBtn, CC.xy(1, 1));
@@ -282,16 +282,17 @@ public class ReferenceUpdateDialog extends JDialog {
 		lookupSrcBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
 			@Override
 			protected void execute(File file) {
-				boolean res = lookUpSourceNames(file);
+				boolean res = lookUpSourceReferences(file);
 				hexToNamesBtn.setEnabled(res);
 				lookupDestBtn.setEnabled(res);
+				triedSrcLookup = true;
 			}
 		});
 		
 		lookupDestBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
 			@Override
 			protected void execute(File file) {
-				boolean res = lookUpDestinationHex(file);
+				boolean res = lookUpDestinationReferences(file);
 				srcToDestBtn.setEnabled(res || !hasSourceRefs());
 			}
 		});
@@ -325,7 +326,7 @@ public class ReferenceUpdateDialog extends JDialog {
 		controlPnl.add(sourcePnl, CC.xy(1, 1));
 		controlPnl.add(destPnl, CC.xy(3, 1));
 		
-		// create bottom panel containing 'OK' and 'Cancel' buttons
+		// create bottom panel containing 'Close' button
 		JPanel buttonPnl = new JPanel(new FormLayout("0px:g, r:p", "p"));
 		
 		final JButton closeBtn = new JButton("Close");
@@ -459,7 +460,7 @@ public class ReferenceUpdateDialog extends JDialog {
 	 * @return <code>true</code> if reference lookup processed without errors,
 	 *  <code>false</code> otherwise
 	 */
-	private boolean lookUpSourceNames(File file) {
+	private boolean lookUpSourceReferences(File file) {
 		// init return value
 		// TODO: maybe replace with error code of some sort
 		boolean res = true;
@@ -473,7 +474,7 @@ public class ReferenceUpdateDialog extends JDialog {
 		if (!this.modTree.getGuid().trim().equals(HexStringLibrary.convertByteArrayToHexString(guid).trim())) {
 			// show warning message
 			int option = JOptionPane.showConfirmDialog(this, "Mismatching GUIDs detected. Continue anyway?",
-					"GUID MisMatch", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+					"GUID Mismatch", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 			if (option == JOptionPane.NO_OPTION) {
 				// abort
 				return false;
@@ -485,7 +486,7 @@ public class ReferenceUpdateDialog extends JDialog {
 			// get reference from table
 			ModReferenceLeaf refNode = (ModReferenceLeaf) refTbl.getValueAt(row, SOURCE_REF_COLUMN);
 			// extract reference name from UPK file
-			if(refNode.getRefValue() != 0) {
+			if (refNode.getRefValue() != 0) {
 				String refName = (refNode.isVirtualFunctionRef()) ?
 						upkFile.getVFRefName(refNode.getRefValue()) :
 						upkFile.getRefName(refNode.getRefValue());
@@ -497,6 +498,17 @@ public class ReferenceUpdateDialog extends JDialog {
 				}
 				// update table row
 				refTbl.setValueAt(refName, row, REF_NAME_COLUMN);
+			} else {
+				// check whether the table row contains a named reference instead
+				Object value = refTbl.getValueAt(row, REF_NAME_COLUMN);
+				if (value instanceof String) {
+					String refName = (String) value;
+					// try reverse lookup of contextualized reference name
+					int refValue = (refNode.isVirtualFunctionRef()) ?
+							upkFile.findVFRefByName(refName) :
+							upkFile.findRefByName(refName);
+					refNode.setRefValue(refValue);
+				}
 			}
 		}
 		
@@ -510,7 +522,7 @@ public class ReferenceUpdateDialog extends JDialog {
 	 * @return <code>true</code> if reference lookup processed without errors,
 	 *  <code>false</code> otherwise
 	 */
-	private boolean lookUpDestinationHex(File file) {
+	private boolean lookUpDestinationReferences(File file) {
 		// init return value
 		boolean res = true;
 		
@@ -528,7 +540,7 @@ public class ReferenceUpdateDialog extends JDialog {
 			// get virtual function flag from table
 			boolean vfRef = (Boolean) refTbl.getValueAt(row, VF_FLAG_COLUMN);
 			// look up reference value in UPK file
-			int refValue = (vfRef) ? upkFile.findVFRefName(refName) : upkFile.findRefName(refName);
+			int refValue = (vfRef) ? upkFile.findVFRefByName(refName) : upkFile.findRefByName(refName);
 			// check whether lookup failed
 			String refStr = HexStringLibrary.convertIntToHexString(refValue);
 			if(vfRef) {

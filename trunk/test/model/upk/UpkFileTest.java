@@ -82,7 +82,7 @@ public class UpkFileTest {
 		System.out.println("findRefName");
 		String name = "Core:GRI@WorldInfo@Engine";
 		int expResult = -1640;
-		int result = upkFile.findRefName(name);
+		int result = upkFile.findRefByName(name);
 		assertEquals(expResult, result);
 	}
 
@@ -94,7 +94,7 @@ public class UpkFileTest {
 		System.out.println("findVFRefName");
 		String name = "XGUnit";
 		int expResult = 29902;
-		int result = upkFile.findVFRefName(name);
+		int result = upkFile.findVFRefByName(name);
 		assertEquals(expResult, result);
 	}
 	

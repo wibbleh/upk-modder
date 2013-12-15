@@ -98,21 +98,34 @@ public class UpkFile {
 		return s;
 	}
 
-	public int findRefName(String name) {
+	/**
+	 * Returns the reference value corresponding to the specified name string.
+	 * @param name the name to look up
+	 * @return the reference value
+	 */
+	public int findRefByName(String name) {
 		int index;
-		if(name.contains(":")) {
+		if (name.contains(":")) {
 			index = -upkHeader.importListStrings.indexOf(name);
-			if(index >=0)
+			if (index > 0) {
 				index = 0;
+			}
 		} else {
 			index = upkHeader.objectListStrings.indexOf(name);
-			if(index <= 0)
+			if (index < 0) {
 				index = 0;
+			}
 		}
 		return index;
 	}
 
-	public int findVFRefName(String name) {
+	/**
+	 * Returns the virtual function reference value corresponding to the
+	 * specified name string.
+	 * @param name the name to look up
+	 * @return the virtual function reference value
+	 */
+	public int findVFRefByName(String name) {
 		return upkHeader.nameListStrings.indexOf(name);
 	}
 

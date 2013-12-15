@@ -1,24 +1,26 @@
 package ui;
 
-
-import io.parser.OperandTableParser;
-
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.io.OutputStreamWriter;
 
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
@@ -27,15 +29,19 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
+import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.plaf.InsetsUIResource;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
 import javax.swing.text.ComponentView;
@@ -49,28 +55,18 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledEditorKit;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.MutableTreeNode;
-import javax.swing.tree.TreeNode;
-import javax.xml.stream.events.XMLEvent;
-import model.modtree.ModOperandNode;
 
+import model.modtree.ModOperandNode;
 import model.modtree.ModTree;
 
 import org.bounce.text.LineNumberMargin;
-import org.bounce.text.ScrollableEditorPanel;
-import org.bounce.text.xml.XMLEditorKit;
-import org.bounce.text.xml.XMLFoldingMargin;
-import org.bounce.text.xml.XMLScanner;
-import org.bounce.text.xml.XMLStyleConstants;
 
 import ui.dialogs.ReferenceUpdateDialog;
-// use these for plain text
-//import ui.editor.ModEditorKit;
-// use these for broken text display
-//import model.modelement3.ModElement;
+
+import com.jgoodies.forms.factories.CC;
+import com.jgoodies.forms.layout.FormLayout;
 
 /**
  * The application's primary frame.
@@ -84,21 +80,11 @@ public class MainFrame extends JFrame {
 	 * The shared singleton instance of the application's main frame.
 	 */
 	public static MainFrame instance;
-	
-	/**
-	 * The XML editor instance.
-	 */
-	private JEditorPane xmlEditor;
 
 	/**
-	 * The modfile editor instance.
+	 * The tabbed pane component of the application's main frame.
 	 */
-	private JEditorPane modEditor;
-
-	/**
-	 * The modfile tree structure.
-	 */
-	private ModTree modTree;
+	private JTabbedPane tabPane;
 	
 	/**
 	 * Constructs the application's main frame.
@@ -110,12 +96,7 @@ public class MainFrame extends JFrame {
 		super(title);
 		
 		// create and lay out the frame's components
-		try {
-			this.initComponents();
-		} catch (Exception e) {
-//			Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, e);
-			e.printStackTrace();
-		}
+		this.initComponents();
 		
 		// make closing the main frame terminate the application
 		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -143,417 +124,61 @@ public class MainFrame extends JFrame {
 	 * Creates and lays out the frame's components.
 	 * @throws Exception if an I/O error occurs
 	 */
-	private void initComponents() throws Exception {
+	private void initComponents() {
 		// create and install menu bar
-		this.setJMenuBar(this.createMenuBar());
+		this.setJMenuBar(new MainMenuBar());
 		
 		// configure content pane layout
 		Container contentPane = this.getContentPane();
+		contentPane.setLayout(new FormLayout("1000px:g", "f:600px:g, b:p"));
 		
-		// create and configure left-hand xml editor
-		this.xmlEditor = new JEditorPane();
+		UIManager.getDefaults().put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(0, 0, 0, 0));
+		UIManager.getDefaults().put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
+		tabPane = new ButtonTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
 		
-		XMLEditorKit xmlKit = new XMLEditorKit();
-		xmlKit.setAutoIndentation(true);
-		xmlKit.setTagCompletion(true);
+		JPanel statusBar = this.createStatusBar();
 		
-//		xmlKit.setAutoIndentation(true);
-		xmlEditor.setEditorKit(xmlKit);
-		xmlEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-		
-		File xmlFile = new File("MyModPackage_v3.xml");    // new streamlined file version
-		xmlEditor.read(new FileInputStream(xmlFile), xmlFile);
-		
-		ScrollableEditorPanel xmlPnl = new ScrollableEditorPanel(xmlEditor);
-		JScrollPane xmlPane = new JScrollPane(xmlPnl,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		xmlPane.setPreferredSize(new Dimension(350, 600));
-
-		JPanel rowHeader = new JPanel(new BorderLayout());
-		rowHeader.add(new XMLFoldingMargin(xmlEditor), BorderLayout.EAST);
-		rowHeader.add(new LineNumberMargin(xmlEditor), BorderLayout.WEST);
-		xmlPane.setRowHeaderView(rowHeader);
-		
-		modEditor = new JEditorPane();
-		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-
-		JScrollPane modPane = new JScrollPane(modEditor,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		modPane.setRowHeaderView(new LineNumberMargin(modEditor));
-		modPane.setPreferredSize(new Dimension(650, 600));
-		
-		/*
-		 * use this for working plain text -- X's original
-		 */
-//		modEditor.setEditorKit(new ui.editor.ModEditorKit());
-		
-		
-		/*
-		 * use this for broken ModDocument3 -- Amineri's experiment
-		 */
-		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
-		parser.parseFile();
-//		modEditor.setEditorKit(new ui.modeditorkit.ModEditorKit()); // use this for broken ModDocument3
-
-		File modFile = new File("test_mod_v3.upk_mod");    // new streamlined file version
-//		modEditor.read(new FileInputStream(modFile), modFile);
-
-//		Document modDocument = modEditor.getDocument();
-//		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
-//		((model.moddocument3.ModDocument) modDocument).insertUpdate(null, null);
-
-		/*
-		 * Amineri's experiment with ModTree and Styled Document
-		 */
-		modEditor.setEditorKit(new ModStyledEditorKit() {
-			@Override
-			public ViewFactory getViewFactory() {
-				// TODO Auto-generated method stub
-				return new ViewFactory() {
-
-			        public View create(Element elem) {
-			            String kind = elem.getName();
-			            if (kind != null) {
-			                if (kind.equals(AbstractDocument.ContentElementName)) {
-			                    return new LabelView(elem);
-			                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-			                	return new ParagraphView(elem) {
-//			                    	/* hack to prevent line wrapping */
-//			                    	@Override
-//									public void layout(int width, int height) {
-//										super.layout(Short.MAX_VALUE, height);
-//									}
-//			                    	@Override
-//									public float getMinimumSpan(int axis) {
-//										return super.getPreferredSpan(axis);
-//									}
-			                    };
-			                } else if (kind.equals(AbstractDocument.SectionElementName)) {
-			                    return new BoxView(elem, View.Y_AXIS);
-			                } else if (kind.equals(StyleConstants.ComponentElementName)) {
-			                    return new ComponentView(elem);
-			                } else if (kind.equals(StyleConstants.IconElementName)) {
-			                    return new IconView(elem);
-			                }
-			            }
-
-			            // default to text display
-			            return new LabelView(elem);
-			        }
-
-			    };
-			}
-		}); 
-		modEditor.read(new FileInputStream(modFile), modFile);
-		Document modDocument = modEditor.getDocument();
-		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
-
-		// create tree view of right-hand mod editor
-		// FIXME: remove tree (or move it elsewhere), it's here for testing purposes for now
-		this.modTree = new ModTree(modDocument);
-//			final JTree modElemTree = new JTree((TreeNode) modDocument.getDefaultRootElement()); // draw from document
-		final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
-		JScrollPane modElemTreePane = new JScrollPane(modElemTree,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		modElemTreePane.setPreferredSize(new Dimension(350, 300));
-		// configure look and feel of tree viewer
-		modElemTree.setRootVisible(false);
-		modElemTree.putClientProperty("JTree.lineStyle", "Angled");
-		modElemTree.setShowsRootHandles(false);
-		// Display alternate operand text info for opened ModOperandNodes
-		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
-			
-			@Override
-			public Component getTreeCellRendererComponent(
-									JTree tree,
-									Object value,
-									boolean sel,
-									boolean expanded,
-									boolean leaf,
-									int row,
-									boolean hasFocus) {
-
-					if(value instanceof ModOperandNode) {
-							((ModOperandNode) value ).expanded = expanded;
-							if(expanded) {
-								
-							}
-					} 
-					super.getTreeCellRendererComponent(
-									tree, value, sel,
-									expanded, leaf, row,
-									hasFocus);
-					return this;
-				}		
-		};
-		renderer.setLeafIcon(null);
-		renderer.setClosedIcon(null);
-		renderer.setOpenIcon(null);
-		modElemTree.setCellRenderer(renderer);	
-			
-		View modRootView = modEditor.getUI().getRootView(modEditor);
-		TreeNode modViewRoot = this.createViewBranch(modRootView);	// sorry about the names :S
-		
-		final JTree modViewTree = new JTree(modViewRoot);
-		JScrollPane modViewTreePane = new JScrollPane(modViewTree,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		modViewTreePane.setPreferredSize(new Dimension(350, 300));
-		
-		
-		// install document listener to refresh tree on changes to the document
-		modDocument.addDocumentListener(new DocumentListener() {
-			@Override
-			public void removeUpdate(DocumentEvent evt) {
-				this.updateTree(evt);
-			}
-			@Override
-			public void insertUpdate(DocumentEvent evt) {
-				this.updateTree(evt);
-			}
-			@Override
-			public void changedUpdate(DocumentEvent evt) {
-				this.updateTree(evt);
-			}
-			/** Updates the tree views on document changes */
-			private void updateTree(DocumentEvent evt) {
-				// reset mod tree
-				((DefaultTreeModel) modElemTree.getModel()).setRoot(
-						modTree.getRoot());
-				// reset view tree
-				((DefaultTreeModel) modViewTree.getModel()).setRoot(
-						createViewBranch(modEditor.getUI().getRootView(modEditor)));
-
-				// expand trees
-//				for (int i = 0; i < modElemTree.getRowCount(); i++) {
-//					modElemTree.expandRow(i);
-//				}
-				for (int i = 0; i < modViewTree.getRowCount(); i++) {
-					modViewTree.expandRow(i);
-				}
-			}
-		});
-
-		// expand trees
-//		for (int i = 0; i < modElemTree.getRowCount(); i++) {
-//			modElemTree.expandRow(i);
-//		}
-//		for (int i = 0; i < modViewTree.getRowCount(); i++) {
-//			modViewTree.expandRow(i);
-//		}
-		
-		JSplitPane modTreeSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, modElemTreePane, modViewTreePane);
-		
-		// wrap editors in split pane with vertical divider
-//		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, xmlPane, modPane);
-		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true, modTreeSplit, modPane);
-		
-		contentPane.add(splitPane);
+		contentPane.add(tabPane, CC.xy(1, 1));
+		contentPane.add(statusBar, CC.xy(1, 2));
 	}
 	
 	/**
-	 * Build a tree node from the provided View and recursively adds all its
-	 * child views as child nodes.
-	 * @param parentView the view to wrap in a tree node
-	 * @return the tree node wrapping the view
+	 * Creates and configures the status bar.
+	 * @return the status bar
 	 */
-	private TreeNode createViewBranch(View parentView) {
-		TreeNode parentNode = new DefaultMutableTreeNode(parentView);
-		int viewCount = parentView.getViewCount();
-		for (int i = 0; i < viewCount; i++) {
-			View childView = parentView.getView(i);
-			if (childView != null) {
-				TreeNode childNode = createViewBranch(childView);
-				((DefaultMutableTreeNode) parentNode).add((MutableTreeNode) childNode);
-			}
-		}
-		return parentNode;
-	}
-	
-	/**
-	 * Creates and configures the main frame's menu bar.
-	 * @return the menu bar
-	 */
-	private JMenuBar createMenuBar() {
-		
-		// create menu bar
-		JMenuBar menuBar = new JMenuBar();
-		
-		// create file menu
-		JMenu fileMenu = new JMenu("File");
-		
-		// create file menu items
-		// TODO: add icons
-		JMenuItem newItem = new JMenuItem("New");
-		newItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
-		newItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				JEditorPane xmlEditor = MainFrame.this.xmlEditor;
-				// clear XML editor contents
-				xmlEditor.setText(null);
-				// TODO: do some other clean-up tasks in the future, possibly prompt for confirmation
-			}
-		});
-		
-		JMenuItem openItem = new JMenuItem("Open File...");
-		openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-		openItem.addActionListener(new BrowseActionListener(this, Constants.XML_FILE_FILTER) {
-			@Override
-			protected void execute(File file) {
-				try {
-					// TODO: possibly prompt for confirmation
-					JEditorPane xmlEditor = MainFrame.this.xmlEditor;
-					xmlEditor.read(new FileReader(file), file);
-					
-					final PlainDocument xmlDocument = (PlainDocument) xmlEditor.getDocument();
-					xmlDocument.putProperty(PlainDocument.tabSizeAttribute, 2);
-					xmlDocument.putProperty(XMLEditorKit.ERROR_HIGHLIGHTING_ATTRIBUTE, new Boolean(true));
-					
-					xmlEditor.addCaretListener(new CaretListener() {
-						@Override
-						public void caretUpdate(CaretEvent evt) {
-							int dot = evt.getDot();
-							Element line = xmlDocument.getParagraphElement(dot);
+	private JPanel createStatusBar() {
+		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.25), 0px:g(0.25), 0px:g(0.5)", "f:p"));
+		Color bgCol = new Color(214, 217, 223);
 
-							XMLScanner scanner;
-							try {
-								scanner = new XMLScanner(line.getDocument());
-								scanner.setRange(line.getStartOffset(), line.getEndOffset());
-								
-								while (scanner.getEventType() != XMLEvent.END_ELEMENT) {
-									scanner.scan();
-
-									int startOffset = scanner.getStartOffset();
-									int endOffset = scanner.getEndOffset();
-									String text = xmlDocument.getText(startOffset, endOffset - startOffset);
-									
-									if (XMLStyleConstants.ELEMENT_NAME.equals(scanner.token)) {
-										if (!"file".equals(text)) {
-											break;
-										}
-									} else if (XMLStyleConstants.ATTRIBUTE_NAME.equals(scanner.token)) {
-										if (!"name".equals(text)) {
-											break;
-										}
-									} else if (XMLStyleConstants.ATTRIBUTE_VALUE.equals(scanner.token)) {
-										JEditorPane modEditor = MainFrame.this.modEditor;
-										// clear modfile editor
-										modEditor.setText(null);
-										// trim leading/trailing quotation marks
-										String filename = text.replaceAll("^\"|\"$", "");
-										// create file descriptor
-										File file = new File(filename);
-										// check whether file actually exists
-										if (file.exists()) {
-											// parse file into editor
-											modEditor.read(new FileReader(file), file);
-										} else {
-											// show error text
-											modEditor.setText("ERROR: File \'" + filename + "\' could not be found.");
-										}
-										// re-apply styling
-										modEditor.getDocument().putProperty(PlainDocument.tabSizeAttribute, 2);
-										
-										break;
-									}
-								}
-								
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-						
-					});
-					
-					// repaint parent (or rather great-grandparent) scroll pane to update row header
-					xmlEditor.getParent().getParent().getParent().repaint();
-					
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		// TODO: replace placeholders with something useful
+		JTextField field1 = new JTextField("display some useful data here");
+		field1.setEditable(false);
+		field1.setBackground(bgCol);
 		
-		JMenuItem saveItem = new JMenuItem("Save File...");
-		saveItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-		saveItem.setEnabled(false);
+		JTextField field2 = new JTextField("display other useful data here");
+		field2.setEditable(false);
+		field2.setBackground(bgCol);
 		
-		JMenuItem exportItem = new JMenuItem("Export...");
-		exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK));
-		exportItem.setEnabled(false);
+		// TODO: implement progress monitoring hooks into various processes
+		UIManager.getDefaults().put("nimbusOrange",
+				UIManager.getDefaults().get("nimbusFocus"));
+		JProgressBar progressBar = new JProgressBar();
+		progressBar.setStringPainted(true);
+		progressBar.setString("progress goes here");
+		progressBar.setValue(50);
 		
-		JMenuItem exitItem = new JMenuItem("Exit");
-		exitItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				// dispose main frame (thereby terminating the application)
-				MainFrame.this.dispose();
-			}
-		});
+		statusBar.add(field1, CC.xy(1, 1));
+		statusBar.add(field2, CC.xy(2, 1));
+		statusBar.add(progressBar, CC.xy(3, 1));
 		
-		// TODO: implement functionality for other items
-		
-		// add items to file menu
-		fileMenu.add(newItem);
-		fileMenu.add(openItem);
-		fileMenu.add(saveItem);
-		fileMenu.addSeparator();
-		fileMenu.add(exportItem);
-		fileMenu.addSeparator();
-		fileMenu.add(exitItem);
-		
-		// create edit menu
-		JMenu editMenu = new JMenu("Edit");
-		
-		JMenuItem updateItem = new JMenuItem("Update References...");
-		updateItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				showRefUpdateDialog();
-			}
-		});
-		
-		// add items to edit menu
-		editMenu.add(updateItem);
-		
-		// create help menu
-		JMenu helpMenu = new JMenu("Help");
-		
-		// create help menu items
-		JMenuItem helpItem = new JMenuItem("Help");
-		helpItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
-		helpItem.setEnabled(false);
-		
-		JMenuItem aboutItem = new JMenuItem("About");
-		aboutItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				showAboutDialog();
-			}
-		});
-		
-		// add items to help menu
-		helpMenu.add(helpItem);
-		helpMenu.addSeparator();
-		helpMenu.add(aboutItem);
-		
-		// add menus to menu bar
-		menuBar.add(fileMenu);
-		menuBar.add(editMenu);
-		menuBar.add(helpMenu);
-		
-		return menuBar;
+		return statusBar;
 	}
-	
+
 	/**
-	 * TODO: API
+	 * Initializes and displays a new Reference Update dialog.
 	 */
-	private void showRefUpdateDialog() {
-		new ReferenceUpdateDialog(this.modTree).setVisible(true);
+	private void showRefUpdateDialog(ModTree modTree) {
+		new ReferenceUpdateDialog(modTree).setVisible(true);
 	}
 
 	/**
@@ -574,6 +199,575 @@ public class MainFrame extends JFrame {
 		aboutDlg.setResizable(false);
 		aboutDlg.setLocationRelativeTo(this);
 		aboutDlg.setVisible(true);
+	}
+	
+	/**
+	 * The menu bar for the application's main frame.
+	 * @author XMS
+	 */
+	private class MainMenuBar extends JMenuBar {
+		
+		/**
+		 * The 'Save' menu item.
+		 */
+		private JMenuItem saveItem;
+		
+		/**
+		 * The 'Save As...' menu item.
+		 */
+		private JMenuItem saveAsItem;
+		
+		/**
+		 * The 'Update References...' menu item.
+		 */
+		private JMenuItem refUpdateItem;
+		
+		/**
+		 * Creates and initializes the main menu bar.
+		 */
+		public MainMenuBar() {
+			super();
+			
+			this.initComponents();
+		}
+
+		private void initComponents() {
+			// create file menu
+			JMenu fileMenu = new JMenu("File");
+			
+			// create file menu items
+			// TODO: add icons
+			JMenuItem newItem = new JMenuItem("New", UIManager.getIcon("FileView.fileIcon"));
+			newItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
+			newItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					ModTab tab = new ModTab();
+					tabPane.addTab("New File", tab);
+					tabPane.setSelectedComponent(tab);
+					
+					saveItem.setEnabled(true);
+					saveAsItem.setEnabled(true);
+					refUpdateItem.setEnabled(true);
+				}
+			});
+			
+			JMenuItem openItem = new JMenuItem("Open File...", UIManager.getIcon("FileView.directoryIcon"));
+			openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
+			openItem.addActionListener(new BrowseActionListener(this, Constants.MOD_FILE_FILTER) {
+				@Override
+				protected void execute(File file) {
+					try {
+						ModTab tab = new ModTab(file);
+						tabPane.addTab(file.getName(), tab);
+						tabPane.setSelectedComponent(tab);
+						
+						saveItem.setEnabled(true);
+						saveAsItem.setEnabled(true);
+						refUpdateItem.setEnabled(true);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			});
+			
+			saveItem = new JMenuItem("Save", UIManager.getIcon("FileView.floppyDriveIcon"));
+			saveItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+			saveItem.setEnabled(false);
+			saveItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					Component selComp = tabPane.getSelectedComponent();
+					if (selComp != null) {
+						ModTab tab = (ModTab) selComp;
+						File file = tab.getFile();
+						if (file != null) {
+							tab.saveFile();
+						} else {
+							saveAsItem.doClick();
+						}
+					}
+				}
+			});
+			
+			saveAsItem = new JMenuItem("Save As...", UIManager.getIcon("FileView.floppyDriveIcon"));
+			saveAsItem.setEnabled(false);
+			saveAsItem.addActionListener(new BrowseActionListener(this, Constants.MOD_FILE_FILTER, true) {
+				@Override
+				public File getTarget() {
+					Component selComp = tabPane.getSelectedComponent();
+					if (selComp != null) {
+						File file = ((ModTab) selComp).getFile();
+						if ((file == null) || !file.exists()) {
+							file = new File(getLastSelectedFile().getParent()
+									+ tabPane.getTitleAt(tabPane.getSelectedIndex()) + ".mod");
+						}
+						return file;
+					}
+					return super.getTarget();
+				}
+				@Override
+				protected void execute(File file) {
+					Component selComp = tabPane.getSelectedComponent();
+					if (selComp != null) {
+						ModTab tab = (ModTab) selComp;
+						tab.setFile(file);
+						tab.saveFile();
+					}
+				}
+			});
+			
+			// TODO: maybe add 'Save All' item
+			
+			JMenuItem exportItem = new JMenuItem("Export...");
+			exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK));
+			exportItem.setEnabled(false);
+			
+			JMenuItem exitItem = new JMenuItem("Exit");
+			exitItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					// dispose main frame (thereby terminating the application)
+					MainFrame.this.dispose();
+				}
+			});
+			
+			// add items to file menu
+			fileMenu.add(newItem);
+			fileMenu.add(openItem);
+			fileMenu.add(saveItem);
+			fileMenu.add(saveAsItem);
+			fileMenu.addSeparator();
+			fileMenu.add(exportItem);
+			fileMenu.addSeparator();
+			fileMenu.add(exitItem);
+			
+			// create edit menu
+			JMenu editMenu = new JMenu("Edit");
+			
+			refUpdateItem = new JMenuItem("Update References...", UIManager.getIcon("FileChooser.detailsViewIcon"));
+			refUpdateItem.setEnabled(false);
+			
+			refUpdateItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					Component selComp = tabPane.getSelectedComponent();
+					if (selComp != null) {
+						showRefUpdateDialog(((ModTab) selComp).getTree());
+					}
+				}
+			});
+			
+			// add items to edit menu
+			editMenu.add(refUpdateItem);
+			
+			// create help menu
+			JMenu helpMenu = new JMenu("Help");
+			
+			// create help menu items
+			JMenuItem helpItem = new JMenuItem("Help");
+			helpItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
+			helpItem.setEnabled(false);
+			
+			JMenuItem aboutItem = new JMenuItem("About");
+			aboutItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					showAboutDialog();
+				}
+			});
+			
+			// add items to help menu
+			helpMenu.add(helpItem);
+			helpMenu.addSeparator();
+			helpMenu.add(aboutItem);
+			
+			// add menus to menu bar
+			this.add(fileMenu);
+			this.add(editMenu);
+			this.add(helpMenu);
+		}
+		
+		/**
+		 * Returns the 'Save' menu item.
+		 * @return the 'Save' menu item
+		 */
+		public JMenuItem getSaveItem() {
+			return this.saveItem;
+		}
+		
+		/**
+		 * Returns the 'Save As...' menu item.
+		 * @return the 'Save As...' menu item
+		 */
+		public JMenuItem getSaveAsItem() {
+			return this.saveAsItem;
+		}
+
+		/**
+		 * Returns the 'Update References...' menu item
+		 * @return the 'Update References...' menu item
+		 */
+		public Component getRefUpdateItem() {
+			return this.refUpdateItem;
+		}
+		
+	}
+	
+	/**
+	 * The basic component inside the tabbed pane.
+	 * @author XMS
+	 */
+	private class ModTab extends JSplitPane {
+
+		/**
+		 * The modfile editor instance.
+		 */
+		private JEditorPane modEditor;
+
+		/**
+		 * The modfile tree structure.
+		 */
+		private ModTree modTree;
+
+		/**
+		 * The file associated with this tab.
+		 */
+		private File file;
+
+		/**
+		 * Creates a new tab with an empty editor.
+		 */
+		public ModTab() {
+			this(null);
+		}
+
+		/**
+		 * Creates a new tab from the specified file.
+		 * @param file
+		 */
+		public ModTab(File file) {
+			super(JSplitPane.HORIZONTAL_SPLIT);
+			this.file = file;
+			
+			try {
+				this.initComponents();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		/**
+		 * Creates and lays out the components of the tab.
+		 * @param file
+		 */
+		private void initComponents() throws Exception {
+			// create right-hand editor pane
+			modEditor = new JEditorPane();
+			modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+	
+			// install editor kit
+			modEditor.setEditorKit(new StyledEditorKit() {
+				@Override
+				public ViewFactory getViewFactory() {
+					return new ViewFactory() {
+				        public View create(Element elem) {
+				            String kind = elem.getName();
+				            if (kind != null) {
+				                if (kind.equals(AbstractDocument.ContentElementName)) {
+				                    return new LabelView(elem);
+				                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
+				                	return new ParagraphView(elem) {
+				                    	/* hack to prevent line wrapping */
+				                    	@Override
+										public void layout(int width, int height) {
+											super.layout(Short.MAX_VALUE, height);
+										}
+				                    	@Override
+										public float getMinimumSpan(int axis) {
+											return super.getPreferredSpan(axis);
+										}
+				                    };
+				                } else if (kind.equals(AbstractDocument.SectionElementName)) {
+				                    return new BoxView(elem, View.Y_AXIS);
+				                } else if (kind.equals(StyleConstants.ComponentElementName)) {
+				                    return new ComponentView(elem);
+				                } else if (kind.equals(StyleConstants.IconElementName)) {
+				                    return new IconView(elem);
+				                }
+				            }
+				            // default to text display
+				            return new LabelView(elem);
+				        }
+				    };
+				}
+			});
+			
+			// read provided file, if possible
+			if (file != null) {
+				modEditor.read(new FileInputStream(file), file);
+			}
+	
+			// wrap editor in scroll pane
+			JScrollPane modEditorScpn = new JScrollPane(modEditor,
+					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+					JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+			modEditorScpn.setRowHeaderView(new LineNumberMargin(modEditor));
+			modEditorScpn.setPreferredSize(new Dimension(350, 600));
+			
+			Document modDocument = modEditor.getDocument();
+			modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
+	
+			// create tree view of right-hand mod editor
+			modTree = new ModTree(modDocument);
+			final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
+			JScrollPane modElemTreeScpn = new JScrollPane(modElemTree,
+					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+					JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+			modElemTreeScpn.setPreferredSize(new Dimension(350, 600));
+			
+			// configure look and feel of tree view
+			modElemTree.setRootVisible(false);
+			modElemTree.setShowsRootHandles(false);
+			modElemTree.putClientProperty("JTree.lineStyle", "Angled");
+			
+			// display alternate operand text info for opened ModOperandNodes
+			DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
+				@Override
+				public Component getTreeCellRendererComponent(JTree tree,
+						Object value, boolean sel, boolean expanded, boolean leaf,
+						int row, boolean hasFocus) {
+					Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded,
+							leaf, row, hasFocus);
+					if (value instanceof ModOperandNode) {
+						((ModOperandNode) value).expanded = expanded;
+						if (expanded) {
+							// TODO: do something to comp here?
+						}
+					}
+					comp.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+					return comp;
+				}
+			};
+			renderer.setLeafIcon(null);
+			renderer.setClosedIcon(null);
+			renderer.setOpenIcon(null);
+			modElemTree.setCellRenderer(renderer);
+				
+			// install document listener to refresh tree on changes to the document
+			modDocument.addDocumentListener(new DocumentListener() {
+				@Override
+				public void removeUpdate(DocumentEvent evt) {
+					this.updateTree(evt);
+				}
+				@Override
+				public void insertUpdate(DocumentEvent evt) {
+					this.updateTree(evt);
+				}
+				@Override
+				public void changedUpdate(DocumentEvent evt) {
+					this.updateTree(evt);
+				}
+				/** Updates the tree views on document changes */
+				private void updateTree(DocumentEvent evt) {
+					// reset mod tree
+					((DefaultTreeModel) modElemTree.getModel()).setRoot(
+							modTree.getRoot());
+	
+//					// expand tree
+//					for (int i = 0; i < modElemTree.getRowCount(); i++) {
+//						modElemTree.expandRow(i);
+//					}
+				}
+			});
+	
+//			// expand tree
+//			for (int i = 0; i < modElemTree.getRowCount(); i++) {
+//				modElemTree.expandRow(i);
+//			}
+			
+			// wrap tree and editor in split pane
+			this.setLeftComponent(modElemTreeScpn);
+			this.setRightComponent(modEditorScpn);
+			this.setOneTouchExpandable(true);
+		}
+
+		/**
+		 * Saves the editor's contents to the file associated with this tab.
+		 */
+		public void saveFile() {
+			try {
+				this.getEditor().write(new OutputStreamWriter(new FileOutputStream(this.file)));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		/**
+		 * Returns the file associated with this tab.
+		 * @return the file
+		 */
+		public File getFile() {
+			return file;
+		}
+		
+		/**
+		 * Sets the file associated with this tab.
+		 * @param file the file to set
+		 */
+		public void setFile(File file) {
+			this.file = file;
+		}
+		
+		/**
+		 * Returns the modfile editor instance of this tab.
+		 * @return the editor
+		 */
+		public JEditorPane getEditor() {
+			return modEditor;
+		}
+		
+		/**
+		 * Returns the <code>ModTree</code> instance of this tab.
+		 * @return the <code>ModTree</code>
+		 */
+		public ModTree getTree() {
+			return modTree;
+		}
+		
+	}
+	
+	/**
+	 * Custom tabbed pane featuring a 'Close' button in its tabs.
+	 * @author XMS
+	 */
+	private class ButtonTabbedPane extends JTabbedPane {
+		
+		// TODO: focus traversal on tabs is dodgy, investigate
+
+		/**
+		 * Creates a tabbed pane featuring a 'Close' button in its tabs.
+		 * @param tabPlacement the placement for the tabs relative to the content
+		 * @param tabLayoutPolicy the policy for laying out tabs when all tabs will not fit on one run
+		 */
+		private ButtonTabbedPane(int tabPlacement, int tabLayoutPolicy) {
+			super(tabPlacement, tabLayoutPolicy);
+		}
+		
+		@Override
+		public void addTab(String title, Component component) {
+			super.addTab(title, component);
+			this.setTabComponentAt(this.getTabCount() - 1, new ButtonTabComponent());
+		}
+		
+		@Override
+		public void remove(Component component) {
+			// TODO Auto-generated method stub
+			super.remove(component);
+		}
+		
+		@Override
+		public void removeTabAt(int index) {
+			super.removeTabAt(index);
+			if (this.getTabCount() == 0) {
+				MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
+				mainMenu.getSaveItem().setEnabled(false);
+				mainMenu.getSaveAsItem().setEnabled(false);
+				mainMenu.getRefUpdateItem().setEnabled(false);
+			}
+		}
+		
+		@Override
+		public void setSelectedComponent(Component c) {
+			// TODO Auto-generated method stub
+			super.setSelectedComponent(c);
+		}
+		
+		/**
+		 * Component to be used inside tabbed pane tabs.<br>
+		 * Based on a <a href="http://docs.oracle.com/javase/tutorial/uiswing/examples/components/TabComponentsDemoProject/src/components/ButtonTabComponent.java">Java Tutorials Code Sample</a>
+		 * @author XMS
+		 */
+		private class ButtonTabComponent extends JPanel {
+		 
+		    /**
+		     * Creates a panel containing the tab title and a 'Close' button
+		     * @param tabPane the reference to the parent tabbed pane
+		     */
+		    public ButtonTabComponent() {
+		        super(new BorderLayout(5, 0));
+
+				// make component transparent
+				this.setOpaque(false);
+				
+				// create label, make it display its corresponding tab title as text
+				JLabel label = new JLabel() {
+					public String getText() {
+						int index = tabPane.indexOfTabComponent
+								(ButtonTabComponent.this);
+						if (index != -1) {
+							return tabPane.getTitleAt(index);
+						}
+						return null;
+					}
+				};
+
+				this.add(label, BorderLayout.CENTER);
+				TabButton tabButton = new TabButton();
+				
+				JToolBar tb = new JToolBar();
+				tb.add(tabButton);
+				
+				this.add(tabButton, BorderLayout.EAST);
+			}
+
+		    /**
+		     * 'Close' button for tabs.
+		     * @author XMS
+		     */
+			private class TabButton extends JButton implements ActionListener {
+				
+				/**
+				 * Constructs a 'Close' button.
+				 */
+				public TabButton() {
+					int size = 17;
+					this.setPreferredSize(new Dimension(size, size));
+
+					// configure visuals
+					this.setToolTipText("Close this document");
+					this.setFocusable(false);
+					
+					// install action listener to close tab on click
+					this.addActionListener(this);
+				}
+
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					int i = tabPane.indexOfTabComponent(ButtonTabComponent.this);
+					if (i != -1) {
+						tabPane.remove(i);
+					}
+				}
+
+				// paint the cross
+				protected void paintComponent(Graphics g) {
+					super.paintComponent(g);
+					Graphics2D g2 = (Graphics2D) g.create();
+					g2.setStroke(new BasicStroke(2));
+					g2.setColor(Color.DARK_GRAY);
+					int delta = 6;
+					g2.drawLine(delta, delta,
+							getWidth() - delta, getHeight() - delta);
+					g2.drawLine(getWidth() - delta, delta,
+							delta, getHeight() - delta);
+					g2.dispose();
+				}
+				
+			}
+			
+		}
+
 	}
 	
 }
