@@ -600,6 +600,8 @@ public class MainFrame extends JFrame {
 			this.setLeftComponent(modElemTreeScpn);
 			this.setRightComponent(modEditorScpn);
 			this.setOneTouchExpandable(true);
+			// by default hide the tree view
+			this.setDividerLocation(0.0);
 		}
 
 		/**

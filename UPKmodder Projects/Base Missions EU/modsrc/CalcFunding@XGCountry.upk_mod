@@ -1,0 +1,120 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=CalcFunding@XGCountry
+
+// Allows for differential display of funding in Situation Room
+// Includes the "All Countries Contribute" modlet
+
+[BEFORE_HEX]
+[HEADER]
+E2 01 00 00 5A 01 00 00 
+[/HEADER]
+[CODE]
+null-op
+0B 
+
+if(LeftXCom())
+07 10 00 1B B6 16 00 00 00 00 00 00 16 
+
+    return 0;
+    04 25 
+
+iMax = m_kTCountry.iFunding;
+0F 00 4E 24 00 00 35 5C 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 
+
+iFunding = iMax;
+0F 00 4D 24 00 00 00 4E 24 00 00 
+
+iPanic = Clamp(m_iPanic + iAdditionalPanic, 0, 4);
+0F 00 4C 24 00 00 FB 92 01 2E 24 00 00 00 50 24 00 00 16 25 2C 04 16 
+
+if(IsOptionEnabled(12))
+07 0F 01 1B A7 14 00 00 00 00 00 00 24 0C 16 
+
+    fPenaltyPct = float(AI().GetMonth()) * 0.10;
+    0F 00 4B 24 00 00 AB 38 3F 19 1B E1 00 00 00 00 00 00 00 16 0A 00 4B 43 00 00 00 1B 9D 0F 00 00 00 00 00 00 16 1E CD CC CC 3D 16 
+
+    fPenaltyPct = FClamp(fPenaltyPct, 0.0, 0.90);
+    0F 00 4B 24 00 00 F6 00 4B 24 00 00 1E 00 00 00 00 1E 66 66 66 3F 16 
+
+    iMax = int(float(iMax) - (float(iMax) * fPenaltyPct));
+    0F 00 4E 24 00 00 38 44 AF 38 3F 00 4E 24 00 00 AB 38 3F 00 4E 24 00 00 00 4B 24 00 00 16 16 
+
+    iFunding = iMax;
+    0F 00 4D 24 00 00 00 4E 24 00 00 
+
+if(IsOptionEnabled(8))
+07 CD 01 1B A7 14 00 00 00 00 00 00 24 08 16 
+
+if(iPanic == 0) and a bunch of other really inefficient code
+07 4E 01 9A 00 4C 24 00 00 25 16 0F 00 4D 24 00 00 38 44 AB 38 3F 00 4E 24 00 00 1E 00 00 A0 3F 16 06 CD 01 07 73 01 9A 00 4C 24 00 00 26 16 0F 00 4D 24 00 00 00 4E 24 00 00 06 CD 01 0F 00 4B 24 00 00 AB 38 3F 93 00 4C 24 00 00 26 16 1E 00 00 80 3E 16 0F 00 4D 24 00 00 FB 00 4D 24 00 00 25 38 44 AF 38 3F 00 4E 24 00 00 AB 38 3F 00 4E 24 00 00 00 4B 24 00 00 16 16 16 
+
+return iFunding;
+04 00 4D 24 00 00 
+
+return returnvalue, endofscript
+04 3A 4F 24 00 00 53 
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+C2 01 00 00 5A 01 00 00 
+[/HEADER]
+[CODE]
+null-op
+0B 
+
+if(LeftXCom())
+07 10 00 1B B6 16 00 00 00 00 00 00 16 
+
+    return 0;
+    04 25 
+
+iMax = m_kTCountry.iFunding;
+0F 00 4E 24 00 00 35 5C 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 
+
+iFunding = iMax;
+0F 00 4D 24 00 00 00 4E 24 00 00 
+
+iPanic = Clamp(m_iPanic + iAdditionalPanic%10, 0, 4);
+0F 00 4C 24 00 00 FB 92 01 2E 24 00 00 FD 00 50 24 00 00 2C 0A 16 16 25 2C 04 16 
+
+if(IsOptionEnabled(12))
+07 EC 00 1B A7 14 00 00 00 00 00 00 24 0C 16 
+
+    fPenaltyPct = float(AI().GetMonth()) * 0.10;
+    0F 00 4B 24 00 00 AB 38 3F 19 1B E1 00 00 00 00 00 00 00 16 0A 00 4B 43 00 00 00 1B 9D 0F 00 00 00 00 00 00 16 1E CD CC CC 3D 16 
+
+    fPenaltyPct = FClamp(fPenaltyPct, 0.0, 0.90);
+    0F 00 4B 24 00 00 F6 00 4B 24 00 00 1E 00 00 00 00 1E 66 66 66 3F 16 
+    
+    iFunding *= (1.0 - fPenaltyPct);
+    9F 00 4D 24 00 00 AF 1E 00 00 80 3F 00 4B 24 00 00 16 16 
+    
+if(IsOptionEnabled(8)) // keep, just change jump offset from 0x1CD to 0x14D
+07 1C 01 1B A7 14 00 00 00 00 00 00 24 08 16 
+
+    iFunding *= 0.25*float(5 - iPanic); // original 123 file 175=0xAF virtual bytes, new is 25 file, ?? virtual bytes
+    9F 00 4D 24 00 00 AB 1E 00 00 80 3E 38 3F 93 2C 05 00 4C 24 00 00 16 16 16 
+
+if(iAdditionalPanic < 10 && !m_bSatellite) // needs jump offset (11 file, 15=0x0F virtual bytes)
+07 8F 01 82 96 00 50 24 00 00 2C 0A 16 18 0D 00 81 2D 01 32 24 00 00 16 16 
+    
+    iFunding *= float(class'XGTacticalGameCore'.default.BASE_FUNDING[Game().GetDifficulty()])/100.0; (62 file, 82=0x52 virtual bytes)
+    9F 00 4D 24 00 00 AC 38 3F 10 19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 43 41 00 00 00 1B F6 0E 00 00 00 00 00 00 16 12 20 6D FE FF FF 09 00 DF FF FF FF 00 02 DF FF FF FF 38 3F 2C 64 16 16 
+
+null ops (30 bytes)
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return iFunding;
+04 00 4D 24 00 00 
+
+return returnvalue, endofscript
+04 3A 4F 24 00 00 53 
+
+[/CODE]
+[/AFTER_HEX]

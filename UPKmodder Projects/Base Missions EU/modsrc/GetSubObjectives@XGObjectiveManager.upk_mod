@@ -1,0 +1,71 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=GetSubObjectives@XGObjectiveManager
+
+Add new subobjective for assaulting alien bases : orbiting a satellite over an occupied country
+
+//Add new subobjective under eObj_AssaultAlienBase, using unused subobjective 7, eSubObj_ObtainShards 
+//Re-purposed to "Launch satellite over occupied country." 
+//Possessing the skeleton key and having a satellite over an occupied country triggers the detection (creation) of an alien base alert for that country.
+// Have to update main Assault Alien Base objective as well
+
+
+[BEFORE_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+case 3:
+0A 28 01 24 03 
+
+	arrSubs.AddItem(BuildSubObjective(7))
+	55 00 F0 38 00 00 0D 00 1B 9B 04 00 00 00 00 00 00 24 07 16 16 
+
+	break;
+	06 30 04 
+
+case 4:
+0A 62 01 24 04 
+
+	arrSubs.AddItem(BuildSubObjective(8))
+	55 00 F0 38 00 00 0D 00 1B 9B 04 00 00 00 00 00 00 24 08 16 16 
+
+	arrSubs.AddItem(BuildSubObjective(9))
+	55 00 F0 38 00 00 0D 00 1B 9B 04 00 00 00 00 00 00 24 09 16 16 
+
+	break;
+	06 30 04 
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+case 3:
+0A 0F 01 24 03 
+
+	break;
+	06 30 04 
+
+case 4:
+0A 62 01 24 04 
+
+	arrSubs.AddItem(BuildSubObjective(8))
+	55 00 F0 38 00 00 0D 00 1B 9B 04 00 00 00 00 00 00 24 08 16 16 
+
+	arrSubs.AddItem(BuildSubObjective(7))
+	55 00 F0 38 00 00 0D 00 1B 9B 04 00 00 00 00 00 00 24 07 16 16 
+
+	arrSubs.AddItem(BuildSubObjective(9))
+	55 00 F0 38 00 00 0D 00 1B 9B 04 00 00 00 00 00 00 24 09 16 16 
+
+	break;
+	06 30 04 
+
+[/CODE]
+[/AFTER_HEX]

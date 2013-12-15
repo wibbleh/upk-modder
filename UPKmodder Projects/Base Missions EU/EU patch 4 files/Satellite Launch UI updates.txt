@@ -1,0 +1,871 @@
+Have to update satellite launch functionality in situation room to display correct information to the player.
+
+Two places : the confirm dialogue when Launch Satellite is pressed, and the basic info displayed when the country is selected.
+
+
+The confirm dialogue is in XGSatelliteSitRoomUI.UpdateConfirmUI
+
+original code:
+function UpdateConfirmUI()
+{
+    local TSatConfirm kUI;
+    local XGContinent kContinent;
+    local XGCountry kCountry;
+    local XGParamTag kTag;
+    local int iFunding;
+
+    kTag = XGParamTag(XComEngine(class'Engine'.static.GetEngine()).LocalizeContext.FindTag("XGParam"));
+    kCountry = Country(m_iCountry);
+    kContinent = Continent(m_iContinent);
+    iFunding = kCountry.m_kTCountry.iFunding;
+    // End:0x12E
+    if((IsOptionEnabled(12)) || IsOptionEnabled(8))
+    {
+        iFunding = kCountry.CalcFunding();
+    }
+    kUI.imgAlert.iImage = 203;
+    kUI.txtTitle.StrValue = m_strLabelConfirmLaunch;
+    kUI.txtTitle.iState = 4;
+    kUI.txtCountryLabel.StrValue = m_strLabelCountry;
+    kUI.txtCountryLabel.iState = 5;
+    kUI.txtTravelTimeLabel.StrValue = m_strLabelTravelTime;
+    kUI.txtTravelTimeLabel.iState = 5;
+    kUI.txtFundingLabel.StrValue = m_strLabelFundingIncrease;
+    kUI.txtFundingLabel.iState = 5;
+    kUI.txtCountry.StrValue = kCountry.GetName();
+    kUI.txtCountry.iState = 5;
+    kUI.txtTravelTime.StrValue = string(GEOSCAPE().GetSatTravelTime(m_iCountry)) @ m_strLabelDays;
+    kUI.txtTravelTime.iState = 5;
+    kUI.txtFunding.StrValue = ("+" $ (ConvertCashToString(iFunding))) @ m_strLabelPerMonth;
+    kUI.txtFunding.iState = 6;
+    kTag.IntValue0 = kContinent.GetNumSatellites() + 1;
+    kTag.IntValue1 = kContinent.GetNumSatNodes();
+    kTag.StrValue0 = kContinent.GetName();
+    kUI.txtContinentCollection.StrValue = class'XComLocalizer'.static.ExpandString(m_strLabelMonitoring);
+    kUI.txtSpecialists.strLabel = m_strLabelReward;
+    kUI.txtSpecialists.StrValue = BuildBonusString(kContinent.m_iNumSatellites + 1, kContinent);
+    kUI.btxtLaunch.iButton = 1;
+    kUI.btxtLaunch.StrValue = m_strLabelLaunchSatelliteLower;
+    kUI.btxtCancel.iButton = 4;
+    kUI.btxtCancel.StrValue = m_strLabelCancelSatelliteLower;
+    m_kConfirm = kUI;
+    //return;    
+}
+
+
+target code:
+function UpdateConfirmUI()
+{
+    local TSatConfirm kUI;
+    local XGContinent kContinent;
+    local XGCountry kCountry;
+    local XGParamTag kTag;
+    local int iFunding;
+
+    kTag = XGParamTag(XComEngine(class'Engine'.static.GetEngine()).LocalizeContext.FindTag("XGParam"));
+    kCountry = Country(m_iCountry);
+    kContinent = Continent(m_iContinent);
+	iFunding = kCountry.CalcFunding(); // always call CalcFunding(), which will return 0 if country has LeftXCom()
+    kUI.imgAlert.iImage = 203;
+    kUI.txtTitle.StrValue = m_strLabelConfirmLaunch;
+    kUI.txtTitle.iState = 4;
+    kUI.txtCountryLabel.StrValue = m_strLabelCountry;
+    kUI.txtCountryLabel.iState = 5;
+    kUI.txtTravelTimeLabel.StrValue = m_strLabelTravelTime;
+    kUI.txtTravelTimeLabel.iState = 5;
+    kUI.txtFundingLabel.StrValue = m_strLabelFundingIncrease;
+    kUI.txtFundingLabel.iState = 5;
+    kUI.txtCountry.StrValue = kCountry.GetName();
+    kUI.txtCountry.iState = 5;
+    kUI.txtTravelTime.StrValue = string(GEOSCAPE().GetSatTravelTime(m_iCountry)) @ m_strLabelDays;
+    kUI.txtTravelTime.iState = 5;
+    kUI.txtFunding.StrValue = ("+" $ (ConvertCashToString(iFunding))) @ m_strLabelPerMonth;
+    kUI.txtFunding.iState = 6;
+    kTag.IntValue0 = kContinent.GetNumSatellites() + 1;
+    kTag.IntValue1 = kContinent.GetNumSatNodes();
+    kTag.StrValue0 = kContinent.GetName();
+    kUI.txtContinentCollection.StrValue = class'XComLocalizer'.static.ExpandString(m_strLabelMonitoring); // this is still valid
+	if(kCountry.LeftXCom())
+	{
+		kUI.txtSpecialists.strLabel = m_strLabelLeftXCom; //="Withdrawn from XCOM Project!"
+	}
+	else
+	{
+		kUI.txtSpecialists.strLabel = m_strLabelReward;
+		kUI.txtSpecialists.StrValue = BuildBonusString(kContinent.m_iNumSatellites + 1, kContinent);
+	}
+    kUI.btxtLaunch.iButton = 1;
+    kUI.btxtLaunch.StrValue = m_strLabelLaunchSatelliteLower;
+    kUI.btxtCancel.iButton = 4;
+    kUI.btxtCancel.StrValue = m_strLabelCancelSatelliteLower;
+    m_kConfirm = kUI;
+    //return;    
+}
+
+original hex broken down:
+kTag = XGParamTag(XComEngine(class'Engine'.static.GetEngine()).LocalizeContext.FindTag("XGParam"))
+0F 00 95 3B 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 
+
+kCountry = Country(m_iCountry)
+0F 00 96 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 
+
+kContinent = Continent(m_iContinent)
+0F 00 97 3B 00 00 1B 23 06 00 00 00 00 00 00 01 59 3B 00 00 16 
+
+iFunding = kCountry.m_kTCountry.iFunding
+0F 00 94 3B 00 00 35 5C 1E 00 00 64 1E 00 00 00 00 19 00 96 3B 00 00 09 00 34 24 00 00 00 01 34 24 00 00 
+
+if((IsOptionEnabled(12)) || IsOptionEnabled(8))
+07 2E 01 84 1B A7 14 00 00 00 00 00 00 24 0C 16 18 0D 00 1B A7 14 00 00 00 00 00 00 24 08 16 16 
+
+	iFunding = kCountry.CalcFunding()
+	0F 00 94 3B 00 00 19 00 96 3B 00 00 0B 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 4A 16 
+
+kUI.imgAlert.iImage = 203
+0F 35 58 FB FF FF 6D FA FF FF 00 00 35 2B 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C CB 
+
+kUI.txtTitle.StrValue = m_strLabelConfirmLaunch
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3F 3B 00 00 
+
+kUI.txtTitle.iState = 4
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 
+
+kUI.txtCountryLabel.StrValue = m_strLabelCountry
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3E 3B 00 00 
+
+kUI.txtCountryLabel.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtTravelTimeLabel.StrValue = m_strLabelTravelTime
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3D 3B 00 00 
+
+kUI.txtTravelTimeLabel.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtFundingLabel.StrValue = m_strLabelFundingIncrease
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3C 3B 00 00 
+
+kUI.txtFundingLabel.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtCountry.StrValue = kCountry.GetName()
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 19 00 96 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+kUI.txtCountry.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtTravelTime.StrValue = string(GEOSCAPE().GetSatTravelTime(m_iCountry)) @ m_strLabelDays
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 38 53 19 1B 69 0E 00 00 00 00 00 00 16 13 00 C9 2F 00 00 00 1B 2A 10 00 00 00 00 00 00 01 5A 3B 00 00 16 01 47 3B 00 00 16 
+
+kUI.txtTravelTime.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtFunding.StrValue = ("+" $ (ConvertCashToString(iFunding))) @ m_strLabelPerMonth
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 70 1F 2B 00 1B 34 06 00 00 00 00 00 00 00 94 3B 00 00 16 16 01 46 3B 00 00 16 
+
+kUI.txtFunding.iState = 6
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 06 
+
+kTag.IntValue0 = kContinent.GetNumSatellites() + 1
+0F 19 00 95 3B 00 00 09 00 2B FC FF FF 00 01 2B FC FF FF 92 19 00 97 3B 00 00 0A 00 F1 23 00 00 00 1B DB 0F 00 00 00 00 00 00 16 26 16 
+
+kTag.IntValue1 = kContinent.GetNumSatNodes()
+0F 19 00 95 3B 00 00 09 00 2A FC FF FF 00 01 2A FC FF FF 19 00 97 3B 00 00 0A 00 F3 23 00 00 00 1B DD 0F 00 00 00 00 00 00 16 
+
+kTag.StrValue0 = kContinent.GetName()
+0F 19 00 95 3B 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 00 97 3B 00 00 0A 00 9E 23 00 00 00 1B A3 0F 00 00 00 00 00 00 16 
+
+kUI.txtContinentCollection.StrValue = class'XComLocalizer'.static.ExpandString(m_strLabelMonitoring)
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 23 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 3B 3B 00 00 4A 16 
+
+kUI.txtSpecialists.strLabel = m_strLabelReward
+0F 35 DE F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3A 3B 00 00 
+
+kUI.txtSpecialists.StrValue = BuildBonusString(kContinent.m_iNumSatellites + 1, kContinent)
+0F 35 DD F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 1B 54 04 00 00 00 00 00 00 92 19 00 97 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 26 16 00 97 3B 00 00 16 
+
+kUI.btxtLaunch.iButton = 1
+0F 35 5A FB FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 26 
+
+kUI.btxtLaunch.StrValue = m_strLabelLaunchSatelliteLower
+0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 39 3B 00 00 
+
+kUI.btxtCancel.iButton = 4
+0F 35 5A FB FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 
+
+kUI.btxtCancel.StrValue = m_strLabelCancelSatelliteLower
+0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 38 3B 00 00 
+
+m_kConfirm = kUI
+0F 01 5D 3B 00 00 00 98 3B 00 00 
+
+return
+04 0B 
+
+EOS
+53 	
+
+
+
+
+new hex broken down:
+kTag = XGParamTag(XComEngine(class'Engine'.static.GetEngine()).LocalizeContext.FindTag("XGParam"))
+0F 00 95 3B 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 
+
+kCountry = Country(m_iCountry)
+0F 00 96 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 
+
+kContinent = Continent(m_iContinent)
+0F 00 97 3B 00 00 1B 23 06 00 00 00 00 00 00 01 59 3B 00 00 16 
+
+if(kCountry.m_bSecretPact)
+07 07 01 19 00 96 3B 00 00 0A 00 33 24 00 00 00 2D 01 33 24 00 00 
+
+	kUI.txtSpecialists.strLabel = m_strLabelLeftXCom; //="Withdrawn from XCOM Project!"
+	0F 35 DE F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 32 3B 00 00 
+	
+else
+06 EF 01 
+
+	kUI.txtSpecialists.strLabel = m_strLabelReward
+	0F 35 DE F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3A 3B 00 00 
+
+	kUI.txtSpecialists.StrValue = BuildBonusString(kContinent.m_iNumSatellites + 1, kContinent)
+	0F 35 DD F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 1B 54 04 00 00 00 00 00 00 92 19 00 97 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 26 16 00 97 3B 00 00 16 
+
+	iFunding = kCountry.CalcFunding(10) - kCountry.m_iFunding;
+	0F 00 94 3B 00 00 93 19 00 96 3B 00 00 0B 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 2C 0A 16 19 00 96 3B 00 00 09 00 2F 24 00 00 00 01 2F 24 00 00 16 
+	
+kUI.txtTitle.StrValue = m_strLabelConfirmLaunch
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3F 3B 00 00 
+
+kUI.txtTitle.iState = 4
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 
+
+kUI.txtCountryLabel.StrValue = m_strLabelCountry
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3E 3B 00 00 
+
+kUI.txtCountryLabel.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtTravelTimeLabel.StrValue = m_strLabelTravelTime
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3D 3B 00 00 
+
+kUI.txtTravelTimeLabel.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtFundingLabel.StrValue = m_strLabelFundingIncrease
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3C 3B 00 00 
+
+kUI.txtFundingLabel.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtCountry.StrValue = kCountry.GetName()
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 19 00 96 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+kUI.txtCountry.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtTravelTime.StrValue = string(GEOSCAPE().GetSatTravelTime(m_iCountry)) @ m_strLabelDays
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 38 53 19 1B 69 0E 00 00 00 00 00 00 16 13 00 C9 2F 00 00 00 1B 2A 10 00 00 00 00 00 00 01 5A 3B 00 00 16 01 47 3B 00 00 16 
+
+kUI.txtTravelTime.iState = 5
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 
+
+kUI.txtFunding.StrValue = ((ConvertCashToString(iFunding))) @ m_strLabelPerMonth
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 1B 34 06 00 00 00 00 00 00 00 94 3B 00 00 16 01 46 3B 00 00 16 
+
+kUI.txtFunding.iState = 6
+0F 35 54 FB FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 06 
+
+kTag.IntValue0 = kContinent.GetNumSatellites() + 1
+0F 19 00 95 3B 00 00 09 00 2B FC FF FF 00 01 2B FC FF FF 92 19 00 97 3B 00 00 0A 00 F1 23 00 00 00 1B DB 0F 00 00 00 00 00 00 16 26 16 
+
+kTag.IntValue1 = kContinent.GetNumSatNodes()
+0F 19 00 95 3B 00 00 09 00 2A FC FF FF 00 01 2A FC FF FF 19 00 97 3B 00 00 0A 00 F3 23 00 00 00 1B DD 0F 00 00 00 00 00 00 16 
+
+kTag.StrValue0 = kContinent.GetName()
+0F 19 00 95 3B 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 00 97 3B 00 00 0A 00 9E 23 00 00 00 1B A3 0F 00 00 00 00 00 00 16 
+
+kUI.txtContinentCollection.StrValue = class'XComLocalizer'.static.ExpandString(m_strLabelMonitoring)
+0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 23 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 3B 3B 00 00 4A 16 
+
+kUI.btxtLaunch.iButton = 1
+0F 35 5A FB FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 26 
+
+kUI.btxtLaunch.StrValue = m_strLabelLaunchSatelliteLower
+0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 39 3B 00 00 
+
+kUI.btxtCancel.iButton = 4
+0F 35 5A FB FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 
+
+kUI.btxtCancel.StrValue = m_strLabelCancelSatelliteLower
+0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 38 3B 00 00 
+
+m_kConfirm = kUI
+0F 01 5D 3B 00 00 00 98 3B 00 00 
+
+null-ops (23 bytes)
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return
+04 0B 
+
+EOS
+53 	
+
+
+------------------
+
+XGSatelliteSitRoom.UpdateConfirmUI
+
+
+original hex:
+header:
+98 3B 00 00 AB 1F 00 00 00 00 00 00 93 3B 00 00 00 00 00 00 00 00 00 00 98 3B 00 00 00 00 00 00 3F 02 00 00 ED 3D 00 00 49 07 00 00 A1 04 00 00 
+
+body:
+0F 00 95 3B 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 0F 00 96 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0F 00 97 3B 00 00 1B 23 06 00 00 00 00 00 00 01 59 3B 00 00 16 0F 00 94 3B 00 00 35 5C 1E 00 00 64 1E 00 00 00 00 19 00 96 3B 00 00 09 00 34 24 00 00 00 01 34 24 00 00 07 2E 01 84 1B A7 14 00 00 00 00 00 00 24 0C 16 18 0D 00 1B A7 14 00 00 00 00 00 00 24 08 16 16 0F 00 94 3B 00 00 19 00 96 3B 00 00 0B 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 4A 16 0F 35 58 FB FF FF 6D FA FF FF 00 00 35 2B 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C CB 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3F 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3E 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3D 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3C 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 19 00 96 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 38 53 19 1B 69 0E 00 00 00 00 00 00 16 13 00 C9 2F 00 00 00 1B 2A 10 00 00 00 00 00 00 01 5A 3B 00 00 16 01 47 3B 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 70 1F 2B 00 1B 34 06 00 00 00 00 00 00 00 94 3B 00 00 16 16 01 46 3B 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 06 0F 19 00 95 3B 00 00 09 00 2B FC FF FF 00 01 2B FC FF FF 92 19 00 97 3B 00 00 0A 00 F1 23 00 00 00 1B DB 0F 00 00 00 00 00 00 16 26 16 0F 19 00 95 3B 00 00 09 00 2A FC FF FF 00 01 2A FC FF FF 19 00 97 3B 00 00 0A 00 F3 23 00 00 00 1B DD 0F 00 00 00 00 00 00 16 0F 19 00 95 3B 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 00 97 3B 00 00 0A 00 9E 23 00 00 00 1B A3 0F 00 00 00 00 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 23 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 3B 3B 00 00 4A 16 0F 35 DE F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3A 3B 00 00 0F 35 DD F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 1B 54 04 00 00 00 00 00 00 92 19 00 97 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 26 16 00 97 3B 00 00 16 0F 35 5A FB FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 26 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 39 3B 00 00 0F 35 5A FB FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 38 3B 00 00 0F 01 5D 3B 00 00 00 98 3B 00 00 04 0B 53 
+
+
+new hex: (virtual 0x74C
+header:
+98 3B 00 00 AB 1F 00 00 00 00 00 00 93 3B 00 00 00 00 00 00 00 00 00 00 98 3B 00 00 00 00 00 00 3F 02 00 00 ED 3D 00 00 4C 07 00 00 A1 04 00 00 
+
+body:
+0F 00 95 3B 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 0F 00 96 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0F 00 97 3B 00 00 1B 23 06 00 00 00 00 00 00 01 59 3B 00 00 16 07 07 01 19 00 96 3B 00 00 0A 00 33 24 00 00 00 2D 01 33 24 00 00 0F 35 DE F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 32 3B 00 00 06 EF 01 0F 35 DE F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3A 3B 00 00 0F 35 DD F9 FF FF 6C FA FF FF 00 00 35 22 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 1B 54 04 00 00 00 00 00 00 92 19 00 97 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 26 16 00 97 3B 00 00 16 0F 00 94 3B 00 00 93 19 00 96 3B 00 00 0B 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 2C 0A 16 19 00 96 3B 00 00 09 00 2F 24 00 00 00 01 2F 24 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3F 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 2A 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3E 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 29 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3D 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 28 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 3C 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 27 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 19 00 96 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 26 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 38 53 19 1B 69 0E 00 00 00 00 00 00 16 13 00 C9 2F 00 00 00 1B 2A 10 00 00 00 00 00 00 01 5A 3B 00 00 16 01 47 3B 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 25 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 05 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 A8 1B 34 06 00 00 00 00 00 00 00 94 3B 00 00 16 01 46 3B 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 24 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 06 0F 19 00 95 3B 00 00 09 00 2B FC FF FF 00 01 2B FC FF FF 92 19 00 97 3B 00 00 0A 00 F1 23 00 00 00 1B DB 0F 00 00 00 00 00 00 16 26 16 0F 19 00 95 3B 00 00 09 00 2A FC FF FF 00 01 2A FC FF FF 19 00 97 3B 00 00 0A 00 F3 23 00 00 00 1B DD 0F 00 00 00 00 00 00 16 0F 19 00 95 3B 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 00 97 3B 00 00 0A 00 9E 23 00 00 00 1B A3 0F 00 00 00 00 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 23 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 3B 3B 00 00 4A 16 0F 35 5A FB FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 26 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 21 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 39 3B 00 00 0F 35 5A FB FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 2C 04 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 20 3B 00 00 2C 3B 00 00 00 01 00 98 3B 00 00 01 38 3B 00 00 0F 01 5D 3B 00 00 00 98 3B 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 04 0B 53 	
+
+
+ 
+
+---------------------------------------
+
+second functionality needed is the basic info displayed when a country is selected
+
+The highlighting for continent bonus is done in :
+
+original code:
+function UpdateContinent()
+{
+    local TSatContinentUI kUI;
+    local XGContinent kContinent;
+    local int iNumInterceptors;
+    local TContinentBonus kCBonus;
+    local int iBonus;
+    local TText txtTemp;
+
+    kUI.iHighlightedBonus = -1;
+    // End:0x7BB
+    if(m_iContinent != -1)
+    {
+        kContinent = Continent(m_iContinent);
+        kUI.txtContinent.StrValue = kContinent.GetName();
+        kUI.txtContinent.iState = 5;
+        iNumInterceptors = HANGAR().GetNumInterceptors(m_iContinent);
+        kUI.txtInterceptors.StrValue = string(iNumInterceptors) @ m_strLabelInterceptors;
+        // End:0x190
+        if(iNumInterceptors == 0)
+        {
+            kUI.txtInterceptors.iState = 3;
+        }
+        // End:0x1C2
+        else
+        {
+            kUI.txtInterceptors.iState = 5;
+        }
+        iBonus = kContinent.m_iNumSatellites;
+        // End:0x347
+        if(kContinent.m_iNumSatellites > 0)
+        {
+            txtTemp.StrValue = ((m_strLabelCurrent @ "(") $ (GetSatString(kContinent.m_iNumSatellites))) $ "):";
+            txtTemp.iState = 5;
+            kUI.arrBonusLabels.AddItem(txtTemp);
+            txtTemp.StrValue = BuildBonusString(kContinent.m_iNumSatellites, kContinent);
+            txtTemp.iState = 5;
+            kUI.arrBonuses.AddItem(txtTemp);
+        }
+        iBonus = iBonus;
+        J0x35A:
+        // End:0x612 [Loop If]
+        if(iBonus < kContinent.GetNumRemainingCountries())
+        {
+            // End:0x502
+            if((iBonus == kContinent.m_iNumSatellites) && m_kCursorUI.bEnabled) // this applies the highlighting bonus for the country the new satellite would be currently covering.
+            {
+                txtTemp.StrValue = (GetSatString(iBonus + 1)) $ ":";
+                txtTemp.iState = 4;
+                kUI.arrBonusLabels.AddItem(txtTemp);
+                txtTemp.StrValue = BuildBonusString(iBonus + 1, kContinent);
+                txtTemp.iState = 4;
+                kUI.arrBonuses.AddItem(txtTemp);
+                kUI.iHighlightedBonus = iBonus;   
+            }
+            // End:0x604
+            else
+            {
+                txtTemp.StrValue = (GetSatString(iBonus + 1)) $ ":";
+                txtTemp.iState = 1;
+                kUI.arrBonusLabels.AddItem(txtTemp);
+                txtTemp.StrValue = BuildBonusString(iBonus + 1, kContinent);
+                txtTemp.iState = 1;
+                kUI.arrBonuses.AddItem(txtTemp);
+            }
+            ++ iBonus;
+            // [Loop Continue]
+            goto J0x35A;
+        }
+        // End:0x7BB
+        if(kContinent.GetNumRemainingCountries() == kContinent.m_arrSatBonuses.Length)   // adds continent bonus as appropriate and colors it if achieved
+        {
+            kCBonus = kContinent.GetBonus();
+            txtTemp.StrValue = m_strLabelBonus @ kCBonus.strTitle;
+            // End:0x725
+            if(HQ().HasBonus(kContinent.m_eBonus))
+            {
+                txtTemp.iState = 5;
+            }
+            // End:0x792
+            else
+            {
+                txtTemp.iState = kUI.arrBonuses[kUI.arrBonuses.Length - 1].iState;
+            }
+            kUI.arrBonuses.AddItem(txtTemp);
+        }
+    }
+    m_kContinentUI = kUI;
+    //return;    
+}
+
+
+only need to modify this portion:
+        iBonus = iBonus;
+        J0x35A:
+        // End:0x612 [Loop If]
+        if(iBonus < kContinent.GetNumRemainingCountries())
+        {
+			txtTemp.StrValue = (GetSatString(iBonus + 1)) $ ":";
+            // End:0x502
+            if((iBonus == kContinent.m_iNumSatellites) && m_kCursorUI.bEnabled && m_iCountry != -1 && !Country(m_iCountry).LeftXCom()) // this applies the highlighting bonus for the country the new satellite would be currently covering.
+            {
+                txtTemp.iState = 4;
+                kUI.arrBonusLabels.AddItem(txtTemp);
+                txtTemp.StrValue = BuildBonusString(iBonus + 1, kContinent);
+                txtTemp.iState = 4;
+                kUI.iHighlightedBonus = iBonus;   
+            }
+            // End:0x604
+            else
+            {
+                txtTemp.iState = 1;
+                kUI.arrBonusLabels.AddItem(txtTemp);
+                txtTemp.StrValue = BuildBonusString(iBonus + 1, kContinent);
+                txtTemp.iState = 1;
+            }
+			kUI.arrBonuses.AddItem(txtTemp);
+            ++ iBonus;
+            // [Loop Continue]
+            goto J0x35A;
+        }
+
+
+original hex broken down:
+iBonus = iBonus
+0F 00 8A 3B 00 00 00 8A 3B 00 00 
+
+if(iBonus < kContinent.GetNumRemainingCountries())
+07 12 06 96 00 8A 3B 00 00 19 00 8D 3B 00 00 0A 00 DC 23 00 00 00 1B D9 0F 00 00 00 00 00 00 16 16 
+	
+	if((iBonus == kContinent.m_iNumSatellites) && m_kCursorUI.bEnabled)
+	07 02 05 82 9A 00 8A 3B 00 00 19 00 8D 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 16 18 1E 00 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 16 
+
+		txtTemp.StrValue = (GetSatString(iBonus + 1)) $ ":"
+		0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 70 1B 29 10 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 16 1F 3A 00 16 
+
+		txtTemp.iState = 4
+		0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 2C 04 
+
+		kUI.arrBonusLabels.AddItem(txtTemp)
+		55 35 FE 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 
+
+		txtTemp.StrValue = BuildBonusString(iBonus + 1, kContinent)
+		0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 1B 54 04 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 00 8D 3B 00 00 16 
+
+		txtTemp.iState = 4
+		0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 2C 04 
+
+		kUI.arrBonuses.AddItem(txtTemp)
+		55 35 FF 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 
+
+		kUI.iHighlightedBonus = iBonus
+		0F 35 FD 3A 00 00 02 3B 00 00 00 01 00 8E 3B 00 00 00 8A 3B 00 00 
+
+	else
+	06 04 06 
+
+		txtTemp.StrValue = (GetSatString(iBonus + 1)) $ ":"
+		0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 70 1B 29 10 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 16 1F 3A 00 16 
+
+		txtTemp.iState = 1
+		0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 26 
+
+		kUI.arrBonusLabels.AddItem(txtTemp)
+		55 35 FE 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 
+
+		txtTemp.StrValue = BuildBonusString(iBonus + 1, kContinent)
+		0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 1B 54 04 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 00 8D 3B 00 00 16 
+
+		txtTemp.iState = 1
+		0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 26 
+
+		kUI.arrBonuses.AddItem(txtTemp)
+		55 35 FF 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 
+
+	++ iBonus
+	A5 00 8A 3B 00 00 16 
+
+else
+06 5A 03 
+
+
+
+
+new hex broken down:
+
+if(iBonus < kContinent.GetNumRemainingCountries())
+07 12 06 96 00 8A 3B 00 00 19 00 8D 3B 00 00 0A 00 DC 23 00 00 00 1B D9 0F 00 00 00 00 00 00 16 16 
+	
+	bAlreadyHadBonus = ((iBonus == kContinent.m_iNumSatellites) && m_kCursorUI.bEnabled && m_iCountry != -1 && !Country(m_iCountry).LeftXCom());
+	14 2D 00 A4 3B 00 00 82 82 82 9A 00 8A 3B 00 00 19 00 8D 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 16 18 1E 00 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 16 18 11 00 9B 01 5A 3B 00 00 1D FF FF FF FF 16 16 18 2C 00 81 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 16 16 
+
+	txtTemp.StrValue = (GetSatString(iBonus + 1)) $ ":"
+	0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 70 1B 29 10 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 16 1F 3A 00 16 
+
+	txtTemp.iState = (bAlreadyHadBonus ? 4 : 1);
+	0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 45 2D 00 A4 3B 00 00 02 00 2C 04 01 00 26 
+
+	kUI.arrBonusLabels.AddItem(txtTemp)
+	55 35 FE 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 
+
+	txtTemp.StrValue = BuildBonusString(iBonus + 1, kContinent)
+	0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 1B 54 04 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 00 8D 3B 00 00 16 
+
+	txtTemp.iState = (bAlreadyHadBonus ? 4 : 1);
+	0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 45 2D 00 A4 3B 00 00 02 00 2C 04 01 00 26 
+
+	kUI.arrBonuses.AddItem(txtTemp)
+	55 35 FF 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 
+	
+	kUI.iHighlightedBonus = iBonus
+	0F 35 FD 3A 00 00 02 3B 00 00 00 01 00 8E 3B 00 00 00 8A 3B 00 00 
+
+	++ iBonus
+	A5 00 8A 3B 00 00 16 
+
+	null-ops (95 bytes) (19 virtual words added)
+	00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 
+	
+else
+06 47 03 
+
+
+--------------------
+
+XGSatelliteSitRoomUI.UpdateContinent
+
+original hex:
+0F 00 8A 3B 00 00 00 8A 3B 00 00 07 12 06 96 00 8A 3B 00 00 19 00 8D 3B 00 00 0A 00 DC 23 00 00 00 1B D9 0F 00 00 00 00 00 00 16 16 07 02 05 82 9A 00 8A 3B 00 00 19 00 8D 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 16 18 1E 00 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 70 1B 29 10 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 16 1F 3A 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 2C 04 55 35 FE 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 1B 54 04 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 00 8D 3B 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 2C 04 55 35 FF 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 0F 35 FD 3A 00 00 02 3B 00 00 00 01 00 8E 3B 00 00 00 8A 3B 00 00 06 04 06 0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 70 1B 29 10 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 16 1F 3A 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 26 55 35 FE 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 1B 54 04 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 00 8D 3B 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 26 55 35 FF 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 A5 00 8A 3B 00 00 16 06 5A 03 
+
+new hex:
+07 12 06 96 00 8A 3B 00 00 19 00 8D 3B 00 00 0A 00 DC 23 00 00 00 1B D9 0F 00 00 00 00 00 00 16 16 14 2D 00 A4 3B 00 00 82 82 82 9A 00 8A 3B 00 00 19 00 8D 3B 00 00 09 00 8D 23 00 00 00 01 8D 23 00 00 16 18 1E 00 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 16 18 11 00 9B 01 5A 3B 00 00 1D FF FF FF FF 16 16 18 2C 00 81 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 16 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 70 1B 29 10 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 16 1F 3A 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 45 2D 00 A4 3B 00 00 02 00 2C 04 01 00 26 55 35 FE 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 01 00 89 3B 00 00 1B 54 04 00 00 00 00 00 00 92 00 8A 3B 00 00 26 16 00 8D 3B 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 01 00 89 3B 00 00 45 2D 00 A4 3B 00 00 02 00 2C 04 01 00 26 55 35 FF 3A 00 00 02 3B 00 00 00 00 00 8E 3B 00 00 0A 00 00 89 3B 00 00 16 0F 35 FD 3A 00 00 02 3B 00 00 00 01 00 8E 3B 00 00 00 8A 3B 00 00 A5 00 8A 3B 00 00 16 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 00 8A 3B 00 00 06 47 03 
+
+	
+----------------------------------------
+
+
+
+The income for the country is set in 
+
+function UpdateCountry()
+{
+    local TSatCountryUI kUI;
+    local XGCountry kCountry;
+    local int iFunding;
+
+    if(m_iCountry != -1)
+    {
+        kCountry = Country(m_iCountry);
+        kUI.txtCountry.StrValue = kCountry.GetName();
+        kUI.iPanicLevel = kCountry.GetPanicBlocks();
+        kUI.bHasSatCoverage = kCountry.HasSatelliteCoverage();
+        if(kUI.bHasSatCoverage)
+        {
+            kUI.txtCountry.iState = 5;
+        }
+        else
+        {
+            kUI.txtCountry.iState = 6;
+        }
+        iFunding = kCountry.m_kTCountry.iFunding;
+        if(m_kCursorUI.bEnabled)
+        {
+            kUI.txtFunding.iState = 6;
+        }
+        else
+        {
+            if(kCountry.GetCurrentFunding() > 0)
+            {
+                kUI.txtFunding.iState = 5;
+            }
+            else
+            {
+                kUI.txtFunding.iState = 1;
+            }
+        }
+        if((IsOptionEnabled(12)) || IsOptionEnabled(8))
+        {
+            if(kUI.bHasSatCoverage)
+            {
+                iFunding = kCountry.GetCurrentFunding();
+            }
+            else
+            {
+                iFunding = kCountry.CalcFunding(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY);
+            }
+        }
+        kUI.txtFunding.StrValue = ("+" $ (ConvertCashToString(iFunding))) @ m_strLabelPerMonth;
+    }
+    m_kCountryUI = kUI;
+    //return;    
+}
+
+
+
+target code:
+    if(m_iCountry != -1)
+    {
+        kCountry = Country(m_iCountry);
+        kUI.txtCountry.StrValue = kCountry.GetName();
+        kUI.iPanicLevel = kCountry.GetPanicBlocks();
+        kUI.bHasSatCoverage = kCountry.HasSatelliteCoverage();
+		if(kCountry.LeftXCOM())
+		{
+			kUI.txtCountry.iState = 2;
+		}
+		else
+		{
+			kUI.txtCountry.iState = 6;
+		}
+		if(kUI.bHasSatCoverage)
+		{
+			kUI.txtCountry.iState -= 1;
+		}
+        if(m_kCursorUI.bEnabled)
+        {
+            kUI.txtFunding.iState = 6;
+        }
+        else
+        {
+            if(kCountry.LeftXCom())
+            {
+                kUI.txtFunding.iState = 1;
+            }
+            else
+            {
+                kUI.txtFunding.iState = 5;
+            }
+        }
+		if(kUI.bHasSatCoverage)
+		{
+			iFunding = kCountry.GetCurrentFunding();
+		}
+		else
+		{
+			iFunding = kCountry.CalcFunding(11);
+		}
+        kUI.txtFunding.StrValue = ((ConvertCashToString(iFunding))) @ m_strLabelPerMonth;
+    }
+    m_kCountryUI = kUI;
+
+
+original hex broken down:
+if(m_iCountry != -1)
+07 A1 03 9B 01 5A 3B 00 00 1D FF FF FF FF 16 
+
+	kCountry = Country(m_iCountry)
+	0F 00 86 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 
+
+	kUI.txtCountry.StrValue = kCountry.GetName()
+	0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+	kUI.iPanicLevel = kCountry.GetPanicBlocks()
+	0F 35 F7 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 3D 24 00 00 00 1B ED 0F 00 00 00 00 00 00 16 
+
+	kUI.bHasSatCoverage = kCountry.HasSatelliteCoverage()
+	14 2D 35 F6 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 
+
+	if(kUI.bHasSatCoverage)
+	07 4E 01 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+		kUI.txtCountry.iState = 5
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 
+
+	else
+	06 80 01 
+
+		kUI.txtCountry.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	iFunding = kCountry.m_kTCountry.iFunding
+	0F 00 85 3B 00 00 35 5C 1E 00 00 64 1E 00 00 00 00 19 00 86 3B 00 00 09 00 34 24 00 00 00 01 34 24 00 00 
+
+	if(m_kCursorUI.bEnabled)
+	07 10 02 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 
+
+		kUI.txtFunding.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	else
+	06 9B 02 
+
+		if(kCountry.GetCurrentFunding() > 0)
+		07 6A 02 97 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 25 16 
+
+			kUI.txtFunding.iState = 5
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 
+
+		else
+		06 9B 02 
+
+			kUI.txtFunding.iState = 1
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 26 
+
+	if((IsOptionEnabled(12)) || IsOptionEnabled(8))
+	07 4E 03 84 1B A7 14 00 00 00 00 00 00 24 0C 16 18 0D 00 1B A7 14 00 00 00 00 00 00 24 08 16 16 
+
+		if(kUI.bHasSatCoverage)
+		07 07 03 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+			iFunding = kCountry.GetCurrentFunding()
+			0F 00 85 3B 00 00 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 
+
+		else
+		06 4E 03 
+
+			iFunding = kCountry.CalcFunding(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY)
+			0F 00 85 3B 00 00 19 00 86 3B 00 00 28 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 16 
+
+	kUI.txtFunding.StrValue = ("+" $ (ConvertCashToString(iFunding))) @ m_strLabelPerMonth
+	0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 A8 70 1F 2B 00 1B 34 06 00 00 00 00 00 00 00 85 3B 00 00 16 16 01 46 3B 00 00 16 
+
+m_kCountryUI = kUI
+0F 01 60 3B 00 00 00 87 3B 00 00 
+
+return
+04 0B 
+
+EOS
+53 	
+
+
+
+new hex broken down:
+if(m_iCountry != -1)
+07 78 03 9B 01 5A 3B 00 00 1D FF FF FF FF 16 
+
+	kCountry = Country(m_iCountry)
+	0F 00 86 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 
+
+	kUI.txtCountry.StrValue = kCountry.GetName()
+	0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+	kUI.iPanicLevel = kCountry.GetPanicBlocks()
+	0F 35 F7 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 3D 24 00 00 00 1B ED 0F 00 00 00 00 00 00 16 
+
+	kUI.bHasSatCoverage = kCountry.HasSatelliteCoverage()
+	14 2D 35 F6 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 
+
+	if(kCountry.LeftXCOM())
+	07 50 01 19 00 86 3B 00 00 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 
+
+		kUI.txtCountry.iState = 2
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 02 
+
+	else
+	06 82 01 
+
+		kUI.txtCountry.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	if(kUI.bHasSatCoverage)
+	07 D5 01 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+		kUI.txtCountry.iState -= 1
+		A2 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 01 16 
+
+	if(m_kCursorUI.bEnabled)
+	07 2A 02 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 
+
+		kUI.txtFunding.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	else
+	06 B3 02 
+
+		if(kCountry.LeftXCOM())
+		07 81 02 19 00 86 3B 00 00 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 
+
+			kUI.txtFunding.iState = 1
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 01 
+
+		else
+		06 B3 02 
+
+			kUI.txtFunding.iState = 5
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 
+
+	if(kUI.bHasSatCoverage)
+	07 FF 02 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+		iFunding = kCountry.GetCurrentFunding()
+		0F 00 85 3B 00 00 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 
+
+	else
+	06 2A 03 
+
+		iFunding = kCountry.CalcFunding(11)
+		0F 00 85 3B 00 00 19 00 86 3B 00 00 28 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 2C 0B 16 
+
+	kUI.txtFunding.StrValue = ((ConvertCashToString(iFunding))) @ m_strLabelPerMonth
+	0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 A8 1B 34 06 00 00 00 00 00 00 00 85 3B 00 00 16 01 46 3B 00 00 16 
+
+m_kCountryUI = kUI
+0F 01 60 3B 00 00 00 87 3B 00 00 
+
+null-ops (33 bytes)
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return
+04 0B 
+
+EOS
+53 	
+
+-------------------
+
+XGSatelliteSitRoom.UpdateCountry
+
+
+original hex:
+header:
+87 3B 00 00 AB 1F 00 00 00 00 00 00 84 3B 00 00 00 00 00 00 00 00 00 00 87 3B 00 00 00 00 00 00 A8 01 00 00 54 2D 00 00 B7 03 00 00 77 02 00 00 
+
+body:
+07 A1 03 9B 01 5A 3B 00 00 1D FF FF FF FF 16 0F 00 86 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 0F 35 F7 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 3D 24 00 00 00 1B ED 0F 00 00 00 00 00 00 16 14 2D 35 F6 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 07 4E 01 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 06 80 01 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 0F 00 85 3B 00 00 35 5C 1E 00 00 64 1E 00 00 00 00 19 00 86 3B 00 00 09 00 34 24 00 00 00 01 34 24 00 00 07 10 02 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 06 9B 02 07 6A 02 97 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 25 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 06 9B 02 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 26 07 4E 03 84 1B A7 14 00 00 00 00 00 00 24 0C 16 18 0D 00 1B A7 14 00 00 00 00 00 00 24 08 16 16 07 07 03 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 0F 00 85 3B 00 00 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 06 4E 03 0F 00 85 3B 00 00 19 00 86 3B 00 00 28 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 A8 70 1F 2B 00 1B 34 06 00 00 00 00 00 00 00 85 3B 00 00 16 16 01 46 3B 00 00 16 0F 01 60 3B 00 00 00 87 3B 00 00 04 0B 53 
+
+
+new hex: (virtual 0x3AF)
+header:
+87 3B 00 00 AB 1F 00 00 00 00 00 00 84 3B 00 00 00 00 00 00 00 00 00 00 87 3B 00 00 00 00 00 00 A8 01 00 00 54 2D 00 00 AF 03 00 00 77 02 00 00 
+
+body:
+07 78 03 9B 01 5A 3B 00 00 1D FF FF FF FF 16 0F 00 86 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 0F 35 F7 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 3D 24 00 00 00 1B ED 0F 00 00 00 00 00 00 16 14 2D 35 F6 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 07 50 01 19 00 86 3B 00 00 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 02 06 82 01 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 07 D5 01 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 A2 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 01 16 07 2A 02 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 06 B3 02 07 81 02 19 00 86 3B 00 00 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 01 06 B3 02 0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 07 FF 02 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 0F 00 85 3B 00 00 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 06 2A 03 0F 00 85 3B 00 00 19 00 86 3B 00 00 28 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 2C 0B 16 0F 35 D8 F9 FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 A8 1B 34 06 00 00 00 00 00 00 00 85 3B 00 00 16 01 46 3B 00 00 16 0F 01 60 3B 00 00 00 87 3B 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 04 0B 53 	
