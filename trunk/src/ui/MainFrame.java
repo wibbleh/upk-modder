@@ -15,6 +15,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.awt.image.RescaleOp;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -23,6 +25,8 @@ import java.io.OutputStreamWriter;
 import java.nio.file.Paths;
 
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
@@ -42,6 +46,8 @@ import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.InsetsUIResource;
@@ -157,17 +163,67 @@ public class MainFrame extends JFrame {
 	 * @return the status bar
 	 */
 	private JPanel createStatusBar() {
-		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.25), 0px:g(0.25), 0px:g(0.5)", "f:p"));
+		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.5), 0px:g(0.25), 0px:g(0.25)", "f:p"));
 		Color bgCol = new Color(214, 217, 223);
-
-		// TODO: replace placeholders with something useful
-		JTextField field1 = new JTextField("display some useful data here");
-		field1.setEditable(false);
-		field1.setBackground(bgCol);
 		
-		JTextField field2 = new JTextField("display other useful data here");
-		field2.setEditable(false);
-		field2.setBackground(bgCol);
+		JPanel upkPnl = new JPanel(new BorderLayout());
+
+		final JTextField upkTtf = new JTextField("no modfile loaded");
+		upkTtf.setEditable(false);
+		upkTtf.setBackground(bgCol);
+		
+		final JButton upkBtn = new JButton();
+		Icon normalIcon = UIManager.getIcon("FileView.directoryIcon");
+		
+		// create lighter and darker versions of icon
+		BufferedImage normalImg = new BufferedImage(
+				normalIcon.getIconWidth(), normalIcon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = normalImg.createGraphics();
+		normalIcon.paintIcon(null, g, 0, 0);
+		g.dispose();
+		Icon rolloverIcon = new ImageIcon(new RescaleOp(
+				new float[] { 1.1f, 1.1f, 1.1f, 1.0f }, new float[4], null).filter(normalImg, null));
+		Icon pressedIcon = new ImageIcon(new RescaleOp(
+				new float[] { 0.8f, 0.8f, 0.8f, 1.0f }, new float[4], null).filter(normalImg, null));
+
+		upkBtn.setIcon(normalIcon);
+		upkBtn.setRolloverIcon(rolloverIcon);
+		upkBtn.setPressedIcon(pressedIcon);
+		upkBtn.setBorder(null);
+		upkBtn.setEnabled(false);
+		
+		upkBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
+			@Override
+			protected void execute(File upkFile) {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+					tab.setUpkFile(upkFile);
+					upkTtf.setText((upkFile != null) ? upkFile.getPath() : "no UPK file selected");
+				}
+			}
+		});
+		
+		upkPnl.setBorder(upkTtf.getBorder());
+		upkTtf.setBorder(null);
+		
+		upkPnl.add(upkTtf, BorderLayout.CENTER);
+		upkPnl.add(upkBtn, BorderLayout.EAST);
+		
+		tabPane.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent evt) {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+					File upkFile = tab.getUpkFile();
+					upkTtf.setText((upkFile != null) ? upkFile.getPath() : "no UPK file selected");
+					upkBtn.setEnabled(true);
+				} else {
+					upkBtn.setEnabled(false);
+				}
+			}
+		});
 		
 		// TODO: implement progress monitoring hooks into various processes
 		UIManager.getDefaults().put("nimbusOrange",
@@ -177,9 +233,14 @@ public class MainFrame extends JFrame {
 		progressBar.setString("progress goes here");
 		progressBar.setValue(50);
 		
-		statusBar.add(field1, CC.xy(1, 1));
-		statusBar.add(field2, CC.xy(2, 1));
-		statusBar.add(progressBar, CC.xy(3, 1));
+		JTextField statusTtf = new JTextField("Generic status message");
+		statusTtf.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		statusTtf.setEditable(false);
+		statusTtf.setBackground(bgCol);
+		
+		statusBar.add(upkPnl, CC.xy(1, 1));
+		statusBar.add(progressBar, CC.xy(2, 1));
+		statusBar.add(statusTtf, CC.xy(3, 1));
 		
 		return statusBar;
 	}
@@ -290,7 +351,7 @@ public class MainFrame extends JFrame {
 					Component selComp = tabPane.getSelectedComponent();
 					if (selComp != null) {
 						ModTab tab = (ModTab) selComp;
-						File file = tab.getFile();
+						File file = tab.getModFile();
 						if (file != null) {
 							tab.saveFile();
 						} else {
@@ -307,7 +368,7 @@ public class MainFrame extends JFrame {
 				public File getTarget() {
 					Component selComp = tabPane.getSelectedComponent();
 					if (selComp != null) {
-						File file = ((ModTab) selComp).getFile();
+						File file = ((ModTab) selComp).getModFile();
 						if ((file == null) || !file.exists()) {
 							file = new File(getLastSelectedFile().getParent()
 									+ tabPane.getTitleAt(tabPane.getSelectedIndex()) + ".mod");
@@ -320,9 +381,12 @@ public class MainFrame extends JFrame {
 				protected void execute(File file) {
 					Component selComp = tabPane.getSelectedComponent();
 					if (selComp != null) {
+						tabPane.setTitleAt(tabPane.getSelectedIndex(), file.getName());
+						tabPane.updateUI(); // needed to update tab with
 						ModTab tab = (ModTab) selComp;
-						tab.setFile(file);
+						tab.setModFile(file);
 						tab.saveFile();
+						
 					}
 				}
 			});
@@ -441,9 +505,14 @@ public class MainFrame extends JFrame {
 		private ModTree modTree;
 
 		/**
-		 * The file associated with this tab.
+		 * The modfile associated with this tab.
 		 */
-		private File file;
+		private File modFile;
+		
+		/**
+		 * The UPK file associated with this tab.
+		 */
+		private File upkFile;
 
 		/**
 		 * Creates a new tab with an empty editor.
@@ -453,12 +522,12 @@ public class MainFrame extends JFrame {
 		}
 
 		/**
-		 * Creates a new tab from the specified file.
-		 * @param file
+		 * Creates a new tab from the specified modfile reference.
+		 * @param modFile the modfile to parse
 		 */
-		public ModTab(File file) {
+		public ModTab(File modFile) {
 			super(JSplitPane.HORIZONTAL_SPLIT);
-			this.file = file;
+			this.modFile = modFile;
 			
 			try {
 				this.initComponents();
@@ -469,7 +538,7 @@ public class MainFrame extends JFrame {
 
 		/**
 		 * Creates and lays out the components of the tab.
-		 * @param file
+		 * @param modFile
 		 */
 		private void initComponents() throws Exception {
 			// create right-hand editor pane
@@ -514,8 +583,8 @@ public class MainFrame extends JFrame {
 			});
 			
 			// read provided file, if possible
-			if (file != null) {
-				modEditor.read(new FileInputStream(file), file);
+			if (modFile != null) {
+				modEditor.read(new FileInputStream(modFile), modFile);
 			}
 	
 			// wrap editor in scroll pane
@@ -609,26 +678,10 @@ public class MainFrame extends JFrame {
 		 */
 		public void saveFile() {
 			try {
-				this.getEditor().write(new OutputStreamWriter(new FileOutputStream(this.file)));
+				this.getEditor().write(new OutputStreamWriter(new FileOutputStream(this.modFile)));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}
-		
-		/**
-		 * Returns the file associated with this tab.
-		 * @return the file
-		 */
-		public File getFile() {
-			return file;
-		}
-		
-		/**
-		 * Sets the file associated with this tab.
-		 * @param file the file to set
-		 */
-		public void setFile(File file) {
-			this.file = file;
 		}
 		
 		/**
@@ -638,13 +691,45 @@ public class MainFrame extends JFrame {
 		public JEditorPane getEditor() {
 			return modEditor;
 		}
-		
+
 		/**
 		 * Returns the <code>ModTree</code> instance of this tab.
 		 * @return the <code>ModTree</code>
 		 */
 		public ModTree getTree() {
 			return modTree;
+		}
+
+		/**
+		 * Returns the file associated with this tab.
+		 * @return the file
+		 */
+		public File getModFile() {
+			return modFile;
+		}
+		
+		/**
+		 * Sets the modfile associated with this tab.
+		 * @param modFile the modfile to set
+		 */
+		public void setModFile(File modFile) {
+			this.modFile = modFile;
+		}
+		
+		/**
+		 * Returns the UPK file associated with this tab.
+		 * @return the UPK file
+		 */
+		public File getUpkFile() {
+			return upkFile;
+		}
+
+		/**
+		 * Sets the UPK file associated with this tab.
+		 * @param upkFile the upk file to set
+		 */
+		public void setUpkFile(File upkFile) {
+			this.upkFile = upkFile;
 		}
 		
 	}
