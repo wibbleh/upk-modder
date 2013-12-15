@@ -23,6 +23,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
@@ -51,6 +53,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.InsetsUIResource;
+import javax.swing.plaf.nimbus.AbstractRegionPainter;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
 import javax.swing.text.ComponentView;
@@ -69,10 +72,12 @@ import javax.swing.tree.DefaultTreeModel;
 
 import model.modtree.ModOperandNode;
 import model.modtree.ModTree;
+import model.upk.UpkFile;
 
 import org.bounce.text.LineNumberMargin;
 
 import ui.dialogs.ReferenceUpdateDialog;
+import util.unrealhex.HexSearchAndReplace;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
@@ -94,6 +99,11 @@ public class MainFrame extends JFrame {
 	 * The tabbed pane component of the application's main frame.
 	 */
 	private JTabbedPane tabPane;
+	
+	/**
+	 * The cache of shared UPK files.
+	 */
+	private Map<File, UpkFile> upkCache = new HashMap<>();
 	
 	/**
 	 * Constructs the application's main frame.
@@ -148,9 +158,9 @@ public class MainFrame extends JFrame {
 		Container contentPane = this.getContentPane();
 		contentPane.setLayout(new FormLayout("1000px:g", "f:600px:g, b:p"));
 		
-		UIManager.getDefaults().put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(0, 0, 0, 0));
-		UIManager.getDefaults().put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
-		tabPane = new ButtonTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
+		UIManager.put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(3, 0, 4, 0));
+		UIManager.put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
+		tabPane = new ButtonTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
 		
 		JPanel statusBar = this.createStatusBar();
 		
@@ -194,12 +204,32 @@ public class MainFrame extends JFrame {
 		
 		upkBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
 			@Override
-			protected void execute(File upkFile) {
+			protected void execute(File file) {
 				Component selComp = tabPane.getSelectedComponent();
 				if (selComp != null) {
 					ModTab tab = (ModTab) selComp;
-					tab.setUpkFile(upkFile);
-					upkTtf.setText((upkFile != null) ? upkFile.getPath() : "no UPK file selected");
+
+					// grab UPK file from cache
+					UpkFile upkFile = upkCache.get(file);
+					if (upkFile == null) {
+						// if cache doesn't contain UPK file instantiate a new one
+						upkFile = new UpkFile(file);
+					}
+
+					// check whether UPK file is valid (i.e. header parsing worked properly)
+					if (upkFile.getHeader() != null) {
+						// store UPK file in cache
+						upkCache.put(file, upkFile);
+						// link UPK file to tab
+						tab.setUpkFile(upkFile);
+						// show file name in status bar
+						upkTtf.setText(file.getPath());
+						// enable 'update', 'apply' and 'revert' menu items
+						MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
+						mainMenu.setEditItemsEnabled(true);
+					} else {
+						// TODO: show error/warning message
+					}
 				}
 			}
 		});
@@ -210,16 +240,30 @@ public class MainFrame extends JFrame {
 		upkPnl.add(upkTtf, BorderLayout.CENTER);
 		upkPnl.add(upkBtn, BorderLayout.EAST);
 		
+		// install listener on tabbed pane to capture selection changes
 		tabPane.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent evt) {
 				Component selComp = tabPane.getSelectedComponent();
 				if (selComp != null) {
 					ModTab tab = (ModTab) selComp;
-					File upkFile = tab.getUpkFile();
-					upkTtf.setText((upkFile != null) ? upkFile.getPath() : "no UPK file selected");
+					
+					// get UPK file reference from tab
+					UpkFile upkFile = tab.getUpkFile();
+					boolean hasUpk = (upkFile != null);
+					
+					// show file name in status bar (or missing file hint)
+					upkTtf.setText(hasUpk ? upkFile.getFile().getPath() : "no UPK file selected");
+					// enable/disable 'update', 'apply' and 'revert' menu items
+					MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
+					mainMenu.setEditItemsEnabled(hasUpk);
+					// enable UPK selection button
 					upkBtn.setEnabled(true);
 				} else {
+					// last tab has been removed, reset to defaults
+					upkTtf.setText("no modfile loaded");
+					MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
+					mainMenu.setEditItemsEnabled(false);
 					upkBtn.setEnabled(false);
 				}
 			}
@@ -278,20 +322,20 @@ public class MainFrame extends JFrame {
 	 */
 	private class MainMenuBar extends JMenuBar {
 		
-		/**
-		 * The 'Save' menu item.
-		 */
+		/** The 'Save' menu item. */
 		private JMenuItem saveItem;
-		
-		/**
-		 * The 'Save As...' menu item.
-		 */
+		/** The 'Save As...' menu item. */
 		private JMenuItem saveAsItem;
-		
-		/**
-		 * The 'Update References...' menu item.
-		 */
+		/** The 'Close' menu item. */
+		private JMenuItem closeItem;
+		/** The 'Close All' menu item. */
+		private JMenuItem closeAllItem;
+		/** The 'Update References...' menu item. */
 		private JMenuItem refUpdateItem;
+		/** The 'Apply Hex Changes...' menu item */
+		private JMenuItem applyItem;
+		/** The 'Revert Hex Changes...' menu item */
+		private JMenuItem revertItem;
 		
 		/**
 		 * Creates and initializes the main menu bar.
@@ -307,7 +351,6 @@ public class MainFrame extends JFrame {
 			JMenu fileMenu = new JMenu("File");
 			
 			// create file menu items
-			// TODO: add icons
 			JMenuItem newItem = new JMenuItem("New", UIManager.getIcon("FileView.fileIcon"));
 			newItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
 			newItem.addActionListener(new ActionListener() {
@@ -316,10 +359,8 @@ public class MainFrame extends JFrame {
 					ModTab tab = new ModTab();
 					tabPane.addTab("New File", tab);
 					tabPane.setSelectedComponent(tab);
-					
-					saveItem.setEnabled(true);
-					saveAsItem.setEnabled(true);
-					refUpdateItem.setEnabled(true);
+
+					setFileItemsEnabled(true);
 				}
 			});
 			
@@ -333,12 +374,30 @@ public class MainFrame extends JFrame {
 						tabPane.addTab(file.getName(), tab);
 						tabPane.setSelectedComponent(tab);
 						
-						saveItem.setEnabled(true);
-						saveAsItem.setEnabled(true);
-						refUpdateItem.setEnabled(true);
+						setFileItemsEnabled(true);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+				}
+			});
+			
+			closeItem = new JMenuItem("Close");
+			closeItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
+			closeItem.setEnabled(false);
+			closeItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					tabPane.remove(tabPane.getSelectedComponent());
+				}
+			});
+			
+			closeAllItem = new JMenuItem("Close All");
+			closeAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK + InputEvent.SHIFT_DOWN_MASK));
+			closeAllItem.setEnabled(false);
+			closeAllItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					tabPane.removeAll();
 				}
 			});
 			
@@ -409,6 +468,10 @@ public class MainFrame extends JFrame {
 			// add items to file menu
 			fileMenu.add(newItem);
 			fileMenu.add(openItem);
+			fileMenu.addSeparator();
+			fileMenu.add(closeItem);
+			fileMenu.add(closeAllItem);
+			fileMenu.addSeparator();
 			fileMenu.add(saveItem);
 			fileMenu.add(saveAsItem);
 			fileMenu.addSeparator();
@@ -421,7 +484,6 @@ public class MainFrame extends JFrame {
 			
 			refUpdateItem = new JMenuItem("Update References...", UIManager.getIcon("FileChooser.detailsViewIcon"));
 			refUpdateItem.setEnabled(false);
-			
 			refUpdateItem.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
@@ -432,21 +494,63 @@ public class MainFrame extends JFrame {
 				}
 			});
 			
+			applyItem = new JMenuItem("Apply Hex Changes");
+			applyItem.setEnabled(false);
+			applyItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					Component selComp = tabPane.getSelectedComponent();
+					if (selComp != null) {
+						ModTab tab = (ModTab) selComp;
+						tab.applyChanges();
+					}
+				}
+			});
+			
+			revertItem = new JMenuItem("Revert Hex Changes");
+			revertItem.setEnabled(false);
+			revertItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					Component selComp = tabPane.getSelectedComponent();
+					if (selComp != null) {
+						ModTab tab = (ModTab) selComp;
+						tab.revertChanges();
+					}
+				}
+			});
+			
 			// add items to edit menu
 			editMenu.add(refUpdateItem);
+			editMenu.addSeparator();
+			editMenu.add(applyItem);
+			editMenu.add(revertItem);
 			
 			// create help menu
 			JMenu helpMenu = new JMenu("Help");
+
+			// create help and about icons
+			BufferedImage helpImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g2 = helpImg.createGraphics();
+			((AbstractRegionPainter) UIManager.get("OptionPane[Enabled].questionIconPainter")).paint(
+					g2, null, 16, 16);
+			g2.dispose();
+			BufferedImage aboutImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+			g2 = aboutImg.createGraphics();
+			((AbstractRegionPainter) UIManager.get("OptionPane[Enabled].informationIconPainter")).paint(
+					g2, null, 16, 16);
+			g2.dispose();
 			
 			// create help menu items
-			JMenuItem helpItem = new JMenuItem("Help");
+			JMenuItem helpItem = new JMenuItem("Help", new ImageIcon(helpImg));
 			helpItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
 			helpItem.setEnabled(false);
 			
-			JMenuItem aboutItem = new JMenuItem("About");
+			JMenuItem aboutItem = new JMenuItem("About", new ImageIcon(aboutImg));
 			aboutItem.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
+					// TODO: make dialog use same icon as menu item
 					showAboutDialog();
 				}
 			});
@@ -463,28 +567,29 @@ public class MainFrame extends JFrame {
 		}
 		
 		/**
-		 * Returns the 'Save' menu item.
-		 * @return the 'Save' menu item
+		 * Convenience method to set the enable state of the 'Save', 'Save As',
+		 * 'Close' and 'Close All' menu items.
+		 * @param enabled the enable state
 		 */
-		public JMenuItem getSaveItem() {
-			return this.saveItem;
+		public void setFileItemsEnabled(boolean enabled) {
+			this.saveItem.setEnabled(enabled);
+			this.saveAsItem.setEnabled(enabled);
+			this.closeItem.setEnabled(enabled);
+			this.closeAllItem.setEnabled(enabled);
 		}
 		
 		/**
-		 * Returns the 'Save As...' menu item.
-		 * @return the 'Save As...' menu item
+		 * Convenience method to set the enable state of the 'Update
+		 * References...', 'Apply Hex Changes' and 'Revert Hex Changes' menu
+		 * items.
+		 * @param enabled the enable state
 		 */
-		public JMenuItem getSaveAsItem() {
-			return this.saveAsItem;
+		public void setEditItemsEnabled(boolean enabled) {
+			this.refUpdateItem.setEnabled(enabled);
+			this.applyItem.setEnabled(enabled);
+			this.revertItem.setEnabled(enabled);
 		}
-
-		/**
-		 * Returns the 'Update References...' menu item
-		 * @return the 'Update References...' menu item
-		 */
-		public Component getRefUpdateItem() {
-			return this.refUpdateItem;
-		}
+		
 		
 	}
 	
@@ -512,7 +617,7 @@ public class MainFrame extends JFrame {
 		/**
 		 * The UPK file associated with this tab.
 		 */
-		private File upkFile;
+		private UpkFile upkFile;
 
 		/**
 		 * Creates a new tab with an empty editor.
@@ -683,6 +788,49 @@ public class MainFrame extends JFrame {
 				e.printStackTrace();
 			}
 		}
+
+		/**
+		 * Searches the associated UPK file for the byte data of the <code>BEFORE</code>
+		 * block and overwrites it using the byte data of the <code>AFTER</code> block.
+		 */
+		public void applyChanges() {
+			this.searchAndReplace(
+					HexSearchAndReplace.concatenate(
+							HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.upkFile)),
+					HexSearchAndReplace.concatenate(
+							HexSearchAndReplace.consolidateAfterHex(this.modTree, this.upkFile)));
+		}
+
+		/**
+		 * Searches the associated UPK file for the byte data of the <code>AFTER</code>
+		 * block and overwrites it using the byte data of the <code>BEFORE</code> block.
+		 */
+		public void revertChanges() {
+			this.searchAndReplace(
+					HexSearchAndReplace.concatenate(
+							HexSearchAndReplace.consolidateAfterHex(this.modTree, this.upkFile)),
+					HexSearchAndReplace.concatenate(
+							HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.upkFile)));
+		}
+		
+		/**
+		 * Searches the associated UPK file for the provided byte pattern and
+		 * overwrites it using the provided replacement bytes.
+		 * @param pattern the byte pattern to search for
+		 * @param replace the bytes to replace the search pattern with
+		 */
+		private void searchAndReplace(byte[] pattern, byte[] replace) {
+			// TODO: make this a static method in the HexSearchAndReplace utility class, duh
+			try {
+				// TODO: use function header info if possible
+				long filePos = HexSearchAndReplace.findFilePosition(pattern, this.upkFile, this.modTree);
+				// TODO: do actual replacement
+				System.out.println("pattern found at file position: " + filePos);
+			} catch (IOException e) {
+				// TODO: show error message
+				e.printStackTrace();
+			}
+		}
 		
 		/**
 		 * Returns the modfile editor instance of this tab.
@@ -720,7 +868,7 @@ public class MainFrame extends JFrame {
 		 * Returns the UPK file associated with this tab.
 		 * @return the UPK file
 		 */
-		public File getUpkFile() {
+		public UpkFile getUpkFile() {
 			return upkFile;
 		}
 
@@ -728,7 +876,7 @@ public class MainFrame extends JFrame {
 		 * Sets the UPK file associated with this tab.
 		 * @param upkFile the upk file to set
 		 */
-		public void setUpkFile(File upkFile) {
+		public void setUpkFile(UpkFile upkFile) {
 			this.upkFile = upkFile;
 		}
 		
@@ -754,30 +902,39 @@ public class MainFrame extends JFrame {
 		@Override
 		public void addTab(String title, Component component) {
 			super.addTab(title, component);
+			// add 'Close' button to new tab
 			this.setTabComponentAt(this.getTabCount() - 1, new ButtonTabComponent());
 		}
 		
 		@Override
-		public void remove(Component component) {
-			// TODO Auto-generated method stub
-			super.remove(component);
-		}
-		
-		@Override
 		public void removeTabAt(int index) {
+			ModTab thisTab = (ModTab) this.getComponentAt(index);
+			// check whether the tab has a valid UPK file reference and whether
+			// the same file is referenced by another tab
+			UpkFile upkFile = thisTab.getUpkFile();
+			if (upkFile != null) {
+				boolean shared = false;
+				// iterate tabs, skip the one that's about to be removed
+				for (int i = 0; (i < this.getTabCount()) && (i != index); i++) {
+					ModTab thatTab = (ModTab) this.getComponentAt(i);
+					if (upkFile.equals(thatTab.getUpkFile())) {
+						shared = true;
+						break;
+					}
+				}
+				// if referenced UPK file is unique among tabs remove it from cache
+				if (!shared) {
+					upkCache.remove(upkFile.getFile());
+				}
+			}
+			
 			super.removeTabAt(index);
+			
+			// if last tab has been removed disable 'save' and 'close' menu items
 			if (this.getTabCount() == 0) {
 				MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
-				mainMenu.getSaveItem().setEnabled(false);
-				mainMenu.getSaveAsItem().setEnabled(false);
-				mainMenu.getRefUpdateItem().setEnabled(false);
+				mainMenu.setFileItemsEnabled(false);
 			}
-		}
-		
-		@Override
-		public void setSelectedComponent(Component c) {
-			// TODO Auto-generated method stub
-			super.setSelectedComponent(c);
 		}
 		
 		/**
