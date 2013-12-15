@@ -464,9 +464,9 @@ public class ReferenceUpdate {
 		hasDestRefError.clear();
 		for (int i = 0; i < sourceReferences.size(); i++) {
 			if(isVirtualFunction.get(i)) {
-				this.destReferences.add(this.destUpk.findVFRefName(getReferenceName(i)));
+				this.destReferences.add(this.destUpk.findVFRefByName(getReferenceName(i)));
 			} else {
-				this.destReferences.add(this.destUpk.findRefName(getReferenceName(i)));
+				this.destReferences.add(this.destUpk.findRefByName(getReferenceName(i)));
 			}
 			if((this.destReferences.get(i) < 0 && isVirtualFunction.get(i))
 					|| (this.destReferences.get(i) == 0 && !isVirtualFunction.get(i))){

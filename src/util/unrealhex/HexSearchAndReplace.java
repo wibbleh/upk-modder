@@ -65,7 +65,7 @@ public class HexSearchAndReplace {
 					String[] tokens = hex.split("\\s+");
 					for (String token : tokens) {
 						if(token.startsWith("{|") && (upk != null)) {
-							int value = upk.findRefName(token.substring(2, token.length()-2));
+							int value = upk.findRefByName(token.substring(2, token.length()-2));
 							if(value == 0) {
 								return null;
 							}
@@ -74,7 +74,7 @@ public class HexSearchAndReplace {
 								currentBlock.add(Integer.parseInt(subtoken, 16));
 							}
 						} else if(token.startsWith("<|") && (upk != null)) {
-							int value = upk.findVFRefName(token.substring(2, token.length()-2));
+							int value = upk.findVFRefByName(token.substring(2, token.length()-2));
 							if(value < 0) {
 								return null;
 							}
@@ -122,7 +122,7 @@ public class HexSearchAndReplace {
 		String targetFunction = tree.getFunctionName().trim();
 		
 		// retrieve objectlist index from upk -- this is the same as references but is not named such here
-		int objectIndex = upk.findRefName(targetFunction);
+		int objectIndex = upk.findRefByName(targetFunction);
 		if(objectIndex == 0)
 			return -1;
 		
