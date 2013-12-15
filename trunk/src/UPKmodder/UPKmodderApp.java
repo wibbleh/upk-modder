@@ -30,6 +30,7 @@ import model.upk.UpkFile;
 import model.modfile2.*;
 import parser.unrealhex.MemorySizeCalculator;
 import parser.unrealhex.OperandTable;
+import ui.MainFrame;
 
 /**
  *
@@ -53,7 +54,11 @@ public class UPKmodderApp {
     
     public static void main(String[] args) throws IOException 
     {
-        UpkConfigData kConfigData = new UpkConfigData();
+		// configure LAF and locale
+//		configureLookAndFeel();
+		// init main frame instance
+//		MainFrame.getInstance();
+//        UpkConfigData kConfigData = new UpkConfigData();
         
 //        if(args.length == 0)
 //        {
@@ -70,108 +75,108 @@ public class UPKmodderApp {
 //        kUpkFileHandler.Init(kConfigData.m_sUpkConfig, kConfigData.m_bVerbose);
         
         
-        OperandTableParser kOpParser = new OperandTableParser(Paths.get(kConfigData.m_sOperandData));
+//        OperandTableParser kOpParser = new OperandTableParser(Paths.get(kConfigData.m_sOperandData));
 		ReferenceParser kRefParser = new ReferenceParser();
 //        
-        MemorySizeCalculator calc = new MemorySizeCalculator();
-        
-        // reference parser test cases:
-        if(kRefParser.parseString("07 DA 01 9B 38 3A 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 38 3A 24 00 16 ").equals("07 DA 01 9B 38 3A 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 38 3A 24 00 16 "))
-        {
-            System.out.println("Reference Parser : Test 1 passed");
-        }
-        if(kRefParser.parseString("55 35 97 9F 00 00 98 9F 00 00 00 00 1A 00 10 A0 00 00 01 BF 9F 00 00 7D 00 1B 82 0D 00 00 00 00 00 00 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 35 33 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 16 16 ").equals("55 35 {{ 97 9F 00 00 }} {{ 98 9F 00 00 }} 00 00 1A 00 {{ 10 A0 00 00 }} 01 {{ BF 9F 00 00 }} 7D 00 1B << 82 0D 00 00 >> 00 00 00 00 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 35 {{ 33 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 16 16 "))
-        {
-            System.out.println("Reference Parser : Test 2 passed");
-        }
-        if(kRefParser.parseString("07 45 03 19 19 2E FE 2C 00 00 19 12 20 4F FE FF FF 0A 00 D8 F9 FF FF 00 1C F6 FB FF FF 16 09 00 98 F9 FF FF 00 01 98 F9 FF FF 09 00 F0 2C 00 00 00 01 F0 2C 00 00 01 00 F0 2C 00 00 00 28 ").equals("07 45 03 19 19 2E {{ FE 2C 00 00 }} 19 12 20 {{ 4F FE FF FF }} 0A 00 {{ D8 F9 FF FF }} 00 1C {{ F6 FB FF FF }} 16 09 00 {{ 98 F9 FF FF }} 00 01 {{ 98 F9 FF FF }} 09 00 {{ F0 2C 00 00 }} 00 01 {{ F0 2C 00 00 }} 01 00 {{ F0 2C 00 00 }} 00 28 "))
-        {
-            System.out.println("Reference Parser : Test 3 passed");
-        }
-//        UpkFile kUpkFile = new UpkFile(new File("C:/Games/XComGame_EU_patch4.upk"));
-        
-        ModFile2 myfile = new ModFile2();
-
-        String encoding = System.getProperty("file.encoding");
-        try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test_mod.upk_mod"), Charset.forName(encoding))))
-        {
-            while(s.hasNext())
-            {
-                myfile.addLine(s.nextLine());
-            }
-        }
-        catch (IOException x) 
-        {
-            System.out.println("caught exception: " + x);
-        }
-        System.out.println(myfile.getNumLines());
-        for(int i = 0; i < myfile.getNumLines(); i++)
-        {
-            LineNode line = myfile.getLine(i);
-            if(line != null)
-            {
-                if(line.isCode())
-                {
-                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.toHex())) + ": ");
-                    for(int j=0;j<line.getIndentation();j++)
-                        System.out.print("\t");
-
-                    System.out.println(line.toHex());
-                }
-                else
-                {
-                    System.out.print(String.format("%3s",i) + ":      ");
-                }
-                if(line.isCode())
-                {
-                    System.out.print("    " + String.format("%4s", line.getMemorySize()) + ": ");
-                    for(int j=0;j<line.getIndentation();j++)
-                        System.out.print("\t");
-                }
-                if(line.isValidCode())
-                {
-                    for(int j = 0; j < line.getNumTokens(); j++)
-                    {
-                        System.out.print(line.getToken(j).getData().trim() + " ");
-                    }
-                    System.out.println();
-                }
-                else
-                {
-                    System.out.println(line.toString());
-                }
-            }
-            else
-            {
-                System.out.println("Line is null");
-            }
-        }
-        
-        // test iterating through references:
-        int iCount = 0;
-        for(int i = 0; i < myfile.getNumLines(); i++)
-        {
-            LineNode line = myfile.getLine(i);
-            if(line.isValidCode())
-            {
-                for(int j = 0; j < line.getNumTokens(); j++)
-                {
-                    OperandNode token = line.getToken(j);
-                    if(token.getClass().getSimpleName().equals("ReferenceNode"))
-                    {
-                        System.out.print(("Ref " + iCount++ + ": " + token.getData()));
-                        if(token.isFunctionRef())
-                        {
-                            System.out.println("  -- function");
-                        }
-                        else
-                        {
-                            System.out.println();
-                        }
-                    }
-                }
-            }
-        }
+//        MemorySizeCalculator calc = new MemorySizeCalculator();
+//        
+//        // reference parser test cases:
+//        if(kRefParser.parseString("07 DA 01 9B 38 3A 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 38 3A 24 00 16 ").equals("07 DA 01 9B 38 3A 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 38 3A 24 00 16 "))
+//        {
+//            System.out.println("Reference Parser : Test 1 passed");
+//        }
+//        if(kRefParser.parseString("55 35 97 9F 00 00 98 9F 00 00 00 00 1A 00 10 A0 00 00 01 BF 9F 00 00 7D 00 1B 82 0D 00 00 00 00 00 00 35 36 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 35 33 00 00 00 38 00 00 00 00 00 10 00 0F A0 00 00 35 3B 00 00 00 3C 00 00 00 00 00 01 AE 9F 00 00 16 16 ").equals("55 35 {{ 97 9F 00 00 }} {{ 98 9F 00 00 }} 00 00 1A 00 {{ 10 A0 00 00 }} 01 {{ BF 9F 00 00 }} 7D 00 1B << 82 0D 00 00 >> 00 00 00 00 35 {{ 36 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 35 {{ 33 00 00 00 }} {{ 38 00 00 00 }} 00 00 10 00 {{ 0F A0 00 00 }} 35 {{ 3B 00 00 00 }} {{ 3C 00 00 00 }} 00 00 01 {{ AE 9F 00 00 }} 16 16 "))
+//        {
+//            System.out.println("Reference Parser : Test 2 passed");
+//        }
+//        if(kRefParser.parseString("07 45 03 19 19 2E FE 2C 00 00 19 12 20 4F FE FF FF 0A 00 D8 F9 FF FF 00 1C F6 FB FF FF 16 09 00 98 F9 FF FF 00 01 98 F9 FF FF 09 00 F0 2C 00 00 00 01 F0 2C 00 00 01 00 F0 2C 00 00 00 28 ").equals("07 45 03 19 19 2E {{ FE 2C 00 00 }} 19 12 20 {{ 4F FE FF FF }} 0A 00 {{ D8 F9 FF FF }} 00 1C {{ F6 FB FF FF }} 16 09 00 {{ 98 F9 FF FF }} 00 01 {{ 98 F9 FF FF }} 09 00 {{ F0 2C 00 00 }} 00 01 {{ F0 2C 00 00 }} 01 00 {{ F0 2C 00 00 }} 00 28 "))
+//        {
+//            System.out.println("Reference Parser : Test 3 passed");
+//        }
+////        UpkFile kUpkFile = new UpkFile(new File("C:/Games/XComGame_EU_patch4.upk"));
+//        
+//        ModFile2 myfile = new ModFile2();
+//
+//        String encoding = System.getProperty("file.encoding");
+//        try (Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test_mod.upk_mod"), Charset.forName(encoding))))
+//        {
+//            while(s.hasNext())
+//            {
+//                myfile.addLine(s.nextLine());
+//            }
+//        }
+//        catch (IOException x) 
+//        {
+//            System.out.println("caught exception: " + x);
+//        }
+//        System.out.println(myfile.getNumLines());
+//        for(int i = 0; i < myfile.getNumLines(); i++)
+//        {
+//            LineNode line = myfile.getLine(i);
+//            if(line != null)
+//            {
+//                if(line.isCode())
+//                {
+//                    System.out.print(String.format("%3s", i) + ":" + String.format("%4s",calc.parseString(line.toHex())) + ": ");
+//                    for(int j=0;j<line.getIndentation();j++)
+//                        System.out.print("\t");
+//
+//                    System.out.println(line.toHex());
+//                }
+//                else
+//                {
+//                    System.out.print(String.format("%3s",i) + ":      ");
+//                }
+//                if(line.isCode())
+//                {
+//                    System.out.print("    " + String.format("%4s", line.getMemorySize()) + ": ");
+//                    for(int j=0;j<line.getIndentation();j++)
+//                        System.out.print("\t");
+//                }
+//                if(line.isValidCode())
+//                {
+//                    for(int j = 0; j < line.getNumTokens(); j++)
+//                    {
+//                        System.out.print(line.getToken(j).getData().trim() + " ");
+//                    }
+//                    System.out.println();
+//                }
+//                else
+//                {
+//                    System.out.println(line.toString());
+//                }
+//            }
+//            else
+//            {
+//                System.out.println("Line is null");
+//            }
+//        }
+//        
+//        // test iterating through references:
+//        int iCount = 0;
+//        for(int i = 0; i < myfile.getNumLines(); i++)
+//        {
+//            LineNode line = myfile.getLine(i);
+//            if(line.isValidCode())
+//            {
+//                for(int j = 0; j < line.getNumTokens(); j++)
+//                {
+//                    OperandNode token = line.getToken(j);
+//                    if(token.getClass().getSimpleName().equals("ReferenceNode"))
+//                    {
+//                        System.out.print(("Ref " + iCount++ + ": " + token.getData()));
+//                        if(token.isFunctionRef())
+//                        {
+//                            System.out.println("  -- function");
+//                        }
+//                        else
+//                        {
+//                            System.out.println();
+//                        }
+//                    }
+//                }
+//            }
+//        }
 //        for(int i = 0; i < myfile.getNumLines(); i++)
 //        {
 //            LineNode line = myfile.getLine(i);

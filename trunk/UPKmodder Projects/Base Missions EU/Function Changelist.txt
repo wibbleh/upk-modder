@@ -1,0 +1,41 @@
+Alien Base missions and re-taking countries
+
+Function rework checklist :
+
++*** 1) Rewrite XGStrategyAI.CreateAlienBase 			: inits base detection, adds country and continent, sets location, saves mission ID to country
++*** 3) Alter XGStrategyAI.ApplyMissionPanic   			: completing alien base mission triggers XGStrategyAI.JoinXCom
++*** 4) Rework XGSatelliteSitRoomUI.UpdateCountryHelp 	: allow occupied countries to have satellites launched over them, coloring changes
++*** 5) XGCountry.SetSatelliteCoverage					: prevents collection of resources from sats launched over occupied countries
++*** 6) XGHeadquarters.ActivateSatellite					: creation of alien base (via OnCodeCracked) when satellite reaches orbit
++*** 7) XGStrategyAI.InitNewGame							: remove creation of alien base from this function
++*** 8) XGSituationRoomUI.OnCodeCracked 					: alter to create bases in countries with satellite coverage
++*** 8.1) XGFacility_SituationRoom.IsCodeActive			: helper for OnCodeCracked to play alien base reveal cinematic
++*** 8.5) XGStrategyAI.AddToAssets						: helper to create alien base mission when country satellite orbited or tech completed
++*** 10) XGObjectiveManager.BuildSubObjective			: create condition for new subobjective 7 to be completed
++*** 11) XGResearchUI.UpdateView							: display objective 3 (recon country) after finishing outsider shard research
++*** 12) XGStrategyAI.AIAddNewObjectives	 				: Add infiltration missions for initial lost countries
++*** 12.5) XGStrategyAI.RevealBase/#AddInfTgt 			: Reworked into helper to create infiltration missions
++*** 13) XGFacility_Labs.OnResearchComplete				: disable alien base reveal narrative after completing outsider shard research project
++*** 14) XGDebriefUI.CheckForMatinee					: prevent cinematic and objective updating except for first alien base mission, prevent destruction of skeleton key
++*** 15) XGStrategy.PostCombat 							: Remove alien base destruction cinematic and other junk to stop crashes after 2nd base mission	
+
+Requirements:
+*** 1) Alien bases created in occupied countries  (1, 6, 7, 8)
+*** 2) When country is occupied existing satellite is destroyed (unchanged from vanilla)
+*** 3) Alien base created when Base Shard research complete and satellite coverage over occupied country (6, 7, 8 )
+4) Alien base mission can be accepted after completion of Skeleton Key item and with current satellite coverage // defer for now
+*** 5) Launching satellite over occupied country creates base (4, 5, 6)
+*** 6) Completing alien base mission causes associated country to rejoin XCom with 4 panic (2, 3)
+*** 7) Objectives shows requirement to orbit satellite over occupied country (10, 11)
+*** 8) Countries lost during initial months from infiltration missions (12)
+
+
+Display-only changes :
++*** 1) XGMissionControlUI.UpdateAlert 					: displays country instead of continent in alien base alert
++*** 2) XGSatelliteSitRoomUI.UpdateContinent				: disable sci/eng highlighting for occupied countries
++*** 3) XGSatelliteSitRoom.UpdateConfirmUI				: display correct launch rewards on satellite launch confirmation
++*** 4) XGSatelliteSitRoom.UpdateCountry					: display correct total funding for countries in satellite launch UI
++*** 5) XGCountry.CalcFunding							: Allow return of funding with satellite, plus fix bugs with SW options
++*** 6) XComHQPresentationLayer.GetObjectiveImagePath	: change image for objective 3 UI popup
++*** 7) XGDebriefUI.UpdateCouncilDebrief					: Display country in debrief after completing alien base mission
+

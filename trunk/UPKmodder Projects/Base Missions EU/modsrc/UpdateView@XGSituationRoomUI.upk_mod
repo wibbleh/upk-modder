@@ -1,0 +1,28 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=UpdateView@XGSituationRoomUI
+
+// remove call to UpdateCode
+
+[BEFORE_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+UpdateCode()
+1B 9F 2B 00 00 00 00 00 00 16 
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+random valid hex to aid in removal
+2C 01 0B 0B 1D 45 33 00 00 0B 
+[/CODE]
+[/AFTER_HEX]

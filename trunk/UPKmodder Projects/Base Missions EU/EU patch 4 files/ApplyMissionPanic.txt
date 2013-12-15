@@ -1,0 +1,77 @@
+Update to trigger rejoining of XCOM upon alien base mission completion
+
+Function to be modified is XGStrategyAI.ApplyMissionPanic
+
+
+existing case for alien base mission:
+	case 6:
+		HQ().m_kLastResult.iWorldPanicChange = class'XGTacticalGameCore'.default.PANIC_ALIENBASE_CONQUERED;
+		World().AddPanic(HQ().m_kLastResult.iWorldPanicChange);
+		// End:0xB20
+		break;
+		
+		
+new target code:
+	case 6:
+		if(bXComSuccess)
+		{
+			m_iAlienMonth = iCountry;
+			CostTest();
+		}
+		break;
+		
+This is almost to easy to be true!
+
+
+What happens in vanilla if an alien base assault is lost? From looking in the tactical game at XGBattle.state_Done, only restarts are available for the first and last mission.
+
+
+original hex broken down:
+case 6:
+0A 1D 0B 2C 06 
+
+	HQ().m_kLastResult.iWorldPanicChange = class'XGTacticalGameCore'.default.PANIC_ALIENBASE_CONQUERED
+	0F 35 58 03 00 00 5C 03 00 00 00 01 19 1B 5C 11 00 00 00 00 00 00 16 09 00 A3 32 00 00 00 01 A3 32 00 00 12 20 6D FE FF FF 09 00 E7 FB FF FF 00 02 E7 FB FF FF 
+
+	World().AddPanic(HQ().m_kLastResult.iWorldPanicChange)
+	19 1B 9C 2C 00 00 00 00 00 00 16 3C 00 00 00 00 00 00 1B B3 00 00 00 00 00 00 00 35 58 03 00 00 5C 03 00 00 00 00 19 1B 5C 11 00 00 00 00 00 00 16 09 00 A3 32 00 00 00 01 A3 32 00 00 16 
+
+	break;
+	06 20 0B 
+
+
+
+
+
+new hex broken down:
+case 6:
+0A 1D 0B 2C 06 
+
+	if(bXComSuccess)
+	07 0D 0B 2D 00 7D 43 00 00 
+
+		m_iAlienMonth = kCountry.GetID();
+		0F 01 10 42 00 00 19 00 7A 43 00 00 0A 00 5E 24 00 00 00 1B 58 0F 00 00 00 00 00 00 16 
+		
+		JoinXCom();
+		1B 3F 06 00 00 00 00 00 00 16 
+	
+		null-ops:
+		01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+	break;
+	06 20 0B 
+
+
+-------------------------
+
+XGStrategyAI.ApplyMissionPanic
+
+original hex: (next line 0xB1D)
+0A 1D 0B 2C 06 0F 35 58 03 00 00 5C 03 00 00 00 01 19 1B 5C 11 00 00 00 00 00 00 16 09 00 A3 32 00 00 00 01 A3 32 00 00 12 20 6D FE FF FF 09 00 E7 FB FF FF 00 02 E7 FB FF FF 19 1B 9C 2C 00 00 00 00 00 00 16 3C 00 00 00 00 00 00 1B B3 00 00 00 00 00 00 00 35 58 03 00 00 5C 03 00 00 00 00 19 1B 5C 11 00 00 00 00 00 00 16 09 00 A3 32 00 00 00 01 A3 32 00 00 16 06 20 0B 
+
+new hex:
+0A 1D 0B 2C 06 07 0D 0B 2D 00 7D 43 00 00 0F 01 10 42 00 00 19 00 7A 43 00 00 0A 00 5E 24 00 00 00 1B 58 0F 00 00 00 00 00 00 16 1B 3F 06 00 00 00 00 00 00 16 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 06 20 0B 
+
+
+

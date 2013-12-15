@@ -1,0 +1,35 @@
+XComStrategyGame.int  // New Localization Entry for subobjective 7
+
+placed after SubObjectiveNames[eSubObj_ResearchShard]="Research the Outsider Shard"
+
+SubObjectiveNames[eSubObj_ObtainShards] ="Launch a satellite over an occupied country"
+
+placed after SubObjectiveInDepth[eSubObj_ResearchShard]
+
+SubObjectiveInDepth[eSubObj_ObtainShards]="To find one of the alien bases, we'll need eyes in the sky. We should launch a satellite over an alien-occupied country so that we can do a detailed search."
+
+
+Change and use objective 3
+
+change:
+GameObjectiveNames[eObj_ObtainShards]="Obtain More Outsider shards."
+
+to:
+GameObjectiveNames[eObj_ObtainShards]="Recon an Occupied Country"
+
+
+Update Alien Base debrief localization text:
+change:
+m_strAlienBaseFeedback="XCOM successfully infiltrated and eliminated the alien base in <XGParam:StrValue0/>!"
+
+to:
+m_strAlienBaseFeedback="XCOM successfully infiltrated and eliminated the alien base in <XGParam:StrValue0/>, which has now rejoined the XCOM Project."
+
+
+Localization Change:
+change:
+m_strTitle="Alien Base Assault"
+
+to:
+m_strTitle="Assault Base: "
+

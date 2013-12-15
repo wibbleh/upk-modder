@@ -1,0 +1,249 @@
+‚†‚†Making the first country leave the XCOM project
+
+In XGStrategyAI.ApplyMissionPanic
+
+kResultCountry.bLeftXCom = true; is set if a terror mission is failed
+
+This is implemented through the later code:
+	if(kResultCountry.bLeftXCom)
+	{
+		kCountry.LeaveXComProject();
+		GEOSCAPE().Alert(GEOSCAPE().MakeAlert(11, kMission.GetCountry()));
+	}
+	
+The function XGWorld.AddInitialPanic initializes the panic for countries
+
+This is called as the first thing in XGWorld.StartNewGame, even before :
+    InitFunding();
+    World().SetStartingContinent(HQ().m_iContinent);
+    AddResource(0, class'XGTacticalGameCore'.default.HQ_STARTING_MONEY);
+    PayDay();
+	
+	
+This is called in XGStrategy.state_StartingNewGame
+    CheckForSecondWave();
+    m_kHQ.InitNewGame();
+    m_kGeoscape.InitNewGame();
+    m_kWorld.StartGame();   <==============
+    m_kAI.InitNewGame();
+	
+It is called before XGStrategyAI.InitNewGame()
+
+Need some sort of criteria to pick an initial country to be owned by the alien player
+--) should not be on the HQ continent
+--) otherwise could pretty much be any country.
+
+Instead of having the country already be lost, could make it be lost in the beginning of March. Time passes through the XGGeoscape.GameTick function, which regularly calls the following functions:
+
+    UpdateShips(fGameTime);
+    m_fAITimer -= fGameTime;
+    // End:0x54
+    if(m_fAITimer <= float(0))
+    {
+        AIUpdate();
+        m_fAITimer += float(1800);
+    }
+    m_fGameTimer -= fGameTime;
+    // End:0xAB
+    if(m_fGameTimer <= float(0))
+    {
+        HQ().Update();
+        m_fGameTimer += float(3600);
+    }
+    m_kDateTime.AddTime(fGameTime);
+    // End:0x1C5
+    if((IsPayDay()) && !IsBusy())
+    {
+        World().m_kFundingCouncil.OnEndOfMonth();
+        World().CouncilMeeting();
+        AI().UpdateObjectives();
+        // End:0x1C5
+        if(!m_kDateTime.IsFirstDay())
+        {
+            Alert(MakeAlert(38));
+            AI().MakeMonthlyPlan();
+        }
+    }
+	
+	AIUpdate() is called every 1/2 of gametime
+	HQ().Update() is called every 1 hour of gametime
+	Otherwise things are only called at the end of the month.
+	
+	AIUpdate() calls:
+	AI().Update();
+    RadarUpdate();
+	
+	XGStrategyAI.Update calls:
+	AIUpdateMissions();
+    UpdateObjectives();
+	
+	
+	There is an "infiltrate" objective which can cause countries to leave XCOM : eObjective_Infiltrate = 7
+	
+	These are set up in XGStrategyAI.BuildObjectives :
+	BuildObjective(7, true);
+    AddUFOMission(7, 1, 9, 1, 100, 0); AddUFOMission(eObjective, iStartDate, eUFO, eMission, iMissionRadius, iRandomDays) 9 = eShip_UFOEthereal, 1 = eUM_LongScout
+    AddUFOMission(7, 4, 9, 5, 0, 3);  , 5 = eUM_Direct
+	
+	In XGStrategyAI.OnObjectiveEnded :
+	            case 7:
+                SignPact(kLastUFO, kObj.m_iCountryTarget);
+                // End:0x20A
+                break;
+				
+This forces the country to leave the XCOM project. Since the ethereal UFO can't be detected until the hyperwave beacon is constructed, this makes it impossible to prevent this mission from succeeding.
+
+
+Of course, still have to select the country :)
+
+HQ().GetHomeCountry() is the HQ's current home country
+HQ().GetContinent() will retrieve the HQ's continent as an integer
+
+WORLD().GetRandomCouncilCountry() will retrieve a random council country as target. Just loop until the random country's continent until they don't match.
+
+GetRandomCouncilCountry is defined twice -- once in XGContinent and once in XGWorld. The one in XGContinent only gets a random councilcountry from that continent.
+
+Two options. Totally random country, or randomly pick a non-HQ continent and then pick a random council country from that continent.
+
+This would make the 4 country continents have each country with a 1/16 chance to be picked. A 3 country continent would have 1/12, and a 2 country 1/8.
+
+want:
+do
+{
+	iContinent = WORLD().GetRandomContinent();
+}
+while(iContinent != HQ().GetContinent())
+
+J0x0300:
+iContinent = WORLD().GetRandomContinent();
+if(iContinent == HQ().GetContinent())
+{
+	goto J0x0300;
+}
+iCountry = Continent(iContinent).GetRandomCouncilCountry(); // returns int
+
+Going to go with random non-HQ continent, then random council country from that continent.
+
+
+Will actually have to add a current objective of type 7, picking a country that is not on the XCOM HQ.
+	
+Code added to XGStrategyAI.AddNewObjectives for this would look like :
+if(iMonth <= Game().GetDifficulty())
+{
+	RevealBase(); // can be renamed #AddInfTgt();
+}
+
+
+new hex broken down:
+if(iMonth <= Game().GetDifficulty())
+07 04 02 98 00 45 42 00 00 19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 43 41 00 00 00 1B F6 0E 00 00 00 00 00 00 16 16 
+
+	RevealBase(); // renamed #AddInfTgt();
+	1B F7 22 00 00 00 00 00 00 16 
+
+	
+Long War 1.9 original hex broken down:
+if(STORAGE().EverHadItem(180))
+07 80 01 19 1B 23 27 00 00 00 00 00 00 16 0C 00 80 40 00 00 00 1B 29 0D 00 00 00 00 00 00 2C B4 16 
+
+	AddLateMission(iNumCouncil, iNumTerror, iNumUFOs, iNumAbductions);
+	1B A7 00 00 00 00 00 00 00 00 44 42 00 00 00 46 42 00 00 00 47 42 00 00 00 48 42 00 00 16 
+
+null-ops:
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+iAbductionsAdded = AddNewAbductions(iNumAbductions, iMonth < 0)
+0F 00 43 42 00 00 1B AB 00 00 00 00 00 00 00 00 48 42 00 00 96 00 45 42 00 00 25 16 16 
+
+if(iAbductionsAdded < iNumAbductions)
+07 30 02 96 00 43 42 00 00 00 48 42 00 00 16 
+
+
+New hex broken down:
+if(STORAGE().EverHadItem(180))
+07 6C 01 19 1B 23 27 00 00 00 00 00 00 16 0C 00 80 40 00 00 00 1B 29 0D 00 00 00 00 00 00 2C B4 16 
+
+	AddLateMission(iNumCouncil, iNumTerror, iNumUFOs, iNumAbductions);
+	1B A7 00 00 00 00 00 00 00 00 44 42 00 00 00 46 42 00 00 00 47 42 00 00 00 48 42 00 00 16 
+
+if(iMonth <= Game().GetDifficulty())
+07 A4 01 98 00 45 42 00 00 19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 43 41 00 00 00 1B F6 0E 00 00 00 00 00 00 16 16 
+
+	RevealBase(); // renamed #AddInfTgt();
+	1B F7 22 00 00 00 00 00 00 16 
+
+null-ops:
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+iAbductionsAdded = AddNewAbductions(iNumAbductions, iMonth < 0)
+0F 00 43 42 00 00 1B AB 00 00 00 00 00 00 00 00 48 42 00 00 96 00 45 42 00 00 25 16 16 
+
+if(iAbductionsAdded < iNumAbductions)
+07 38 02 96 00 43 42 00 00 00 48 42 00 00 16 
+
+------------
+
+XGStrategyAI.AIAddNewObjectives
+
+Long War 1.9 original hex:
+header:
+49 42 00 00 AB 1F 00 00 00 00 00 00 41 42 00 00 00 00 00 00 00 00 00 00 49 42 00 00 00 00 00 00 6D 01 00 00 6B 28 00 00 6E 02 00 00 EE 01 00 00 
+
+body:
+07 80 01 19 1B 23 27 00 00 00 00 00 00 16 0C 00 80 40 00 00 00 1B 29 0D 00 00 00 00 00 00 2C B4 16 1B A7 00 00 00 00 00 00 00 00 44 42 00 00 00 46 42 00 00 00 47 42 00 00 00 48 42 00 00 16 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0F 00 43 42 00 00 1B AB 00 00 00 00 00 00 00 00 48 42 00 00 96 00 45 42 00 00 25 16 16 07 30 02 96 00 43 42 00 00 00 48 42 00 00 16 
+
+
+new hex: (virtual 0x276)
+header:
+49 42 00 00 AB 1F 00 00 00 00 00 00 41 42 00 00 00 00 00 00 00 00 00 00 49 42 00 00 00 00 00 00 6D 01 00 00 6B 28 00 00 76 02 00 00 EE 01 00 00 
+
+body:
+07 6C 01 19 1B 23 27 00 00 00 00 00 00 16 0C 00 80 40 00 00 00 1B 29 0D 00 00 00 00 00 00 2C B4 16 1B A7 00 00 00 00 00 00 00 00 44 42 00 00 00 46 42 00 00 00 47 42 00 00 00 48 42 00 00 16 07 A4 01 98 00 45 42 00 00 19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 43 41 00 00 00 1B F6 0E 00 00 00 00 00 00 16 16 1B F7 22 00 00 00 00 00 00 16 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0F 00 43 42 00 00 1B AB 00 00 00 00 00 00 00 00 48 42 00 00 96 00 45 42 00 00 25 16 16 07 38 02 96 00 43 42 00 00 00 48 42 00 00 16 
+
+
+-------------------------------
+
+XGStrategyAI.RevealBase (now #AddInfTgt) helper function to set infiltration target:
+
+kCountry = World().GetRandomCouncilCountry(); // get random council country // kCountry from XGStrategyAI.SignPact
+0F 00 DD 42 00 00 19 1B 9C 2C 00 00 00 00 00 00 16 0A 00 0B 47 00 00 00 1B 0B 10 00 00 00 00 00 00 16 
+
+AIAddNewObjective(7, 5, kCountry.GetCoords(), kCountry.GetID(),, )  // somewhere around the start of the month launch an infiltrate objective against the specified country
+1B E4 00 00 00 00 00 00 00 24 07 2C 05 19 00 DD 42 00 00 0A 00 74 24 00 00 00 1B C9 0E 00 00 00 00 00 00 16 19 00 DD 42 00 00 0A 00 5E 24 00 00 00 1B 58 0F 00 00 00 00 00 00 16 4A 4A 16 
+
+null-ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return; EOS
+04 0B 53 
+
+-------------------
+
+XGStrategyAI.RevealBase // #AddInfTgt
+
+original hex:
+header:
+F3 42 00 00 AB 1F 00 00 00 00 00 00 F2 42 00 00 00 00 00 00 00 00 00 00 F3 42 00 00 00 00 00 00 F1 03 00 00 0A 72 00 00 AC 00 00 00 7C 00 00 00 
+
+body:
+58 19 1B 69 0E 00 00 00 00 00 00 16 92 00 94 2F 00 00 00 01 94 2F 00 00 00 F3 42 00 00 00 4A A8 00 07 A7 00 9A 19 00 F3 42 00 00 09 00 35 37 00 00 00 01 35 37 00 00 2C 06 16 0F 19 00 F3 42 00 00 09 00 30 37 00 00 00 01 30 37 00 00 25 19 1B 69 0E 00 00 00 00 00 00 16 1C 00 00 00 00 00 00 1B EF 1F 00 00 00 00 00 00 2E 75 37 00 00 00 F3 42 00 00 16 30 04 0B 31 30 04 0B 53 
+
+new hex: (virtual 0x94)
+header:
+F3 42 00 00 AB 1F 00 00 00 00 00 00 F2 42 00 00 00 00 00 00 00 00 00 00 F3 42 00 00 00 00 00 00 F1 03 00 00 0A 72 00 00 94 00 00 00 7C 00 00 00 
+
+body:
+0F 00 DD 42 00 00 19 1B 9C 2C 00 00 00 00 00 00 16 0A 00 0B 47 00 00 00 1B 0B 10 00 00 00 00 00 00 16 1B E4 00 00 00 00 00 00 00 24 07 2C 05 19 00 DD 42 00 00 0A 00 74 24 00 00 00 1B C9 0E 00 00 00 00 00 00 16 19 00 DD 42 00 00 0A 00 5E 24 00 00 00 1B 58 0F 00 00 00 00 00 00 16 4A 4A 16 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 04 0B 53 
+
+
+
+----------------------
+
+Function name change
+
+original:
+RevealBase
+0B 00 00 00 52 65 76 65 61 6C 42 61 73 65 
+
+#AddInfTgt
+0B 00 00 00 23 41 64 64 49 6E 66 54 67 74 

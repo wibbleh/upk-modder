@@ -82,6 +82,8 @@ public class ReferenceUpdateDialog extends JDialog {
 	/** The index of the Destination Reference column. */
 	private final int DEST_REF_COLUMN = 3;
 	
+	/** Message string for null return value. */
+	private final String NULL_RETURN_REF = "Null Return Ref";
 	/** Error message string for missing reference name. */
 	private final String NAME_NOT_FOUND = "name not found!";
 	/** Error message string for missing reference. */
@@ -139,17 +141,18 @@ public class ReferenceUpdateDialog extends JDialog {
 		};
 		refTblMdl.setColumnIdentifiers(new Object[] { "Source Hex", "VF", "Reference Name", "Dest. Hex" });
 		
-		// extract distinct references from tree
+		// extract distinct references from tree -- currently removed
 //		Set<ModReferenceLeaf> refNodes = new HashSet<>(ReferenceUpdate.getReferences(this.modTree));
+		// extract all references from tree (List, not Set)
 		List<ModReferenceLeaf> refNodes = ReferenceUpdate.getReferences(this.modTree);
 		// populate table model
 		for (ModReferenceLeaf refNode : refNodes) {
-			refTblMdl.addRow(new Object[] {
-					refNode,
-					refNode.isVirtualFunctionRef(),
-					(refNode.getRefValue() == 0) ? refNode.getTextNoTags() : null,
-					null
-			});
+			refTblMdl.addRow(new Object[]{
+				refNode,
+				refNode.isVirtualFunctionRef(),
+				(refNode.isName() ) ? refNode.getTextNoTags() : null,
+				null
+				});
 		}
 		
 		refTbl = new JTable(refTblMdl);
@@ -191,7 +194,7 @@ public class ReferenceUpdateDialog extends JDialog {
 					int row, int column) {
 				if (value instanceof ModReferenceLeaf) {
 					int refValue = ((ModReferenceLeaf) value).getRefValue();
-					if (refValue != 0) {
+					if (!((ModReferenceLeaf) value).isName()) {
 						value = HexStringLibrary.convertIntToHexString(
 								refValue).trim();
 					} else {
@@ -200,7 +203,7 @@ public class ReferenceUpdateDialog extends JDialog {
 				}
 				Component comp = super.getTableCellRendererComponent(
 						table, value, isSelected, hasFocus, row, column);
-				if (REF_NOT_FOUND.equals(value)) {
+				if (REF_NOT_FOUND.equals(value) || NULL_RETURN_REF.equals(value)) {
 					comp.setForeground((isSelected) ? Color.CYAN : Color.RED);
 					comp.setFont(comp.getFont().deriveFont(Font.ITALIC));
 				} else {
@@ -352,8 +355,10 @@ public class ReferenceUpdateDialog extends JDialog {
 	 *  <code>false</code> otherwise
 	 */
 	private boolean hasSourceRefs() {
+		ModReferenceLeaf leaf;
 		for (int row = 0; row < refTbl.getRowCount(); row++) {
-			if (((ModReferenceLeaf) refTbl.getValueAt(row, SOURCE_REF_COLUMN)).getRefValue() != 0) {
+			leaf = (ModReferenceLeaf) refTbl.getValueAt(row, SOURCE_REF_COLUMN);
+			if (!leaf.isName() && (leaf.getRefValue() != 0)) {
 				return true;
 			}
 		}
@@ -387,7 +392,7 @@ public class ReferenceUpdateDialog extends JDialog {
 			String refDestValue = refTbl.getValueAt(row, DEST_REF_COLUMN).toString();
 			// extract reference name from UPK file
 			if(!refDestValue.isEmpty() && !refName.isEmpty() && !refDestValue.equals(REF_NOT_FOUND)) {
-				if(refNode.getRefValue() == 0) {
+				if(refNode.isName()) {
 					findString = ReferenceUpdate.tagReference(refName, refNode);
 				} else {
 					findString = HexStringLibrary.convertIntToHexString(refNode.getRefValue()).trim();
@@ -433,7 +438,7 @@ public class ReferenceUpdateDialog extends JDialog {
 			ModReferenceLeaf refNode = (ModReferenceLeaf) refTbl.getValueAt(row, SOURCE_REF_COLUMN);
 			String refName = refTbl.getValueAt(row, REF_NAME_COLUMN).toString();
 			// extract reference name from UPK file
-			if(refNode.getRefValue() != 0 && !refName.equals(REF_NOT_FOUND) && !refName.isEmpty()) {
+			if(!refNode.isName() && !refName.equals(REF_NOT_FOUND) && !refName.isEmpty()) {
 				// add reference tags to name
 				refName = ReferenceUpdate.tagReference(refName, refNode);
 				// TODO: improve error handling
@@ -486,15 +491,21 @@ public class ReferenceUpdateDialog extends JDialog {
 			// get reference from table
 			ModReferenceLeaf refNode = (ModReferenceLeaf) refTbl.getValueAt(row, SOURCE_REF_COLUMN);
 			// extract reference name from UPK file
-			if (refNode.getRefValue() != 0) {
-				String refName = (refNode.isVirtualFunctionRef()) ?
-						upkFile.getVFRefName(refNode.getRefValue()) :
-						upkFile.getRefName(refNode.getRefValue());
-				// check whether lookup failed
-				if (refName.isEmpty()) {
-					res = false;
-					// replace name string with error message
-					refName = NAME_NOT_FOUND;
+			String refName;
+			if(!refNode.isName()) {
+				// check for null return value
+				if(refNode.getRefValue() == 0) {
+					refName = NULL_RETURN_REF;
+				} else { // valid value, search UpkFile for name
+					refName = (refNode.isVirtualFunctionRef()) ?
+							upkFile.getVFRefName(refNode.getRefValue()) :
+							upkFile.getRefName(refNode.getRefValue());
+					// check whether lookup failed
+					if (refName.isEmpty()) {
+						res = false;
+						// replace name string with error message
+						refName = NAME_NOT_FOUND;
+					}
 				}
 				// update table row
 				refTbl.setValueAt(refName, row, REF_NAME_COLUMN);
@@ -502,7 +513,7 @@ public class ReferenceUpdateDialog extends JDialog {
 				// check whether the table row contains a named reference instead
 				Object value = refTbl.getValueAt(row, REF_NAME_COLUMN);
 				if (value instanceof String) {
-					String refName = (String) value;
+					refName = (String) value;
 					// try reverse lookup of contextualized reference name
 					int refValue = (refNode.isVirtualFunctionRef()) ?
 							upkFile.findVFRefByName(refName) :
@@ -535,6 +546,8 @@ public class ReferenceUpdateDialog extends JDialog {
 		
 		// iterate table rows
 		for (int row = 0; row < refTbl.getRowCount(); row++) {
+			// get reference from table
+			ModReferenceLeaf refNode = (ModReferenceLeaf) refTbl.getValueAt(row, SOURCE_REF_COLUMN);
 			// get reference name from table
 			String refName = (String) refTbl.getValueAt(row, REF_NAME_COLUMN);
 			// get virtual function flag from table
@@ -550,9 +563,13 @@ public class ReferenceUpdateDialog extends JDialog {
 				}
 			} else {
 				if (refValue == 0) {
-					res = false;
-					// replace ref string with error message
-					refStr = REF_NOT_FOUND;
+					if(!refNode.isName() && refNode.getRefValue() == 0) { // is null return reference
+						refStr = HexStringLibrary.convertIntToHexString(0);
+					} else { // lookup failed
+						res = false;
+						// replace ref string with error message
+						refStr = REF_NOT_FOUND;
+					}
 				}
 			}
 			// update table row

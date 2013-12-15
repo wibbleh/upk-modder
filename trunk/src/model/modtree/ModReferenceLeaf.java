@@ -19,6 +19,11 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	private int value;
 
 	/**
+	 * Records whether the reference is a number or name
+	 */
+	private boolean isName;
+	
+	/**
 	 * TODO: API
 	 * @param o
 	 * @param virtualFunction
@@ -67,12 +72,14 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 			endOffset += this.text.length();
 			s = s.split("\\s", 2)[1];
 			this.setRange(this.getStartOffset(), endOffset);
+			this.isName = true;
 			return s;
 		} else {
 			String[] tokens = s.split("\\s");
 			for (int i = 0; i < 4; i++) {
 				this.value += Integer.parseInt(tokens[i], 16) << (8 * i);
 			}
+			this.isName = false;
 		}
 		return super.parseUnrealHex(s, 4);
 	}
@@ -99,6 +106,14 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	public void setRefValue(int value) {
 		this.value = value;
 	}
+	
+	/**
+	 * Returns whether the Reference is a name ref or hex ref
+	 * @return true if name ref, false if hex ref
+	 */
+	public boolean isName() {
+		return this.isName;
+	}	
 	
 	public String getTextNoTags() {
 		String s = this.text.trim();
