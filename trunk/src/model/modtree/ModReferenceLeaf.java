@@ -46,8 +46,26 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	 */
 	@Override
 	public String toString() {
+		String refName = "";
+		if (this.getTree().getSourceUpk() != null) {
+			if(!this.isName()) {
+				if(this.isVirtualFunctionRef()) {
+					if(this.getRefValue() >= 0) {
+						refName = this.getTree().getSourceUpk().getVFRefName(this.getRefValue());
+					}
+				} else {
+					if(this.getRefValue() != 0) {
+						refName = this.getTree().getSourceUpk().getRefName(this.getRefValue());
+					}
+				}
+			}
+		}
 		if(getParentNode().expanded) {
-			return super.toString() + "  (Reference)";
+			if(refName == "") {
+				return super.toString() + "  (Reference)";
+			} else {
+				return super.toString() + "  (Reference " + refName + ")";
+			}
 		} else {
 			return super.toString();
 		}

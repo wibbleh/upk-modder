@@ -48,6 +48,7 @@ public class HexSearchAndReplace {
 	 * Parses the tree and finds any hex that is part of any context block
 	 * Each block is returned as a separate byte[] in the list
 	 * @param tree the tree to extract hex from
+	 * @param upk
 	 * @param context the context to search for
 	 * @return List of byte arrays containing hex, or null if there is none
 	 */
@@ -166,6 +167,7 @@ public class HexSearchAndReplace {
 	 * @param bytesList the list of byte arrays to concatenate
 	 * @return a byte array containing all bytes of the list
 	 */
+	@Deprecated
 	public static byte[] concatenate(List<byte[]> bytesList) {
 		int size = 0;
 		for (byte[] bytes : bytesList) {
@@ -181,6 +183,17 @@ public class HexSearchAndReplace {
 		}
 		
 		return res;
+	}
+
+	public static void applyHexChange(byte[] hex, UpkFile upk, long filePos) throws IOException {
+		//allocate buffer as large as we need and wrap the hex to write
+//		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
+		ByteBuffer fileBuf = ByteBuffer.wrap(hex);
+		
+		//open channel to upk for read-only
+		SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE);
+		sbc.position(filePos);
+		sbc.write(fileBuf);
 	}
 	
 }

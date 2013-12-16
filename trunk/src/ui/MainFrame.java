@@ -81,6 +81,10 @@ import util.unrealhex.HexSearchAndReplace;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The application's primary frame.
@@ -176,8 +180,14 @@ public class MainFrame extends JFrame {
 		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.5), 0px:g(0.25), 0px:g(0.25)", "f:p"));
 		Color bgCol = new Color(214, 217, 223);
 		
+		//TODO: move variable declarations? 
+		//Amineri: I had to move them earlier to get apply/revert button working
+		final JButton updateBtn = new JButton();
+		final JButton updateTestBtn = new JButton();
+		final JTextField updateTtf = new JTextField("no file loaded");
+		
 		JPanel upkPnl = new JPanel(new BorderLayout());
-
+		
 		final JTextField upkTtf = new JTextField("no modfile loaded");
 		upkTtf.setEditable(false);
 		upkTtf.setBackground(bgCol);
@@ -227,6 +237,15 @@ public class MainFrame extends JFrame {
 						// enable 'update', 'apply' and 'revert' menu items
 						MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
 						mainMenu.setEditItemsEnabled(true);
+						updateBtn.setEnabled(true);
+						updateTestBtn.setEnabled(true);
+						
+						// test initial mod install status in upk and update button/message
+						tab.setUpdateStatus(true);
+						updateBtn.setEnabled(tab.modCanBeApplied());
+						updateTtf.setText(tab.getUpdateMessage());
+						updateTtf.setFont(tab.getUpdateFont());
+						updateTtf.setBackground(tab.getUpdateBackgroundColor());
 					} else {
 						// TODO: show error/warning message
 					}
@@ -277,14 +296,116 @@ public class MainFrame extends JFrame {
 		progressBar.setString("progress goes here");
 		progressBar.setValue(50);
 		
-		JTextField statusTtf = new JTextField("Generic status message");
-		statusTtf.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-		statusTtf.setEditable(false);
-		statusTtf.setBackground(bgCol);
+
+		// Create update status panel
+		JPanel updatePnl = new JPanel(new BorderLayout());
+//		final JTextField updateTtf = new JTextField("no file loaded"); // declaration moved to head of class
+		updateTtf.setEditable(false);
+		updateTtf.setBackground(bgCol);
+
+//		final JButton updateBtn = new JButton();   // declaration moved to head of class
+		// TODO: new icon / prettify
+		Icon updateIcon = UIManager.getIcon("OptionPane.errorIcon");
 		
+		updateBtn.setIcon(updateIcon);
+		updateBtn.setBorder(null);
+		updateBtn.setEnabled(false);
+		
+		// add ActionListener to update button to apply/revert changes and update status
+		updateBtn.addActionListener(new ActionListener() {
+			@Override
+            public void actionPerformed(ActionEvent e)
+            {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+
+					if(tab.modIsApplied()) {
+						// call to revert
+						tab.revertChanges();
+					} else {
+						// call to apply
+						tab.applyChanges();
+					}
+					updateBtn.setEnabled(tab.modCanBeApplied());
+					updateTtf.setText(tab.getUpdateMessage());
+					updateTtf.setFont(tab.getUpdateFont());
+					updateTtf.setBackground(tab.getUpdateBackgroundColor());
+				} else {
+					// TODO: show error/warning message
+				}
+            }
+        });      
+
+		//TODO: needs new button/resizing/coloring
+		Icon testIcon = UIManager.getIcon("OptionPane.questionIcon");
+		updateTestBtn.setIcon(testIcon);
+		updateTestBtn.setBorder(null);
+		updateTestBtn.setEnabled(false);
+		
+		// add ActionListener to update button to test file for install to upk and update status
+		updateTestBtn.addActionListener(new ActionListener() {
+			@Override
+            public void actionPerformed(ActionEvent e)
+            {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+					
+					// run tests
+					tab.setUpdateStatus(false);
+					
+					// enable/disable update button
+					updateBtn.setEnabled(tab.modCanBeApplied());
+					
+					// refresh update status message
+					updateTtf.setText(tab.getUpdateMessage());
+					updateTtf.setFont(tab.getUpdateFont());
+					updateTtf.setBackground(tab.getUpdateBackgroundColor());
+				} else {
+					// TODO: show error/warning message
+				}
+            }
+        });      
+		
+		
+//		updateTtf = new JTextField("Generic update message"); // moved to head of class
+		updateTtf.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		updateTtf.setEditable(false);
+		updateTtf.setBackground(bgCol);
+		
+		updatePnl.setBorder(updateTtf.getBorder());
+		updateTtf.setBorder(null);
+		
+		updatePnl.add(updateTestBtn, BorderLayout.WEST);
+		updatePnl.add(updateTtf, BorderLayout.CENTER);
+		updatePnl.add(updateBtn, BorderLayout.EAST);
+		
+		// install listener on tabbed pane to report update panel changes based on tab
+		tabPane.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent evt) {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+					
+					updateTtf.setText(tab.getUpdateMessage());
+					updateTtf.setFont(tab.getUpdateFont());
+					updateTtf.setBackground(tab.getUpdateBackgroundColor());
+					updateBtn.setEnabled((tab.getUpkFile()!= null) && tab.modCanBeApplied());
+				} else {
+					// last tab has been removed, reset to defaults
+					updateTtf.setText("no modfile loaded");
+					MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
+					mainMenu.setEditItemsEnabled(false);
+					updateBtn.setEnabled(false);
+				}
+			}
+		});
+				
 		statusBar.add(upkPnl, CC.xy(1, 1));
 		statusBar.add(progressBar, CC.xy(2, 1));
-		statusBar.add(statusTtf, CC.xy(3, 1));
+		statusBar.add(updatePnl, CC.xy(3, 1));
 		
 		return statusBar;
 	}
@@ -523,8 +644,9 @@ public class MainFrame extends JFrame {
 			// add items to edit menu
 			editMenu.add(refUpdateItem);
 			editMenu.addSeparator();
-			editMenu.add(applyItem);
-			editMenu.add(revertItem);
+			// TODO: create menu commands with keybinds to match buttons (update/test)
+//			editMenu.add(applyItem);
+//			editMenu.add(revertItem);
 			
 			// create help menu
 			JMenu helpMenu = new JMenu("Help");
@@ -614,10 +736,37 @@ public class MainFrame extends JFrame {
 		 */
 		private File modFile;
 		
+		// TODO: consolidate message, font, color into class?
+		/**
+		 * The current update message.
+		 */
+		private String updateMessage = "no modfile loaded";
+		
+		/**
+		 * The current update message font.
+		 */
+		private Font updateFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+		
+		/**
+		 * The current update background color.
+		 */
+		private Color updateBGColor  = new Color(214, 217, 223);
+
+		/**
+		 * Flag indicating whether the mod is applied or not.
+		 */
+		private boolean modIsApplied = false;
+		
+		/**
+		 * Flag indicating whether the mod can be applied or not (if errors or not).
+		 */
+		private boolean modCanBeApplied = false;
+
 		/**
 		 * The UPK file associated with this tab.
 		 */
-		private UpkFile upkFile;
+		// is now reflected from/stored in the modTree to enable ref name display in tree view
+//		private UpkFile upkFile;  
 
 		/**
 		 * Creates a new tab with an empty editor.
@@ -791,45 +940,173 @@ public class MainFrame extends JFrame {
 
 		/**
 		 * Searches the associated UPK file for the byte data of the <code>BEFORE</code>
-		 * block and overwrites it using the byte data of the <code>AFTER</code> block.
+		 * block(s) and overwrites it using the byte data of the <code>AFTER</code> block(s).
+		 * @XTMS -- the key here is that there can be multiple non-adjacent before/after blocks
+		 * see AIAddNewObjectives@XGStrategyAI.upk_mod in the sample project
+		 *      -- a few lines at the end of the function are changed, as well as the header
 		 */
 		public void applyChanges() {
-			this.searchAndReplace(
-					HexSearchAndReplace.concatenate(
-							HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.upkFile)),
-					HexSearchAndReplace.concatenate(
-							HexSearchAndReplace.consolidateAfterHex(this.modTree, this.upkFile)));
+			try {
+				if(this.searchAndReplace(
+						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
+						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
+						) {
+					this.setUpdateMessage("AFTER Hex Installed");
+					this.setUpdateBackgroundColor(new Color(255, 255, 0));
+					this.modIsApplied = true;
+				};
+			} catch(IOException ex) {
+				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+				this.setUpdateMessage("File error " + ex);
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+			}
 		}
 
 		/**
 		 * Searches the associated UPK file for the byte data of the <code>AFTER</code>
-		 * block and overwrites it using the byte data of the <code>BEFORE</code> block.
+		 * block(s) and overwrites it using the byte data of the <code>BEFORE</code> block(s).
 		 */
 		public void revertChanges() {
-			this.searchAndReplace(
-					HexSearchAndReplace.concatenate(
-							HexSearchAndReplace.consolidateAfterHex(this.modTree, this.upkFile)),
-					HexSearchAndReplace.concatenate(
-							HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.upkFile)));
+			try {
+				if(this.searchAndReplace(
+						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
+						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
+						) {
+					this.setUpdateMessage("BEFORE Hex Installed");
+					this.setUpdateBackgroundColor(new Color(128, 255, 128));
+					this.modIsApplied = false;
+				}
+			} catch(IOException ex) {
+				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+				this.setUpdateMessage("File error " + ex);
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+			}
 		}
 		
 		/**
 		 * Searches the associated UPK file for the provided byte pattern and
 		 * overwrites it using the provided replacement bytes.
-		 * @param pattern the byte pattern to search for
-		 * @param replace the bytes to replace the search pattern with
+		 * @param patterns the byte pattern to search for
+		 * @param replacements the bytes to replace the search pattern with
+		 * @Return true if S&R was successful, false otherwise
 		 */
-		private void searchAndReplace(byte[] pattern, byte[] replace) {
-			// TODO: make this a static method in the HexSearchAndReplace utility class, duh
-			try {
-				// TODO: use function header info if possible
-				long filePos = HexSearchAndReplace.findFilePosition(pattern, this.upkFile, this.modTree);
-				// TODO: do actual replacement
-				System.out.println("pattern found at file position: " + filePos);
-			} catch (IOException e) {
-				// TODO: show error message
-				e.printStackTrace();
+		private boolean searchAndReplace(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
+			// perform error checking first
+			long[] filePositions = testBeforeAndAfterBlocks(patterns, replacements);
+			if(filePositions == null) {
+				return false;
 			}
+
+			// everything matches, time to make the change(s)
+			for(int i = 0 ; i < filePositions.length; i++) {
+				HexSearchAndReplace.applyHexChange(replacements.get(i), this.getUpkFile(), filePositions[i]);
+			}
+			return true;
+		}
+		
+		public void setUpdateStatus(boolean checkBothDirections) {
+			if(this.modTree == null) {
+				this.setUpdateMessage("No file data");
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+				this.modIsApplied = false;
+				this.modCanBeApplied = false;
+				return;
+			}
+			if(this.getUpkFile() == null) {
+				this.setUpdateMessage("No upk present");
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+				this.modIsApplied = false;
+				this.modCanBeApplied = false;
+				return;
+			}
+			List<byte[]> beforeHex = HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile());
+			if(beforeHex.isEmpty()) {
+				this.setUpdateMessage("No/empty BEFORE Blocks");
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+				this.modIsApplied = false;
+				this.modCanBeApplied = false;
+				return;
+			}
+			List<byte[]> afterHex =	HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile());
+			if(afterHex.isEmpty()) {
+				this.setUpdateMessage("No/empty AFTER Blocks");
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+				this.modIsApplied = false;
+				this.modCanBeApplied = false;
+				return;
+			}
+			try {
+				if(checkBothDirections) {
+					if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
+						this.setUpdateMessage("BEFORE Hex Installed");
+						this.setUpdateBackgroundColor(new Color(128, 255, 128));
+						this.modIsApplied = false;
+						this.modCanBeApplied = true;
+					} else if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
+						this.setUpdateMessage("AFTER Hex Installed");
+						this.setUpdateBackgroundColor(new Color(128, 255, 128));
+						this.modIsApplied = true;
+						this.modCanBeApplied = true;
+					} else {
+						modIsApplied = false;
+					}
+				} else { // check only based on the current status
+					if(this.modIsApplied) {
+						if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
+							this.setUpdateMessage("AFTER Hex Installed");
+							this.setUpdateBackgroundColor(new Color(128, 255, 128));
+							this.modIsApplied = true;
+							this.modCanBeApplied = true;
+						}						
+					} else {
+						if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
+							this.setUpdateMessage("BEFORE Hex Installed");
+							this.setUpdateBackgroundColor(new Color(128, 255, 128));
+							this.modIsApplied = false;
+							this.modCanBeApplied = true;
+						}						
+					}
+				}
+				
+			} catch(IOException ex) {
+				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+				this.setUpdateMessage("File error " + ex);
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+			}
+		}
+		
+		private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
+			// perform simple error checking first
+			// check for same number of blocks
+			if(patterns.size() != replacements.size()) {
+				this.setUpdateMessage("Block count mismatch");
+				this.setUpdateBackgroundColor(new Color(255, 128, 128));
+				this.modCanBeApplied = false;
+				return null;
+			}
+			// check each block has same number of bytes
+			long[] filePositions = new long[patterns.size()];
+			for (int i = 0; i < patterns.size() ; i++) {
+				if(patterns.get(i).length != replacements.get(i).length) {
+					this.setUpdateMessage("Block " + i + " bytecount mismatch");
+					this.setUpdateBackgroundColor(new Color(255, 128, 128));
+					this.modCanBeApplied = false;
+					return null;
+				}
+			}
+			// try and find each pattern blocks position
+			for(int j = 0; j < patterns.size() ; j ++) {
+				long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), this.getUpkFile(), this.modTree);
+				if(filePos == -1) {
+					this.setUpdateMessage("Block " + j + " not found");
+					this.setUpdateBackgroundColor(new Color(255, 128, 128));
+					this.modCanBeApplied = false;
+					return null;
+				} else {
+					filePositions[j]= filePos;
+				}
+			}
+			return filePositions;
 		}
 		
 		/**
@@ -869,7 +1146,8 @@ public class MainFrame extends JFrame {
 		 * @return the UPK file
 		 */
 		public UpkFile getUpkFile() {
-			return upkFile;
+			return this.modTree.getSourceUpk();
+//			return upkFile;
 		}
 
 		/**
@@ -877,7 +1155,40 @@ public class MainFrame extends JFrame {
 		 * @param upkFile the upk file to set
 		 */
 		public void setUpkFile(UpkFile upkFile) {
-			this.upkFile = upkFile;
+			this.modTree.setSourceUpk(upkFile);
+//			this.upkFile = upkFile;
+		}
+
+		private String getUpdateMessage() {
+			return this.updateMessage;
+		}
+
+		private Font getUpdateFont() {
+			return this.updateFont;
+		}
+
+		private Color getUpdateBackgroundColor() {
+			return this.updateBGColor;
+		}
+		
+		private void setUpdateMessage(String msg) {
+			this.updateMessage = msg;
+		}
+
+		private void setUpdateFont(Font font) {
+			this.updateFont = font;
+		}
+
+		private void setUpdateBackgroundColor(Color color) {
+			this.updateBGColor = color;
+		}
+
+		public boolean modIsApplied() {
+			return this.modIsApplied;
+		}
+		
+		public boolean modCanBeApplied() {
+			return this.modCanBeApplied;
 		}
 		
 	}

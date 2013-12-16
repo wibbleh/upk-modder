@@ -26,6 +26,7 @@ import javax.swing.tree.DefaultTreeModel;
 import static model.modtree.ModContext.ModContextType.AFTER_HEX;
 import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
 import static model.modtree.ModContext.ModContextType.HEX_HEADER;
+import model.upk.UpkFile;
 
 /**
  *
@@ -83,6 +84,11 @@ public class ModTree {
 	private String functionName = "";
 
 	/**
+	 * The source UpkFile to use to generate reference mouseover tipes
+	 */
+	private UpkFile sourceUpk = null;
+	
+	/**
 	 * Flag indicating whether the tree is listening to document updates
 	 */
 	private boolean updatingEnabled = true;
@@ -117,10 +123,29 @@ public class ModTree {
 		this.updatingEnabled = true;
 	}
 	
+	/**
+	 * Stores the supplied JTree with the ModTree
+	 * @param viewer
+	 */
 	public void setTreeViewer(JTree viewer) {
 		this.treeViewer = viewer;
 	}
 	
+	/**
+	 * Sets the source upk to use for hex ref lookups
+	 * @param upk
+	 */
+	public void setSourceUpk(UpkFile upk) {
+		this.sourceUpk = upk;
+	}
+	
+	/**
+	 * Gets the source upk to use for hex ref lookups
+	 * @return 
+	 */
+	public UpkFile getSourceUpk() {
+		return this.sourceUpk;
+	}
 	
 	public void forceRefreshFromDocument() {
 		try {

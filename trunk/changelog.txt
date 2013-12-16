@@ -1,0 +1,8 @@
+v 0.51 (current)
+Added "Apply/Revert" button, "Test Apply" button and update status messages (r80)
+Added "Apply" and "Revert" menu items (r79)
+Fixed tab title not updating on "Save As..." command (r78)
+
+
+v 0.5 (r75)
+First public release
