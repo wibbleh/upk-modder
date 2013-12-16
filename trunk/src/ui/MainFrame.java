@@ -865,6 +865,7 @@ public class MainFrame extends JFrame {
 			modElemTree.putClientProperty("JTree.lineStyle", "Angled");
 			
 			// display alternate operand text info for opened ModOperandNodes
+			// TODO: fix text clipping when opening/closing tabs
 			DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
 				@Override
 				public Component getTreeCellRendererComponent(JTree tree,
@@ -920,11 +921,12 @@ public class MainFrame extends JFrame {
 //			}
 			
 			// wrap tree and editor in split pane
-			this.setLeftComponent(modElemTreeScpn);
-			this.setRightComponent(modEditorScpn);
+			this.setLeftComponent(modEditorScpn);
+			this.setRightComponent(modElemTreeScpn);
 			this.setOneTouchExpandable(true);
 			// by default hide the tree view
-			this.setDividerLocation(0.0);
+			// TODO: make right-side tree view initially hidden
+			this.setDividerLocation(0.99999);
 		}
 
 		/**

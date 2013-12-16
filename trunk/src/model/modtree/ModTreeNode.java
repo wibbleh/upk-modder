@@ -652,7 +652,12 @@ public class ModTreeNode implements TreeNode {
     
     @Override
 	public String toString(){
-		return getFullText();
+		// display memory size of line/component in tree view
+		if(this.getMemorySize() == 0) {
+			return "      " +getFullText(); 
+		} else {
+			return String.format("%04X: ", this.getMemorySize()) + getFullText();
+		}
 //		if (getParentNode() == null) {
 //			return "ROOT";
 //		} else if (getParentNode().getParentNode() == null) {

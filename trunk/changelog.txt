@@ -1,4 +1,6 @@
 v 0.51 (current)
+Moved tree view to right side in preparation for project pane (r81)
+Added line/component memory size info to tree view (r81)
 Added "Apply/Revert" button, "Test Apply" button and update status messages (r80)
 Added "Apply" and "Revert" menu items (r79)
 Fixed tab title not updating on "Save As..." command (r78)
