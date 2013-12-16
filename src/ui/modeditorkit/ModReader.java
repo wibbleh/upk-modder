@@ -1,20 +1,17 @@
 package ui.modeditorkit;
 
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
-import org.xml.sax.SAXException;
- 
-import javax.swing.text.*;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Scanner;
+
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+
 import model.moddocument3.ModDocument;
+
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
  
 
 /**

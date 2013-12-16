@@ -1,7 +1,9 @@
 package ui.modeditorkit;
-import javax.swing.text.*;
 import java.io.IOException;
 import java.io.Writer;
+
+import javax.swing.text.BadLocationException;
+
 import model.moddocument3.ModDocument;
 import model.modelement3.ModElement;
 import model.modelement3.ModRootElement;

@@ -36,13 +36,17 @@ public class ModOperandNode extends ModTreeNode {
 	 */
 	@Override
 	public String toString() {
-		if(this.expanded) {
+		if (this.expanded) {
 			return OperandTable.getOperandName(operand);
 		} else {
 			return super.toString();
 		}
 	}
-    
+	
+	public String toString(boolean expanded) {
+		return (expanded) ? OperandTable.getOperandName(operand) : this.toString();
+	}
+
     /**
      * Parses a passed string into ModTokens.
      * TODO -- optimize this code
