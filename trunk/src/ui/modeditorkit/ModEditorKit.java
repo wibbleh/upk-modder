@@ -1,27 +1,19 @@
 package ui.modeditorkit;
 
-import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
-import javax.swing.Action;
-import javax.swing.JEditorPane;
+
 import javax.swing.text.BadLocationException;
-import javax.swing.text.Caret;
 import javax.swing.text.DefaultEditorKit;
-import javax.swing.text.Document;
-import javax.swing.text.EditorKit;
 import javax.swing.text.Element;
-import javax.swing.text.LabelView;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.StyledEditorKit.StyledTextAction;
-import javax.swing.text.TextAction;
+import javax.swing.text.PlainView;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
+
 import model.moddocument3.ModDocument;
 import model.modelement3.ModContext;
 import model.modelement3.ModElement;
@@ -150,7 +142,7 @@ public class ModEditorKit extends DefaultEditorKit {
 //				return null;
 //
 //            }
-			return null;
+			return new PlainView(modElem);
 //            return new ModLabelView(modElem);
         }
     }

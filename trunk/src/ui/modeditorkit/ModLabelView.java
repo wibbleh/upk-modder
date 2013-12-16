@@ -3,7 +3,9 @@ package ui.modeditorkit;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Shape;
+
 import javax.swing.text.LabelView;
+
 import model.modelement3.ModElement;
 
 

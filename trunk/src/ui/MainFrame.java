@@ -2,89 +2,54 @@ package ui;
 
 import io.parser.OperandTableParser;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
-import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.plaf.InsetsUIResource;
 import javax.swing.plaf.nimbus.AbstractRegionPainter;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.BoxView;
-import javax.swing.text.ComponentView;
-import javax.swing.text.Document;
-import javax.swing.text.Element;
-import javax.swing.text.IconView;
-import javax.swing.text.LabelView;
-import javax.swing.text.ParagraphView;
-import javax.swing.text.PlainDocument;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.View;
-import javax.swing.text.ViewFactory;
-import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.DefaultTreeModel;
 
-import model.modtree.ModOperandNode;
 import model.modtree.ModTree;
 import model.upk.UpkFile;
-
-import org.bounce.text.LineNumberMargin;
-
 import ui.dialogs.ReferenceUpdateDialog;
-import util.unrealhex.HexSearchAndReplace;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
-import java.util.Arrays;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * The application's primary frame.
@@ -98,11 +63,16 @@ public class MainFrame extends JFrame {
 	 * The shared singleton instance of the application's main frame.
 	 */
 	public static MainFrame instance;
-
+	
 	/**
 	 * The tabbed pane component of the application's main frame.
 	 */
 	private JTabbedPane tabPane;
+	
+	/**
+	 * The cache of shared UI actions.
+	 */
+	private Map<String, Action> actionCache;
 	
 	/**
 	 * The cache of shared UPK files.
@@ -117,6 +87,9 @@ public class MainFrame extends JFrame {
 		// instantiate frame
 		// TODO: add application icon
 		super(title);
+
+		// init action cache
+		this.initActions();
 		
 		// create and lay out the frame's components
 		this.initComponents();
@@ -133,6 +106,7 @@ public class MainFrame extends JFrame {
 		
 		// adjust frame size
 		this.pack();
+		this.setMinimumSize(this.getSize());
 		// center frame in screen
 		this.setLocationRelativeTo(null);
 		// show frame
@@ -151,62 +125,405 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
+	 * Initializes the cache of actions shared between the menubar and the toolbar.
+	 */
+	private void initActions() {
+		this.actionCache = new HashMap<>();
+		
+		// new
+		Action newAction = new AbstractAction("New") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				ModTab tab = new ModTab();
+				tabPane.addTab("New File", tab);
+				tabPane.setSelectedComponent(tab);
+
+				setFileActionsEnabled(true);
+			}
+		};
+		newAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.fileIcon"));
+		newAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
+		newAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
+		newAction.putValue(Action.SHORT_DESCRIPTION, "New");
+
+		// open
+		Action openAction = new BrowseAbstractAction("Open File...", this, Constants.MOD_FILE_FILTER) {
+			@Override
+			protected void execute(File file) {
+				try {
+					ModTab tab = new ModTab(file);
+					tabPane.addTab(file.getName(), tab);
+					tabPane.setSelectedComponent(tab);
+
+					setFileActionsEnabled(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		openAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
+		openAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
+		openAction.putValue(Action.MNEMONIC_KEY, (int) 'o');
+		openAction.putValue(Action.SHORT_DESCRIPTION, "Open");
+		
+		// close
+		Action closeAction = new AbstractAction("Close") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				tabPane.remove(tabPane.getSelectedComponent());
+			}
+		};
+		closeAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
+		closeAction.putValue(Action.MNEMONIC_KEY, (int) 'c');
+		closeAction.putValue(Action.SHORT_DESCRIPTION, "Close");
+		closeAction.setEnabled(false);
+		
+		// close all
+		Action closeAllAction = new AbstractAction("Close All") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				tabPane.removeAll();
+			}
+		};
+		closeAllAction.putValue(Action.ACCELERATOR_KEY,
+				KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK + InputEvent.SHIFT_DOWN_MASK));
+		closeAllAction.putValue(Action.MNEMONIC_KEY, (int) 'l');
+		closeAllAction.putValue(Action.SHORT_DESCRIPTION, "Close All");
+		closeAllAction.setEnabled(false);
+		
+		// save as
+		final Action saveAsAction = new BrowseAbstractAction("Save As...", this, Constants.MOD_FILE_FILTER, true) {
+			@Override
+			public File getTarget() {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					File file = ((ModTab) selComp).getModFile();
+					if ((file == null) || !file.exists()) {
+						file = new File(getLastSelectedFile().getParent()
+								+ tabPane.getTitleAt(tabPane.getSelectedIndex()) + ".mod");
+					}
+					return file;
+				}
+				return super.getTarget();
+			}
+			@Override
+			protected void execute(File file) {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					tabPane.setTitleAt(tabPane.getSelectedIndex(), file.getName());
+					tabPane.updateUI(); // needed to update tab with
+					ModTab tab = (ModTab) selComp;
+					tab.setModFile(file);
+					tab.saveFile();
+				}
+			}
+		};
+		saveAsAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.floppyDriveIcon"));
+		saveAsAction.putValue(Action.ACCELERATOR_KEY,
+				KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
+		saveAsAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
+		saveAsAction.setEnabled(false);
+		
+		// save
+		Action saveAction = new AbstractAction("Save") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+					File file = tab.getModFile();
+					if (file != null) {
+						tab.saveFile();
+					} else {
+						saveAsAction.actionPerformed(evt);
+					}
+				}
+			}
+		};
+		saveAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.floppyDriveIcon"));
+		saveAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+		saveAction.putValue(Action.MNEMONIC_KEY, (int) 's');
+		saveAction.putValue(Action.SHORT_DESCRIPTION, "Save");
+		saveAction.setEnabled(false);
+		
+		// export
+		// TODO: implement export functionality, create file filters
+		Action exportAction = new BrowseAbstractAction("Export...", this, null, true) {
+			@Override
+			protected void execute(File file) {
+				// TODO: do something
+			}
+		};
+		exportAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK));
+		exportAction.putValue(Action.MNEMONIC_KEY, (int) 'e');
+		exportAction.setEnabled(false);
+		
+		// exit
+		Action exitAction = new AbstractAction("Exit") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				// dispose main frame (thereby terminating the application)
+				MainFrame.this.dispose();
+			}
+		};
+		exitAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F4, InputEvent.ALT_DOWN_MASK));
+		exitAction.putValue(Action.MNEMONIC_KEY, (int) 'x');
+		
+		// update references
+		Action refUpdateAction = new AbstractAction("Update References...") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					showRefUpdateDialog(((ModTab) selComp).getTree());
+				}
+			}
+		};
+		refUpdateAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileChooser.detailsViewIcon"));
+		refUpdateAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.CTRL_DOWN_MASK));
+		refUpdateAction.putValue(Action.MNEMONIC_KEY, (int) 'u');
+		refUpdateAction.putValue(Action.SHORT_DESCRIPTION, "Update References...");
+		refUpdateAction.setEnabled(false);
+		
+		Icon hexIcon = new ImageIcon(this.getClass().getResource("/ui/resources/icons/hex16.png"));
+
+		// apply hex
+		Action hexApplyAction = new AbstractAction("Apply Hex Changes") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+					tab.revertChanges();
+				}
+			}
+		};
+		hexApplyAction.putValue(Action.SMALL_ICON, hexIcon);
+		hexApplyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
+		hexApplyAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
+		hexApplyAction.putValue(Action.SHORT_DESCRIPTION, "Apply Hex Changes");
+		hexApplyAction.setEnabled(false);
+		
+		// revert hex
+		Action hexRevertAction = new AbstractAction("Revert Hex Changes") {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		};
+		hexRevertAction.putValue(Action.SMALL_ICON, hexIcon);
+		hexRevertAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+		hexRevertAction.putValue(Action.MNEMONIC_KEY, (int) 'r');
+		hexRevertAction.putValue(Action.SHORT_DESCRIPTION, "Revert Hex Changes");
+		hexRevertAction.setEnabled(false);
+		
+		// create help and about icons
+		BufferedImage helpImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g2 = helpImg.createGraphics();
+		((AbstractRegionPainter) UIManager.get("OptionPane[Enabled].questionIconPainter")).paint(
+				g2, null, 16, 16);
+		g2.dispose();
+		Icon helpIcon = new ImageIcon(helpImg);
+		BufferedImage aboutImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		g2 = aboutImg.createGraphics();
+		((AbstractRegionPainter) UIManager.get("OptionPane[Enabled].informationIconPainter")).paint(
+				g2, null, 16, 16);
+		g2.dispose();
+		Icon aboutIcon = new ImageIcon(aboutImg);
+		
+		// help
+		Action helpAction = new AbstractAction("Help") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				// TODO: implement help dialog
+			}
+		};
+		helpAction.putValue(Action.SMALL_ICON, helpIcon);
+		helpAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
+		helpAction.putValue(Action.MNEMONIC_KEY, (int) 'h');
+		helpAction.setEnabled(false);
+		
+		// about
+		Action aboutAction = new AbstractAction("About") {
+			
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				// TODO: make dialog use same icon as menu item
+				showAboutDialog();
+			}
+		};
+		aboutAction.putValue(Action.SMALL_ICON, aboutIcon);
+		aboutAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
+		
+		// file actions
+		actionCache.put("new", newAction);
+		actionCache.put("open", openAction);
+		actionCache.put("close", closeAction);
+		actionCache.put("closeAll", closeAllAction);
+		actionCache.put("saveAs", saveAsAction);
+		actionCache.put("save", saveAction);
+		actionCache.put("export", exportAction);
+		actionCache.put("exit", exitAction);
+		// edit actions
+		actionCache.put("refUpdate", refUpdateAction);
+		actionCache.put("hexApply", hexApplyAction);
+		actionCache.put("hexRevert", hexRevertAction);
+		// help actions
+		actionCache.put("help", helpAction);
+		actionCache.put("about", aboutAction);
+		
+	}
+
+	/**
 	 * Creates and lays out the frame's components.
 	 * @throws Exception if an I/O error occurs
 	 */
 	private void initComponents() {
-		// create and install menu bar
-		this.setJMenuBar(new MainMenuBar());
+		// create menu bar
+		JMenuBar menuBar = this.createMenuBar();
+		
+		// create tool bar
+		JToolBar toolBar = this.createToolBar();
 		
 		// configure content pane layout
 		Container contentPane = this.getContentPane();
-		contentPane.setLayout(new FormLayout("1000px:g", "f:600px:g, b:p"));
+		contentPane.setLayout(new BorderLayout());
 		
 		UIManager.put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(3, 0, 4, 0));
 		UIManager.put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
-		tabPane = new ButtonTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
+		tabPane = new ButtonTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT) {
+			@Override
+			public void removeTabAt(int index) {
+				ModTab thisTab = (ModTab) this.getComponentAt(index);
+				// check whether the tab has a valid UPK file reference and whether
+				// the same file is referenced by another tab
+				UpkFile upkFile = thisTab.getUpkFile();
+				if (upkFile != null) {
+					boolean shared = false;
+					// iterate tabs, skip the one that's about to be removed
+					for (int i = 0; (i < this.getTabCount()) && (i != index); i++) {
+						ModTab thatTab = (ModTab) this.getComponentAt(i);
+						if (upkFile.equals(thatTab.getUpkFile())) {
+							shared = true;
+							break;
+						}
+					}
+					// if referenced UPK file is unique among tabs remove it from cache
+					if (!shared) {
+						upkCache.remove(upkFile.getFile());
+					}
+				}
+				
+				super.removeTabAt(index);
+				
+				// if last tab has been removed disable 'save' and 'close' actions
+				if (this.getTabCount() == 0) {
+					setFileActionsEnabled(false);
+				}
+			}
+		};
+		tabPane.setPreferredSize(new Dimension(1000, 600));
 		
 		JPanel statusBar = this.createStatusBar();
+
+		this.setJMenuBar(menuBar);
+		contentPane.add(toolBar, BorderLayout.NORTH);
+		contentPane.add(tabPane, BorderLayout.CENTER);
+		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
-		contentPane.add(tabPane, CC.xy(1, 1));
-		contentPane.add(statusBar, CC.xy(1, 2));
 	}
 	
+	private JMenuBar createMenuBar() {
+		
+		JMenuBar menuBar = new JMenuBar();
+	
+		JMenu fileMenu = new JMenu("File");
+		fileMenu.setMnemonic('f');
+		fileMenu.add(actionCache.get("new"));
+		fileMenu.add(actionCache.get("open"));
+		fileMenu.addSeparator();
+		fileMenu.add(actionCache.get("close"));
+		fileMenu.add(actionCache.get("closeAll"));
+		fileMenu.addSeparator();
+		fileMenu.add(actionCache.get("save"));
+		fileMenu.add(actionCache.get("saveAs"));
+		fileMenu.addSeparator();
+		fileMenu.add(actionCache.get("export"));
+		fileMenu.addSeparator();
+		fileMenu.add(actionCache.get("exit"));
+		
+		JMenu editMenu = new JMenu("Edit");
+		editMenu.setMnemonic('e');
+		editMenu.add(actionCache.get("refUpdate"));
+		editMenu.addSeparator();
+		editMenu.add(actionCache.get("hexApply"));
+		editMenu.add(actionCache.get("hexRevert"));
+		
+		JMenu helpMenu = new JMenu("Help");
+		helpMenu.setMnemonic('h');
+		helpMenu.add(actionCache.get("help"));
+		helpMenu.addSeparator();
+		helpMenu.add(actionCache.get("about"));
+
+		menuBar.add(fileMenu);
+		menuBar.add(editMenu);
+		menuBar.add(helpMenu);
+		
+		return menuBar;
+	}
+	
+	/**
+	 * Creates and configures the tool bar.
+	 * @return the tool bar
+	 */
+	private JToolBar createToolBar() {
+		
+		JToolBar toolBar = new JToolBar();
+		toolBar.add(actionCache.get("new"));
+		toolBar.add(actionCache.get("open"));
+		toolBar.addSeparator();
+		toolBar.add(actionCache.get("save"));
+		toolBar.addSeparator();
+		toolBar.add(actionCache.get("refUpdate"));
+		toolBar.addSeparator();
+		toolBar.add(actionCache.get("hexApply"));
+		toolBar.add(actionCache.get("hexRevert"));
+		
+		return toolBar;
+	}
+
 	/**
 	 * Creates and configures the status bar.
 	 * @return the status bar
 	 */
 	private JPanel createStatusBar() {
+		// TODO: maybe make status bar a JToolBar
 		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.5), 0px:g(0.25), 0px:g(0.25)", "f:p"));
 		Color bgCol = new Color(214, 217, 223);
 		
-		//TODO: move variable declarations? 
-		//Amineri: I had to move them earlier to get apply/revert button working
-		final JButton updateBtn = new JButton();
-		final JButton updateTestBtn = new JButton();
-		final JTextField updateTtf = new JTextField("no file loaded");
-		
-		JPanel upkPnl = new JPanel(new BorderLayout());
+		JPanel upkPnl = new JPanel(new FormLayout("p:g, r:p", "b:p"));
 		
 		final JTextField upkTtf = new JTextField("no modfile loaded");
 		upkTtf.setEditable(false);
 		upkTtf.setBackground(bgCol);
 		
 		final JButton upkBtn = new JButton();
-		Icon normalIcon = UIManager.getIcon("FileView.directoryIcon");
+		Icon defaultIcon = UIManager.getIcon("FileView.directoryIcon");
 		
 		// create lighter and darker versions of icon
 		BufferedImage normalImg = new BufferedImage(
-				normalIcon.getIconWidth(), normalIcon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
+				defaultIcon.getIconWidth(), defaultIcon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = normalImg.createGraphics();
-		normalIcon.paintIcon(null, g, 0, 0);
+		defaultIcon.paintIcon(null, g, 0, 0);
 		g.dispose();
 		Icon rolloverIcon = new ImageIcon(new RescaleOp(
 				new float[] { 1.1f, 1.1f, 1.1f, 1.0f }, new float[4], null).filter(normalImg, null));
 		Icon pressedIcon = new ImageIcon(new RescaleOp(
 				new float[] { 0.8f, 0.8f, 0.8f, 1.0f }, new float[4], null).filter(normalImg, null));
 
-		upkBtn.setIcon(normalIcon);
+		upkBtn.setIcon(defaultIcon);
 		upkBtn.setRolloverIcon(rolloverIcon);
 		upkBtn.setPressedIcon(pressedIcon);
 		upkBtn.setBorder(null);
@@ -234,30 +551,20 @@ public class MainFrame extends JFrame {
 						tab.setUpkFile(upkFile);
 						// show file name in status bar
 						upkTtf.setText(file.getPath());
-						// enable 'update', 'apply' and 'revert' menu items
-						MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
-						mainMenu.setEditItemsEnabled(true);
-						updateBtn.setEnabled(true);
-						updateTestBtn.setEnabled(true);
-						
-						// test initial mod install status in upk and update button/message
-						tab.setUpdateStatus(true);
-						updateBtn.setEnabled(tab.modCanBeApplied());
-						updateTtf.setText(tab.getUpdateMessage());
-						updateTtf.setFont(tab.getUpdateFont());
-						updateTtf.setBackground(tab.getUpdateBackgroundColor());
+						// enable 'update', 'apply' and 'revert' actions
+						setEditActionsEnabled(true);
 					} else {
 						// TODO: show error/warning message
 					}
 				}
 			}
 		});
-		
+		// exchange borders
 		upkPnl.setBorder(upkTtf.getBorder());
 		upkTtf.setBorder(null);
 		
-		upkPnl.add(upkTtf, BorderLayout.CENTER);
-		upkPnl.add(upkBtn, BorderLayout.EAST);
+		upkPnl.add(upkTtf, CC.xy(1, 1));
+		upkPnl.add(upkBtn, CC.xy(2, 1));
 		
 		// install listener on tabbed pane to capture selection changes
 		tabPane.addChangeListener(new ChangeListener() {
@@ -273,16 +580,14 @@ public class MainFrame extends JFrame {
 					
 					// show file name in status bar (or missing file hint)
 					upkTtf.setText(hasUpk ? upkFile.getFile().getPath() : "no UPK file selected");
-					// enable/disable 'update', 'apply' and 'revert' menu items
-					MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
-					mainMenu.setEditItemsEnabled(hasUpk);
+					// enable/disable 'update', 'apply' and 'revert' actions
+					setEditActionsEnabled(hasUpk);
 					// enable UPK selection button
 					upkBtn.setEnabled(true);
 				} else {
 					// last tab has been removed, reset to defaults
 					upkTtf.setText("no modfile loaded");
-					MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
-					mainMenu.setEditItemsEnabled(false);
+					setEditActionsEnabled(false);
 					upkBtn.setEnabled(false);
 				}
 			}
@@ -296,118 +601,69 @@ public class MainFrame extends JFrame {
 		progressBar.setString("progress goes here");
 		progressBar.setValue(50);
 		
-
-		// Create update status panel
-		JPanel updatePnl = new JPanel(new BorderLayout());
-//		final JTextField updateTtf = new JTextField("no file loaded"); // declaration moved to head of class
-		updateTtf.setEditable(false);
-		updateTtf.setBackground(bgCol);
-
-//		final JButton updateBtn = new JButton();   // declaration moved to head of class
-		// TODO: new icon / prettify
-		Icon updateIcon = UIManager.getIcon("OptionPane.errorIcon");
+		JPanel statusMsgPnl = new JPanel(new FormLayout("p:g, r:p", "b:p"));
 		
-		updateBtn.setIcon(updateIcon);
-		updateBtn.setBorder(null);
-		updateBtn.setEnabled(false);
+		JTextField statusMsgTtf = new JTextField("STATUS MESSAGES GO HERE");
+		statusMsgTtf.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		statusMsgTtf.setEditable(false);
+		statusMsgTtf.setBackground(bgCol);
 		
-		// add ActionListener to update button to apply/revert changes and update status
-		updateBtn.addActionListener(new ActionListener() {
-			@Override
-            public void actionPerformed(ActionEvent e)
-            {
-				Component selComp = tabPane.getSelectedComponent();
-				if (selComp != null) {
-					ModTab tab = (ModTab) selComp;
-
-					if(tab.modIsApplied()) {
-						// call to revert
-						tab.revertChanges();
-					} else {
-						// call to apply
-						tab.applyChanges();
-					}
-					updateBtn.setEnabled(tab.modCanBeApplied());
-					updateTtf.setText(tab.getUpdateMessage());
-					updateTtf.setFont(tab.getUpdateFont());
-					updateTtf.setBackground(tab.getUpdateBackgroundColor());
-				} else {
-					// TODO: show error/warning message
-				}
-            }
-        });      
-
-		//TODO: needs new button/resizing/coloring
-		Icon testIcon = UIManager.getIcon("OptionPane.questionIcon");
-		updateTestBtn.setIcon(testIcon);
-		updateTestBtn.setBorder(null);
-		updateTestBtn.setEnabled(false);
+		JButton loggingBtn = new JButton();
+		loggingBtn.setBorder(null);
 		
-		// add ActionListener to update button to test file for install to upk and update status
-		updateTestBtn.addActionListener(new ActionListener() {
-			@Override
-            public void actionPerformed(ActionEvent e)
-            {
-				Component selComp = tabPane.getSelectedComponent();
-				if (selComp != null) {
-					ModTab tab = (ModTab) selComp;
-					
-					// run tests
-					tab.setUpdateStatus(false);
-					
-					// enable/disable update button
-					updateBtn.setEnabled(tab.modCanBeApplied());
-					
-					// refresh update status message
-					updateTtf.setText(tab.getUpdateMessage());
-					updateTtf.setFont(tab.getUpdateFont());
-					updateTtf.setBackground(tab.getUpdateBackgroundColor());
-				} else {
-					// TODO: show error/warning message
-				}
-            }
-        });      
+		defaultIcon = UIManager.getIcon("FileChooser.listViewIcon");
 		
+		// create lighter and darker versions of icon
+		normalImg = new BufferedImage(
+				defaultIcon.getIconWidth(), defaultIcon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
+		g = normalImg.createGraphics();
+		defaultIcon.paintIcon(null, g, 0, 0);
+		g.dispose();
+		rolloverIcon = new ImageIcon(new RescaleOp(
+				new float[] { 1.1f, 1.1f, 1.1f, 1.0f }, new float[4], null).filter(normalImg, null));
+		pressedIcon = new ImageIcon(new RescaleOp(
+				new float[] { 0.8f, 0.8f, 0.8f, 1.0f }, new float[4], null).filter(normalImg, null));
 		
-//		updateTtf = new JTextField("Generic update message"); // moved to head of class
-		updateTtf.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-		updateTtf.setEditable(false);
-		updateTtf.setBackground(bgCol);
+		loggingBtn.setIcon(defaultIcon);
+		loggingBtn.setRolloverIcon(rolloverIcon);
+		loggingBtn.setPressedIcon(pressedIcon);
 		
-		updatePnl.setBorder(updateTtf.getBorder());
-		updateTtf.setBorder(null);
+		// exchange borders
+		statusMsgPnl.setBorder(statusMsgTtf.getBorder());
+		statusMsgTtf.setBorder(null);
 		
-		updatePnl.add(updateTestBtn, BorderLayout.WEST);
-		updatePnl.add(updateTtf, BorderLayout.CENTER);
-		updatePnl.add(updateBtn, BorderLayout.EAST);
-		
-		// install listener on tabbed pane to report update panel changes based on tab
-		tabPane.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent evt) {
-				Component selComp = tabPane.getSelectedComponent();
-				if (selComp != null) {
-					ModTab tab = (ModTab) selComp;
-					
-					updateTtf.setText(tab.getUpdateMessage());
-					updateTtf.setFont(tab.getUpdateFont());
-					updateTtf.setBackground(tab.getUpdateBackgroundColor());
-					updateBtn.setEnabled((tab.getUpkFile()!= null) && tab.modCanBeApplied());
-				} else {
-					// last tab has been removed, reset to defaults
-					updateTtf.setText("no modfile loaded");
-					MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
-					mainMenu.setEditItemsEnabled(false);
-					updateBtn.setEnabled(false);
-				}
-			}
-		});
+		statusMsgPnl.add(statusMsgTtf, CC.xy(1, 1));
+		statusMsgPnl.add(loggingBtn, CC.xy(2, 1));
 				
 		statusBar.add(upkPnl, CC.xy(1, 1));
 		statusBar.add(progressBar, CC.xy(2, 1));
-		statusBar.add(updatePnl, CC.xy(3, 1));
+		statusBar.add(statusMsgPnl, CC.xy(3, 1));
 		
 		return statusBar;
+	}
+	
+	/**
+	 * Convenience method to set the enable state of the 'Save', 'Save As',
+	 * 'Close' and 'Close All' menu items.
+	 * @param enabled the enable state
+	 */
+	protected void setFileActionsEnabled(boolean enabled) {
+		actionCache.get("close").setEnabled(enabled);
+		actionCache.get("closeAll").setEnabled(enabled);
+		actionCache.get("save").setEnabled(enabled);
+		actionCache.get("saveAs").setEnabled(enabled);
+	}
+	
+	/**
+	 * Convenience method to set the enable state of the 'Update
+	 * References...', 'Apply Hex Changes' and 'Revert Hex Changes' menu
+	 * items.
+	 * @param enabled the enable state
+	 */
+	protected void setEditActionsEnabled(boolean enabled) {
+		actionCache.get("refUpdate").setEnabled(enabled);
+		actionCache.get("hexApply").setEnabled(enabled);
+		actionCache.get("hexRevert").setEnabled(enabled);
 	}
 
 	/**
@@ -435,906 +691,6 @@ public class MainFrame extends JFrame {
 		aboutDlg.setResizable(false);
 		aboutDlg.setLocationRelativeTo(this);
 		aboutDlg.setVisible(true);
-	}
-	
-	/**
-	 * The menu bar for the application's main frame.
-	 * @author XMS
-	 */
-	private class MainMenuBar extends JMenuBar {
-		
-		/** The 'Save' menu item. */
-		private JMenuItem saveItem;
-		/** The 'Save As...' menu item. */
-		private JMenuItem saveAsItem;
-		/** The 'Close' menu item. */
-		private JMenuItem closeItem;
-		/** The 'Close All' menu item. */
-		private JMenuItem closeAllItem;
-		/** The 'Update References...' menu item. */
-		private JMenuItem refUpdateItem;
-		/** The 'Apply Hex Changes...' menu item */
-		private JMenuItem applyItem;
-		/** The 'Revert Hex Changes...' menu item */
-		private JMenuItem revertItem;
-		
-		/**
-		 * Creates and initializes the main menu bar.
-		 */
-		public MainMenuBar() {
-			super();
-			
-			this.initComponents();
-		}
-
-		private void initComponents() {
-			// create file menu
-			JMenu fileMenu = new JMenu("File");
-			
-			// create file menu items
-			JMenuItem newItem = new JMenuItem("New", UIManager.getIcon("FileView.fileIcon"));
-			newItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
-			newItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					ModTab tab = new ModTab();
-					tabPane.addTab("New File", tab);
-					tabPane.setSelectedComponent(tab);
-
-					setFileItemsEnabled(true);
-				}
-			});
-			
-			JMenuItem openItem = new JMenuItem("Open File...", UIManager.getIcon("FileView.directoryIcon"));
-			openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-			openItem.addActionListener(new BrowseActionListener(this, Constants.MOD_FILE_FILTER) {
-				@Override
-				protected void execute(File file) {
-					try {
-						ModTab tab = new ModTab(file);
-						tabPane.addTab(file.getName(), tab);
-						tabPane.setSelectedComponent(tab);
-						
-						setFileItemsEnabled(true);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			});
-			
-			closeItem = new JMenuItem("Close");
-			closeItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
-			closeItem.setEnabled(false);
-			closeItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					tabPane.remove(tabPane.getSelectedComponent());
-				}
-			});
-			
-			closeAllItem = new JMenuItem("Close All");
-			closeAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK + InputEvent.SHIFT_DOWN_MASK));
-			closeAllItem.setEnabled(false);
-			closeAllItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					tabPane.removeAll();
-				}
-			});
-			
-			saveItem = new JMenuItem("Save", UIManager.getIcon("FileView.floppyDriveIcon"));
-			saveItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-			saveItem.setEnabled(false);
-			saveItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					Component selComp = tabPane.getSelectedComponent();
-					if (selComp != null) {
-						ModTab tab = (ModTab) selComp;
-						File file = tab.getModFile();
-						if (file != null) {
-							tab.saveFile();
-						} else {
-							saveAsItem.doClick();
-						}
-					}
-				}
-			});
-			
-			saveAsItem = new JMenuItem("Save As...", UIManager.getIcon("FileView.floppyDriveIcon"));
-			saveAsItem.setEnabled(false);
-			saveAsItem.addActionListener(new BrowseActionListener(this, Constants.MOD_FILE_FILTER, true) {
-				@Override
-				public File getTarget() {
-					Component selComp = tabPane.getSelectedComponent();
-					if (selComp != null) {
-						File file = ((ModTab) selComp).getModFile();
-						if ((file == null) || !file.exists()) {
-							file = new File(getLastSelectedFile().getParent()
-									+ tabPane.getTitleAt(tabPane.getSelectedIndex()) + ".mod");
-						}
-						return file;
-					}
-					return super.getTarget();
-				}
-				@Override
-				protected void execute(File file) {
-					Component selComp = tabPane.getSelectedComponent();
-					if (selComp != null) {
-						tabPane.setTitleAt(tabPane.getSelectedIndex(), file.getName());
-						tabPane.updateUI(); // needed to update tab with
-						ModTab tab = (ModTab) selComp;
-						tab.setModFile(file);
-						tab.saveFile();
-						
-					}
-				}
-			});
-			
-			// TODO: maybe add 'Save All' item
-			
-			JMenuItem exportItem = new JMenuItem("Export...");
-			exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK));
-			exportItem.setEnabled(false);
-			
-			JMenuItem exitItem = new JMenuItem("Exit");
-			exitItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					// dispose main frame (thereby terminating the application)
-					MainFrame.this.dispose();
-				}
-			});
-			
-			// add items to file menu
-			fileMenu.add(newItem);
-			fileMenu.add(openItem);
-			fileMenu.addSeparator();
-			fileMenu.add(closeItem);
-			fileMenu.add(closeAllItem);
-			fileMenu.addSeparator();
-			fileMenu.add(saveItem);
-			fileMenu.add(saveAsItem);
-			fileMenu.addSeparator();
-			fileMenu.add(exportItem);
-			fileMenu.addSeparator();
-			fileMenu.add(exitItem);
-			
-			// create edit menu
-			JMenu editMenu = new JMenu("Edit");
-			
-			refUpdateItem = new JMenuItem("Update References...", UIManager.getIcon("FileChooser.detailsViewIcon"));
-			refUpdateItem.setEnabled(false);
-			refUpdateItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					Component selComp = tabPane.getSelectedComponent();
-					if (selComp != null) {
-						showRefUpdateDialog(((ModTab) selComp).getTree());
-					}
-				}
-			});
-			
-			applyItem = new JMenuItem("Apply Hex Changes");
-			applyItem.setEnabled(false);
-			applyItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					Component selComp = tabPane.getSelectedComponent();
-					if (selComp != null) {
-						ModTab tab = (ModTab) selComp;
-						tab.applyChanges();
-					}
-				}
-			});
-			
-			revertItem = new JMenuItem("Revert Hex Changes");
-			revertItem.setEnabled(false);
-			revertItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					Component selComp = tabPane.getSelectedComponent();
-					if (selComp != null) {
-						ModTab tab = (ModTab) selComp;
-						tab.revertChanges();
-					}
-				}
-			});
-			
-			// add items to edit menu
-			editMenu.add(refUpdateItem);
-			editMenu.addSeparator();
-			// TODO: create menu commands with keybinds to match buttons (update/test)
-//			editMenu.add(applyItem);
-//			editMenu.add(revertItem);
-			
-			// create help menu
-			JMenu helpMenu = new JMenu("Help");
-
-			// create help and about icons
-			BufferedImage helpImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-			Graphics2D g2 = helpImg.createGraphics();
-			((AbstractRegionPainter) UIManager.get("OptionPane[Enabled].questionIconPainter")).paint(
-					g2, null, 16, 16);
-			g2.dispose();
-			BufferedImage aboutImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-			g2 = aboutImg.createGraphics();
-			((AbstractRegionPainter) UIManager.get("OptionPane[Enabled].informationIconPainter")).paint(
-					g2, null, 16, 16);
-			g2.dispose();
-			
-			// create help menu items
-			JMenuItem helpItem = new JMenuItem("Help", new ImageIcon(helpImg));
-			helpItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
-			helpItem.setEnabled(false);
-			
-			JMenuItem aboutItem = new JMenuItem("About", new ImageIcon(aboutImg));
-			aboutItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					// TODO: make dialog use same icon as menu item
-					showAboutDialog();
-				}
-			});
-			
-			// add items to help menu
-			helpMenu.add(helpItem);
-			helpMenu.addSeparator();
-			helpMenu.add(aboutItem);
-			
-			// add menus to menu bar
-			this.add(fileMenu);
-			this.add(editMenu);
-			this.add(helpMenu);
-		}
-		
-		/**
-		 * Convenience method to set the enable state of the 'Save', 'Save As',
-		 * 'Close' and 'Close All' menu items.
-		 * @param enabled the enable state
-		 */
-		public void setFileItemsEnabled(boolean enabled) {
-			this.saveItem.setEnabled(enabled);
-			this.saveAsItem.setEnabled(enabled);
-			this.closeItem.setEnabled(enabled);
-			this.closeAllItem.setEnabled(enabled);
-		}
-		
-		/**
-		 * Convenience method to set the enable state of the 'Update
-		 * References...', 'Apply Hex Changes' and 'Revert Hex Changes' menu
-		 * items.
-		 * @param enabled the enable state
-		 */
-		public void setEditItemsEnabled(boolean enabled) {
-			this.refUpdateItem.setEnabled(enabled);
-			this.applyItem.setEnabled(enabled);
-			this.revertItem.setEnabled(enabled);
-		}
-		
-		
-	}
-	
-	/**
-	 * The basic component inside the tabbed pane.
-	 * @author XMS
-	 */
-	private class ModTab extends JSplitPane {
-
-		/**
-		 * The modfile editor instance.
-		 */
-		private JEditorPane modEditor;
-
-		/**
-		 * The modfile tree structure.
-		 */
-		private ModTree modTree;
-
-		/**
-		 * The modfile associated with this tab.
-		 */
-		private File modFile;
-		
-		// TODO: consolidate message, font, color into class?
-		/**
-		 * The current update message.
-		 */
-		private String updateMessage = "no modfile loaded";
-		
-		/**
-		 * The current update message font.
-		 */
-		private Font updateFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-		
-		/**
-		 * The current update background color.
-		 */
-		private Color updateBGColor  = new Color(214, 217, 223);
-
-		/**
-		 * Flag indicating whether the mod is applied or not.
-		 */
-		private boolean modIsApplied = false;
-		
-		/**
-		 * Flag indicating whether the mod can be applied or not (if errors or not).
-		 */
-		private boolean modCanBeApplied = false;
-
-		/**
-		 * The UPK file associated with this tab.
-		 */
-		// is now reflected from/stored in the modTree to enable ref name display in tree view
-//		private UpkFile upkFile;  
-
-		/**
-		 * Creates a new tab with an empty editor.
-		 */
-		public ModTab() {
-			this(null);
-		}
-
-		/**
-		 * Creates a new tab from the specified modfile reference.
-		 * @param modFile the modfile to parse
-		 */
-		public ModTab(File modFile) {
-			super(JSplitPane.HORIZONTAL_SPLIT);
-			this.modFile = modFile;
-			
-			try {
-				this.initComponents();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		/**
-		 * Creates and lays out the components of the tab.
-		 * @param modFile
-		 */
-		private void initComponents() throws Exception {
-			// create right-hand editor pane
-			modEditor = new JEditorPane();
-			modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-	
-			// install editor kit
-			modEditor.setEditorKit(new StyledEditorKit() {
-				@Override
-				public ViewFactory getViewFactory() {
-					return new ViewFactory() {
-				        public View create(Element elem) {
-				            String kind = elem.getName();
-				            if (kind != null) {
-				                if (kind.equals(AbstractDocument.ContentElementName)) {
-				                    return new LabelView(elem);
-				                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-				                	return new ParagraphView(elem) {
-				                    	/* hack to prevent line wrapping */
-				                    	@Override
-										public void layout(int width, int height) {
-											super.layout(Short.MAX_VALUE, height);
-										}
-				                    	@Override
-										public float getMinimumSpan(int axis) {
-											return super.getPreferredSpan(axis);
-										}
-				                    };
-				                } else if (kind.equals(AbstractDocument.SectionElementName)) {
-				                    return new BoxView(elem, View.Y_AXIS);
-				                } else if (kind.equals(StyleConstants.ComponentElementName)) {
-				                    return new ComponentView(elem);
-				                } else if (kind.equals(StyleConstants.IconElementName)) {
-				                    return new IconView(elem);
-				                }
-				            }
-				            // default to text display
-				            return new LabelView(elem);
-				        }
-				    };
-				}
-			});
-			
-			// read provided file, if possible
-			if (modFile != null) {
-				modEditor.read(new FileInputStream(modFile), modFile);
-			}
-	
-			// wrap editor in scroll pane
-			JScrollPane modEditorScpn = new JScrollPane(modEditor,
-					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-					JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-			modEditorScpn.setRowHeaderView(new LineNumberMargin(modEditor));
-			modEditorScpn.setPreferredSize(new Dimension(350, 600));
-			
-			Document modDocument = modEditor.getDocument();
-			modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
-	
-			// create tree view of right-hand mod editor
-			modTree = new ModTree(modDocument);
-			final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
-			JScrollPane modElemTreeScpn = new JScrollPane(modElemTree,
-					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-					JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-			modElemTreeScpn.setPreferredSize(new Dimension(350, 600));
-			
-			// configure look and feel of tree view
-			modElemTree.setRootVisible(false);
-			modElemTree.setShowsRootHandles(false);
-			modElemTree.putClientProperty("JTree.lineStyle", "Angled");
-			
-			// display alternate operand text info for opened ModOperandNodes
-			// TODO: fix text clipping when opening/closing tabs
-			DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
-				@Override
-				public Component getTreeCellRendererComponent(JTree tree,
-						Object value, boolean sel, boolean expanded, boolean leaf,
-						int row, boolean hasFocus) {
-					Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded,
-							leaf, row, hasFocus);
-					if (value instanceof ModOperandNode) {
-						((ModOperandNode) value).expanded = expanded;
-						if (expanded) {
-							// TODO: do something to comp here?
-						}
-					}
-					comp.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-					return comp;
-				}
-			};
-			renderer.setLeafIcon(null);
-			renderer.setClosedIcon(null);
-			renderer.setOpenIcon(null);
-			modElemTree.setCellRenderer(renderer);
-				
-			// install document listener to refresh tree on changes to the document
-			modDocument.addDocumentListener(new DocumentListener() {
-				@Override
-				public void removeUpdate(DocumentEvent evt) {
-					this.updateTree(evt);
-				}
-				@Override
-				public void insertUpdate(DocumentEvent evt) {
-					this.updateTree(evt);
-				}
-				@Override
-				public void changedUpdate(DocumentEvent evt) {
-					this.updateTree(evt);
-				}
-				/** Updates the tree views on document changes */
-				private void updateTree(DocumentEvent evt) {
-					// reset mod tree
-					((DefaultTreeModel) modElemTree.getModel()).setRoot(
-							modTree.getRoot());
-	
-//					// expand tree
-//					for (int i = 0; i < modElemTree.getRowCount(); i++) {
-//						modElemTree.expandRow(i);
-//					}
-				}
-			});
-	
-//			// expand tree
-//			for (int i = 0; i < modElemTree.getRowCount(); i++) {
-//				modElemTree.expandRow(i);
-//			}
-			
-			// wrap tree and editor in split pane
-			this.setLeftComponent(modEditorScpn);
-			this.setRightComponent(modElemTreeScpn);
-			this.setOneTouchExpandable(true);
-			// by default hide the tree view
-			// TODO: make right-side tree view initially hidden
-			this.setDividerLocation(0.99999);
-		}
-
-		/**
-		 * Saves the editor's contents to the file associated with this tab.
-		 */
-		public void saveFile() {
-			try {
-				this.getEditor().write(new OutputStreamWriter(new FileOutputStream(this.modFile)));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		/**
-		 * Searches the associated UPK file for the byte data of the <code>BEFORE</code>
-		 * block(s) and overwrites it using the byte data of the <code>AFTER</code> block(s).
-		 * @XTMS -- the key here is that there can be multiple non-adjacent before/after blocks
-		 * see AIAddNewObjectives@XGStrategyAI.upk_mod in the sample project
-		 *      -- a few lines at the end of the function are changed, as well as the header
-		 */
-		public void applyChanges() {
-			try {
-				if(this.searchAndReplace(
-						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
-						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
-						) {
-					this.setUpdateMessage("AFTER Hex Installed");
-					this.setUpdateBackgroundColor(new Color(255, 255, 0));
-					this.modIsApplied = true;
-				};
-			} catch(IOException ex) {
-				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-				this.setUpdateMessage("File error " + ex);
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			}
-		}
-
-		/**
-		 * Searches the associated UPK file for the byte data of the <code>AFTER</code>
-		 * block(s) and overwrites it using the byte data of the <code>BEFORE</code> block(s).
-		 */
-		public void revertChanges() {
-			try {
-				if(this.searchAndReplace(
-						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
-						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
-						) {
-					this.setUpdateMessage("BEFORE Hex Installed");
-					this.setUpdateBackgroundColor(new Color(128, 255, 128));
-					this.modIsApplied = false;
-				}
-			} catch(IOException ex) {
-				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-				this.setUpdateMessage("File error " + ex);
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			}
-		}
-		
-		/**
-		 * Searches the associated UPK file for the provided byte pattern and
-		 * overwrites it using the provided replacement bytes.
-		 * @param patterns the byte pattern to search for
-		 * @param replacements the bytes to replace the search pattern with
-		 * @Return true if S&R was successful, false otherwise
-		 */
-		private boolean searchAndReplace(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
-			// perform error checking first
-			long[] filePositions = testBeforeAndAfterBlocks(patterns, replacements);
-			if(filePositions == null) {
-				return false;
-			}
-
-			// everything matches, time to make the change(s)
-			for(int i = 0 ; i < filePositions.length; i++) {
-				HexSearchAndReplace.applyHexChange(replacements.get(i), this.getUpkFile(), filePositions[i]);
-			}
-			return true;
-		}
-		
-		public void setUpdateStatus(boolean checkBothDirections) {
-			if(this.modTree == null) {
-				this.setUpdateMessage("No file data");
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-				this.modIsApplied = false;
-				this.modCanBeApplied = false;
-				return;
-			}
-			if(this.getUpkFile() == null) {
-				this.setUpdateMessage("No upk present");
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-				this.modIsApplied = false;
-				this.modCanBeApplied = false;
-				return;
-			}
-			List<byte[]> beforeHex = HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile());
-			if(beforeHex.isEmpty()) {
-				this.setUpdateMessage("No/empty BEFORE Blocks");
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-				this.modIsApplied = false;
-				this.modCanBeApplied = false;
-				return;
-			}
-			List<byte[]> afterHex =	HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile());
-			if(afterHex.isEmpty()) {
-				this.setUpdateMessage("No/empty AFTER Blocks");
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-				this.modIsApplied = false;
-				this.modCanBeApplied = false;
-				return;
-			}
-			try {
-				if(checkBothDirections) {
-					if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
-						this.setUpdateMessage("BEFORE Hex Installed");
-						this.setUpdateBackgroundColor(new Color(128, 255, 128));
-						this.modIsApplied = false;
-						this.modCanBeApplied = true;
-					} else if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
-						this.setUpdateMessage("AFTER Hex Installed");
-						this.setUpdateBackgroundColor(new Color(128, 255, 128));
-						this.modIsApplied = true;
-						this.modCanBeApplied = true;
-					} else {
-						modIsApplied = false;
-					}
-				} else { // check only based on the current status
-					if(this.modIsApplied) {
-						if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
-							this.setUpdateMessage("AFTER Hex Installed");
-							this.setUpdateBackgroundColor(new Color(128, 255, 128));
-							this.modIsApplied = true;
-							this.modCanBeApplied = true;
-						}						
-					} else {
-						if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
-							this.setUpdateMessage("BEFORE Hex Installed");
-							this.setUpdateBackgroundColor(new Color(128, 255, 128));
-							this.modIsApplied = false;
-							this.modCanBeApplied = true;
-						}						
-					}
-				}
-				
-			} catch(IOException ex) {
-				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-				this.setUpdateMessage("File error " + ex);
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			}
-		}
-		
-		private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
-			// perform simple error checking first
-			// check for same number of blocks
-			if(patterns.size() != replacements.size()) {
-				this.setUpdateMessage("Block count mismatch");
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-				this.modCanBeApplied = false;
-				return null;
-			}
-			// check each block has same number of bytes
-			long[] filePositions = new long[patterns.size()];
-			for (int i = 0; i < patterns.size() ; i++) {
-				if(patterns.get(i).length != replacements.get(i).length) {
-					this.setUpdateMessage("Block " + i + " bytecount mismatch");
-					this.setUpdateBackgroundColor(new Color(255, 128, 128));
-					this.modCanBeApplied = false;
-					return null;
-				}
-			}
-			// try and find each pattern blocks position
-			for(int j = 0; j < patterns.size() ; j ++) {
-				long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), this.getUpkFile(), this.modTree);
-				if(filePos == -1) {
-					this.setUpdateMessage("Block " + j + " not found");
-					this.setUpdateBackgroundColor(new Color(255, 128, 128));
-					this.modCanBeApplied = false;
-					return null;
-				} else {
-					filePositions[j]= filePos;
-				}
-			}
-			return filePositions;
-		}
-		
-		/**
-		 * Returns the modfile editor instance of this tab.
-		 * @return the editor
-		 */
-		public JEditorPane getEditor() {
-			return modEditor;
-		}
-
-		/**
-		 * Returns the <code>ModTree</code> instance of this tab.
-		 * @return the <code>ModTree</code>
-		 */
-		public ModTree getTree() {
-			return modTree;
-		}
-
-		/**
-		 * Returns the file associated with this tab.
-		 * @return the file
-		 */
-		public File getModFile() {
-			return modFile;
-		}
-		
-		/**
-		 * Sets the modfile associated with this tab.
-		 * @param modFile the modfile to set
-		 */
-		public void setModFile(File modFile) {
-			this.modFile = modFile;
-		}
-		
-		/**
-		 * Returns the UPK file associated with this tab.
-		 * @return the UPK file
-		 */
-		public UpkFile getUpkFile() {
-			return this.modTree.getSourceUpk();
-//			return upkFile;
-		}
-
-		/**
-		 * Sets the UPK file associated with this tab.
-		 * @param upkFile the upk file to set
-		 */
-		public void setUpkFile(UpkFile upkFile) {
-			this.modTree.setSourceUpk(upkFile);
-//			this.upkFile = upkFile;
-		}
-
-		private String getUpdateMessage() {
-			return this.updateMessage;
-		}
-
-		private Font getUpdateFont() {
-			return this.updateFont;
-		}
-
-		private Color getUpdateBackgroundColor() {
-			return this.updateBGColor;
-		}
-		
-		private void setUpdateMessage(String msg) {
-			this.updateMessage = msg;
-		}
-
-		private void setUpdateFont(Font font) {
-			this.updateFont = font;
-		}
-
-		private void setUpdateBackgroundColor(Color color) {
-			this.updateBGColor = color;
-		}
-
-		public boolean modIsApplied() {
-			return this.modIsApplied;
-		}
-		
-		public boolean modCanBeApplied() {
-			return this.modCanBeApplied;
-		}
-		
-	}
-	
-	/**
-	 * Custom tabbed pane featuring a 'Close' button in its tabs.
-	 * @author XMS
-	 */
-	private class ButtonTabbedPane extends JTabbedPane {
-		
-		// TODO: focus traversal on tabs is dodgy, investigate
-
-		/**
-		 * Creates a tabbed pane featuring a 'Close' button in its tabs.
-		 * @param tabPlacement the placement for the tabs relative to the content
-		 * @param tabLayoutPolicy the policy for laying out tabs when all tabs will not fit on one run
-		 */
-		private ButtonTabbedPane(int tabPlacement, int tabLayoutPolicy) {
-			super(tabPlacement, tabLayoutPolicy);
-		}
-		
-		@Override
-		public void addTab(String title, Component component) {
-			super.addTab(title, component);
-			// add 'Close' button to new tab
-			this.setTabComponentAt(this.getTabCount() - 1, new ButtonTabComponent());
-		}
-		
-		@Override
-		public void removeTabAt(int index) {
-			ModTab thisTab = (ModTab) this.getComponentAt(index);
-			// check whether the tab has a valid UPK file reference and whether
-			// the same file is referenced by another tab
-			UpkFile upkFile = thisTab.getUpkFile();
-			if (upkFile != null) {
-				boolean shared = false;
-				// iterate tabs, skip the one that's about to be removed
-				for (int i = 0; (i < this.getTabCount()) && (i != index); i++) {
-					ModTab thatTab = (ModTab) this.getComponentAt(i);
-					if (upkFile.equals(thatTab.getUpkFile())) {
-						shared = true;
-						break;
-					}
-				}
-				// if referenced UPK file is unique among tabs remove it from cache
-				if (!shared) {
-					upkCache.remove(upkFile.getFile());
-				}
-			}
-			
-			super.removeTabAt(index);
-			
-			// if last tab has been removed disable 'save' and 'close' menu items
-			if (this.getTabCount() == 0) {
-				MainMenuBar mainMenu = (MainMenuBar) MainFrame.this.getJMenuBar();
-				mainMenu.setFileItemsEnabled(false);
-			}
-		}
-		
-		/**
-		 * Component to be used inside tabbed pane tabs.<br>
-		 * Based on a <a href="http://docs.oracle.com/javase/tutorial/uiswing/examples/components/TabComponentsDemoProject/src/components/ButtonTabComponent.java">Java Tutorials Code Sample</a>
-		 * @author XMS
-		 */
-		private class ButtonTabComponent extends JPanel {
-		 
-		    /**
-		     * Creates a panel containing the tab title and a 'Close' button
-		     * @param tabPane the reference to the parent tabbed pane
-		     */
-		    public ButtonTabComponent() {
-		        super(new BorderLayout(5, 0));
-
-				// make component transparent
-				this.setOpaque(false);
-				
-				// create label, make it display its corresponding tab title as text
-				JLabel label = new JLabel() {
-					public String getText() {
-						int index = tabPane.indexOfTabComponent
-								(ButtonTabComponent.this);
-						if (index != -1) {
-							return tabPane.getTitleAt(index);
-						}
-						return null;
-					}
-				};
-
-				this.add(label, BorderLayout.CENTER);
-				TabButton tabButton = new TabButton();
-				
-				JToolBar tb = new JToolBar();
-				tb.add(tabButton);
-				
-				this.add(tabButton, BorderLayout.EAST);
-			}
-
-		    /**
-		     * 'Close' button for tabs.
-		     * @author XMS
-		     */
-			private class TabButton extends JButton implements ActionListener {
-				
-				/**
-				 * Constructs a 'Close' button.
-				 */
-				public TabButton() {
-					int size = 17;
-					this.setPreferredSize(new Dimension(size, size));
-
-					// configure visuals
-					this.setToolTipText("Close this document");
-					this.setFocusable(false);
-					
-					// install action listener to close tab on click
-					this.addActionListener(this);
-				}
-
-				@Override
-				public void actionPerformed(ActionEvent evt) {
-					int i = tabPane.indexOfTabComponent(ButtonTabComponent.this);
-					if (i != -1) {
-						tabPane.remove(i);
-					}
-				}
-
-				// paint the cross
-				protected void paintComponent(Graphics g) {
-					super.paintComponent(g);
-					Graphics2D g2 = (Graphics2D) g.create();
-					g2.setStroke(new BasicStroke(2));
-					g2.setColor(Color.DARK_GRAY);
-					int delta = 6;
-					g2.drawLine(delta, delta,
-							getWidth() - delta, getHeight() - delta);
-					g2.drawLine(getWidth() - delta, delta,
-							delta, getHeight() - delta);
-					g2.dispose();
-				}
-				
-			}
-			
-		}
-
 	}
 	
 }
