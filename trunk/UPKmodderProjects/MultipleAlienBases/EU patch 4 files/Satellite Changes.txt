@@ -1,0 +1,698 @@
+Changes to what happens when a country defects from the Funding Council, and allowing a satellite to be orbitted above a lost country
+
+functionality handled in XGCountry.LeaveXComProject()
+
+only item to remove is the automatic de-orbiting of the satellite // tricky removing the continent bonuses if it's left up, so have it taken down
+
+
+------------------
+
+Correctly handle launching a satellite above a lost country
+this function can add or remove satellite coverage
+
+Functionality handled in XGCountry.SetSatelliteCoverage
+original code:
+function SetSatelliteCoverage(bool bCoverage)
+{
+    if(m_bSatellite == bCoverage)
+    {
+        return;
+    }
+    m_bSatellite = bCoverage;
+    Continent(m_kTCountry.iContinent).SetSatelliteCoverage(m_kTCountry.iEnum, bCoverage);
+    if(bCoverage)
+    {
+        AddPanic(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY);
+        BeginPaying();
+    }
+    else
+    {
+        BeginPaying();
+        m_arrUFORecord.Remove(0, m_arrUFORecord.Length);
+    }
+    //return;    
+}
+
+target code:
+function SetSatelliteCoverage(bool bCoverage)
+{
+    if(m_bSatellite == bCoverage)
+    {
+        return;
+    }
+    m_bSatellite = bCoverage;
+	if(LeftXCom())
+	{
+		GetPanicWarningThreshhold(); // new helper function to update sats over occupied countries
+	}
+	else
+	{
+		Continent(int(GetContinent()).SetSatelliteCoverage(GetID(), bCoverage);
+		if(bCoverage)
+		{
+			AddPanic(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY);
+		}
+		else
+		{
+			m_arrUFORecord.Remove(0, m_arrUFORecord.Length);
+		}
+	}
+	BeginPaying();
+    //return;    
+}
+
+
+
+
+original hex broken down:
+if(m_bSatellite == bCoverage)
+07 1B 00 F2 2D 01 32 24 00 00 2D 00 78 24 00 00 16 
+
+	return
+	04 0B 
+
+m_bSatellite = bCoverage
+14 2D 01 32 24 00 00 2D 00 78 24 00 00 
+
+Continent(m_kTCountry.iContinent).SetSatelliteCoverage(m_kTCountry.iEnum, bCoverage)
+19 1B 23 06 00 00 00 00 00 00 35 5D 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 16 30 00 00 00 00 00 00 1B F1 23 00 00 00 00 00 00 35 63 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 2D 00 78 24 00 00 16 
+
+if(bCoverage)
+07 D5 00 2D 00 78 24 00 00 
+
+	AddPanic(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY)
+	1B B3 00 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 4A 16 
+
+	BeginPaying()
+	1B 64 03 00 00 00 00 00 00 16 
+
+else
+06 F5 00 
+
+	BeginPaying()
+	1B 64 03 00 00 00 00 00 00 16 
+
+	m_arrUFORecord.Remove(0, m_arrUFORecord.Length)
+	40 01 2D 24 00 00 25 36 01 2D 24 00 00 16 
+
+return
+04 0B 
+
+EOS
+53 
+
+
+
+
+new hex broken down:
+if(m_bSatellite == bCoverage)
+07 1B 00 F2 2D 01 32 24 00 00 2D 00 78 24 00 00 16 
+
+	return
+	04 0B 
+
+m_bSatellite = bCoverage
+14 2D 01 32 24 00 00 2D 00 78 24 00 00 
+
+if(m_bSecretPact)
+07 40 00 2D 01 33 24 00 00 
+
+else
+06 B6 00 
+
+	Continent(int(GetContinent)).SetSatelliteCoverage(GetID(), bCoverage)
+	19 1B 23 06 00 00 00 00 00 00 38 3A 1B C5 0E 00 00 00 00 00 00 16 16 30 00 00 00 00 00 00 1B F1 23 00 00 00 00 00 00 1B 58 0F 00 00 00 00 00 00 16 2D 00 78 24 00 00 16 
+
+	if(bCoverage)
+	07 B6 00 2D 00 78 24 00 00 
+
+		AddPanic(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY)
+		1B B3 00 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 4A 16 
+
+m_arrUFORecord.Remove(0, m_arrUFORecord.Length)
+40 01 2D 24 00 00 25 36 01 2D 24 00 00 16 
+
+BeginPaying()
+1B 64 03 00 00 00 00 00 00 16 
+
+null-op
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B  
+
+return
+04 0B 
+
+EOS
+53 
+
+-----------------
+
+XGCountry.SetSatelliteCoverage
+
+original hex:
+header:
+78 24 00 00 AB 1F 00 00 00 00 00 00 77 24 00 00 00 00 00 00 00 00 00 00 78 24 00 00 00 00 00 00 5D 01 00 00 8F 25 00 00 F8 00 00 00 B0 00 00 00 
+
+body:
+07 1B 00 F2 2D 01 32 24 00 00 2D 00 78 24 00 00 16 04 0B 14 2D 01 32 24 00 00 2D 00 78 24 00 00 19 1B 23 06 00 00 00 00 00 00 35 5D 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 16 30 00 00 00 00 00 00 1B F1 23 00 00 00 00 00 00 35 63 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 2D 00 78 24 00 00 16 07 D5 00 2D 00 78 24 00 00 1B B3 00 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 4A 16 1B 64 03 00 00 00 00 00 00 16 06 F5 00 1B 64 03 00 00 00 00 00 00 16 40 01 2D 24 00 00 25 36 01 2D 24 00 00 16 04 0B 53 
+
+new hex: (virtual 0xE4)
+header:
+78 24 00 00 AB 1F 00 00 00 00 00 00 77 24 00 00 00 00 00 00 00 00 00 00 78 24 00 00 00 00 00 00 5D 01 00 00 8F 25 00 00 E4 00 00 00 B0 00 00 00 
+
+body:
+07 1B 00 F2 2D 01 32 24 00 00 2D 00 78 24 00 00 16 04 0B 14 2D 01 32 24 00 00 2D 00 78 24 00 00 07 40 00 2D 01 33 24 00 00 06 B6 00 19 1B 23 06 00 00 00 00 00 00 38 3A 1B C5 0E 00 00 00 00 00 00 16 16 30 00 00 00 00 00 00 1B F1 23 00 00 00 00 00 00 1B 58 0F 00 00 00 00 00 00 16 2D 00 78 24 00 00 16 07 B6 00 2D 00 78 24 00 00 1B B3 00 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 4A 16 40 01 2D 24 00 00 25 36 01 2D 24 00 00 16 1B 64 03 00 00 00 00 00 00 16 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 04 0B 53 
+
+
+----------------------
+
+resting place of storm add/remove code:
+	if(GetEntity() != none)  // destroy storm entity
+	07 50 00 77 1B 04 0F 00 00 00 00 00 00 16 2A 16 
+
+		HideEntity(true)
+		1B 42 11 00 00 00 00 00 00 27 16 
+
+		GetEntity().Destroy()
+		19 1B 04 0F 00 00 00 00 00 00 16 03 00 B7 FF FF FF 00 61 17 16 
+	
+else
+06 B1 00 
+
+	SetEntity(Spawn(class'XGEntity'), GetStormEntity());
+	1B C6 23 00 00 00 00 00 00 1C A3 FD FF FF 20 48 22 00 00 4A 4A 4A 4A 4A 4A 4A 16 1B 60 10 00 00 00 00 00 00 16 16 
+
+
+
+kBase = GEOSCAPE().GetMission(m_kTCountry.m_iScience); // XGStrategyAI.RevealBase/#AddInfTgt
+0F 00 F3 42 00 00 19 1B 69 0E 00 00 00 00 00 00 16 28 00 DF 2F 00 00 00 1B 93 0F 00 00 00 00 00 00 35 5B 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 16 
+
+
+------------------
+
+Satellites are activated via XGHeadquarters.ActivateSatellite
+
+Other than voice fluff, all it does is :
+    World().m_kFundingCouncil.OnSatelliteSuccessfullyTransferred(m_arrSatellites[iSatellite]); // handles completion of FC Request for satellite
+    UpdateSatCoverageGraphics();  // updates display of satellite coverage on geoscape
+	
+	
+Add this when satellite reaches orbit instead of when satellite is launched:
+	SITROOM().OnCodeCracked()
+	19 1B C5 24 00 00 00 00 00 00 16 0A 00 00 00 00 00 00 1B 25 20 00 00 00 00 00 00 16 
+	
+	
+can remove the funding council call, as it is updated when the satellite is launched.
+
+
+XGHeadquarters.ActivateSatellite
+
+original hex broken down:
+if(bVoice)
+07 BD 01 2D 00 EA 32 00 00 
+
+	kTag = XGParamTag(XComEngine(class'Engine'.static.GetEngine()).LocalizeContext.FindTag("XGParam"))
+	0F 00 E9 32 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 
+
+	kTag.StrValue0 = Item(m_arrSatellites[iSatellite].iType).strName
+	0F 19 00 E9 32 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 35 C7 02 00 00 C8 02 00 00 01 00 1B 09 15 00 00 00 00 00 00 35 97 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 4A 16 
+
+	kTag.StrValue1 = Country(m_arrSatellites[iSatellite].iCountry).GetName()
+	0F 19 00 E9 32 00 00 09 00 EE F9 FF FF 00 01 EE F9 FF FF 19 1B 45 06 00 00 00 00 00 00 35 94 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 16 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+	PRES().Speak(class'XComLocalizer'.static.ExpandString(m_strSpeakSatOpRegion), 8)
+	19 1B 12 22 00 00 00 00 00 00 16 35 00 5E FE FF FF 00 1B 8F 26 00 00 00 00 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 99 32 00 00 4A 16 24 08 16 
+
+	PRES().Notify(33, iSatellite)
+	19 1B 12 22 00 00 00 00 00 00 16 17 00 00 00 00 00 00 1B B2 1F 00 00 00 00 00 00 24 21 00 EB 32 00 00 4A 4A 16 
+	
+World().m_kFundingCouncil.OnSatelliteSuccessfullyTransferred(m_arrSatellites[iSatellite])
+19 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 EB 46 00 00 00 01 EB 46 00 00 1F 00 00 00 00 00 00 1B F2 20 00 00 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 4A 4A 16 
+
+UpdateSatCoverageGraphics()
+1B 04 2C 00 00 00 00 00 00 16 
+
+return
+04 0B 
+
+EOS
+53 
+
+	
+
+new hex broken down:
+if(bVoice)
+07 90 01 2D 00 EA 32 00 00 
+
+	kTag = XGParamTag(XComEngine(class'Engine'.static.GetEngine()).LocalizeContext.FindTag("XGParam"))
+	0F 00 E9 32 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 
+
+	kTag.StrValue0 = Item(m_arrSatellites[iSatellite].iType).strName
+	0F 19 00 E9 32 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 35 C7 02 00 00 C8 02 00 00 01 00 1B 09 15 00 00 00 00 00 00 35 97 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 4A 16 
+
+	kTag.StrValue1 = Country(m_arrSatellites[iSatellite].iCountry).GetName()
+	0F 19 00 E9 32 00 00 09 00 EE F9 FF FF 00 01 EE F9 FF FF 19 1B 45 06 00 00 00 00 00 00 35 94 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 16 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+	PRES().Speak(class'XComLocalizer'.static.ExpandString(m_strSpeakSatOpRegion), 8)
+	19 1B 12 22 00 00 00 00 00 00 16 35 00 5E FE FF FF 00 1B 8F 26 00 00 00 00 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 99 32 00 00 4A 16 24 08 16 
+
+if(LABS().IsResearched(3))
+07 D5 01 19 1B 8B 16 00 00 00 00 00 00 16 0C 00 77 2C 00 00 00 1B BF 14 00 00 00 00 00 00 2C 03 16 
+
+	SITROOM().OnCodeCracked()
+	19 1B C5 24 00 00 00 00 00 00 16 0A 00 00 00 00 00 00 1B 25 20 00 00 00 00 00 00 16 
+
+UpdateSatCoverageGraphics()
+1B 04 2C 00 00 00 00 00 00 16 
+
+null-ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return
+04 0B 
+
+EOS
+53 
+
+
+
+------------------------------
+
+XGHeadquarters.ActivateSatellite
+
+original hex:
+header:
+EB 32 00 00 AB 1F 00 00 00 00 00 00 E8 32 00 00 00 00 00 00 00 00 00 00 EB 32 00 00 00 00 00 00 98 01 00 00 42 2E 00 00 14 02 00 00 7C 01 00 00 
+
+body:
+07 BD 01 2D 00 EA 32 00 00 0F 00 E9 32 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 0F 19 00 E9 32 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 35 C7 02 00 00 C8 02 00 00 01 00 1B 09 15 00 00 00 00 00 00 35 97 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 4A 16 0F 19 00 E9 32 00 00 09 00 EE F9 FF FF 00 01 EE F9 FF FF 19 1B 45 06 00 00 00 00 00 00 35 94 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 16 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 19 1B 12 22 00 00 00 00 00 00 16 35 00 5E FE FF FF 00 1B 8F 26 00 00 00 00 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 99 32 00 00 4A 16 24 08 16 19 1B 12 22 00 00 00 00 00 00 16 17 00 00 00 00 00 00 1B B2 1F 00 00 00 00 00 00 24 21 00 EB 32 00 00 4A 4A 16 19 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 EB 46 00 00 00 01 EB 46 00 00 1F 00 00 00 00 00 00 1B F2 20 00 00 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 4A 4A 16 1B 04 2C 00 00 00 00 00 00 16 04 0B 53 
+
+
+new hex: (virtual 0x200)
+header:
+EB 32 00 00 AB 1F 00 00 00 00 00 00 E8 32 00 00 00 00 00 00 00 00 00 00 EB 32 00 00 00 00 00 00 98 01 00 00 42 2E 00 00 00 02 00 00 7C 01 00 00 
+
+body:
+07 90 01 2D 00 EA 32 00 00 0F 00 E9 32 00 00 2E 71 FE FF FF 19 19 2E 94 FE FF FF 12 20 FD FE FF FF 0A 00 3A FB FF FF 00 1C 91 FD FF FF 16 09 00 09 FB FF FF 00 01 09 FB FF FF 13 00 A4 FA FF FF 00 1B B6 0D 00 00 00 00 00 00 1F 58 47 50 61 72 61 6D 00 16 0F 19 00 E9 32 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 35 C7 02 00 00 C8 02 00 00 01 00 1B 09 15 00 00 00 00 00 00 35 97 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 4A 16 0F 19 00 E9 32 00 00 09 00 EE F9 FF FF 00 01 EE F9 FF FF 19 1B 45 06 00 00 00 00 00 00 35 94 02 00 00 98 02 00 00 00 00 10 00 EB 32 00 00 01 BB 32 00 00 16 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 19 1B 12 22 00 00 00 00 00 00 16 35 00 5E FE FF FF 00 1B 8F 26 00 00 00 00 00 00 12 20 8C FE FF FF 14 00 09 FA FF FF 00 1B 39 0D 00 00 00 00 00 00 01 99 32 00 00 4A 16 24 08 16 07 D5 01 19 1B 8B 16 00 00 00 00 00 00 16 0C 00 77 2C 00 00 00 1B BF 14 00 00 00 00 00 00 2C 03 16 19 1B C5 24 00 00 00 00 00 00 16 0A 00 00 00 00 00 00 1B 25 20 00 00 00 00 00 00 16 1B 04 2C 00 00 00 00 00 00 16 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 04 0B 53 
+
+
+-----------------------------------
+
+Allow for launching of satellites over occupied countries
+
+From the action script (#36), in SituationRoomHUD :
+   function SetLaunchButton(icon, msg, bEnable)
+   
+UPK code is in UISituationRoom.SatelliteState.UpdateHUD :
+        if(kSatMgr.m_kCursorUI.txtHelp.iButton == 1)
+        {
+            m_kSitRoomHUD.AS_SetLaunchButton(class'UI_FxsGamepadIcons'.static.GetAdvanceButtonIcon(), class'UIUtilities'.static.GetHTMLColoredText(kSatMgr.m_kCursorUI.txtHelp.StrValue, kSatMgr.m_kCursorUI.txtHelp.iState), true);
+        }
+        // End:0x77E
+        else
+        {
+            m_kSitRoomHUD.AS_SetLaunchButton("", "", false);
+            countryInfo $= class'UIUtilities'.static.GetHTMLColoredText(kSatMgr.m_kCursorUI.txtHelp.StrValue, kSatMgr.m_kCursorUI.txtHelp.iState);
+        }
+		
+		
+kSatMgr is retrieved with GetSatelliteMgr, which is of type XGSatelliteSitRoomUI
+
+The button state = 1 is set in XGSatelliteSitRoomUI.UpdateCountryHelp :
+
+original code:
+function UpdateCountryHelp()
+{
+    local TSatCursorUI kUI;
+
+    if(m_iCountry == -1)
+    {
+        kUI.bEnabled = false;
+        kUI.txtHelp.StrValue = "";
+        kUI.txtHelp.iState = 3;
+    }
+    else
+    {
+        if(Country(m_iCountry).HasSatelliteCoverage())
+        {
+            kUI.bEnabled = false;
+            kUI.txtHelp.StrValue = m_strLabelHasSatellite;
+            kUI.txtHelp.iState = 1;
+        }
+        else
+        {
+            if(Country(m_iCountry).LeftXCom())
+            {
+                kUI.bEnabled = false;
+                kUI.txtHelp.StrValue = m_strLabelLeftXCom;
+                kUI.txtHelp.iState = 3;
+            }
+            else
+            {
+                if(!HasUplinkCapacity())
+                {
+                    kUI.bEnabled = false;
+                    kUI.txtHelp.StrValue = m_strLabelNoCapacity;
+                    kUI.txtHelp.iState = 3;
+                }
+                else
+                {
+                    if(STORAGE().GetNumItemsAvailable(108) == 0)
+                    {
+                        kUI.bEnabled = false;
+                        kUI.txtHelp.StrValue = m_strLabelNoSatellites;
+                        kUI.txtHelp.iState = 3;
+                    }
+                    else
+                    {
+                        kUI.bEnabled = true;
+                        kUI.txtHelp.iButton = 1;
+                        kUI.txtHelp.StrValue = m_strLabelLaunchSatellite;
+                        kUI.txtHelp.iState = 2;
+                    }
+                }
+            }
+        }
+    }
+    m_kCursorUI = kUI;
+    //return;    
+}
+
+Need to change to handle overlapping states. May requires some amount of actionscript script editing.
+
+target code:
+function UpdateCountryHelp()
+{
+    local TSatCursorUI kUI;
+
+    kUI.txtHelp.StrValue = "";
+	kUI.txtHelp.iState = 3;
+    if(m_iCountry == -1)
+    {
+        kUI.bEnabled = false;
+    }
+    else
+    {
+		if(Country(m_iCountry).LeftXCom())
+		{
+			kUI.txtHelp.StrValue = m_strLabelLeftXCom; // m_strLabelLeftXCom="Alien Occupied:"
+			kUI.txtHelp.iState = 6;
+		}
+		if(Country(m_iCountry).HasSatelliteCoverage())
+		{
+			kUI.bEnabled = false;
+			kUI.txtHelp.StrValue @= m_strLabelHasSatellite; // m_strLabelHasSatellite="HAS SATELLITE"
+			kUI.txtHelp.iState -= 2; // 1 normally, 4 if occupied
+		}
+		else
+		{
+			if(!HasUplinkCapacity())
+			{
+				kUI.bEnabled = false;
+				kUI.txtHelp.StrValue @= m_strLabelNoCapacity; // m_strLabelNoCapacity="NO CAPACITY"
+				kUI.txtHelp.iState -= 0; // 3 normally, 6 if occupied
+			}
+			else
+			{
+				if(STORAGE().GetNumItemsAvailable(108) == 0)
+				{
+					kUI.bEnabled = false;
+					kUI.txtHelp.StrValue @= m_strLabelNoSatellites; // m_strLabelNoSatellites="NO SATELLITES AVAILABLE"
+					kUI.txtHelp.iState -= 0; // 3 normally, 6 if occupied
+				}
+				else
+				{
+					kUI.bEnabled = true;
+					kUI.txtHelp.iButton = 1;
+					kUI.txtHelp.StrValue @= m_strLabelLaunchSatellite; // m_strLabelLaunchSatellite="LAUNCH SATELLITE"
+					kUI.txtHelp.iState -= 1; // 2 normally, 5 if occupied
+				}
+			}
+		}
+    }
+    m_kCursorUI = kUI;
+    //return;    
+}
+
+
+original hex broken down:
+if(m_iCountry == -1)
+07 99 00 9A 01 5A 3B 00 00 1D FF FF FF FF 16 
+
+	kUI.bEnabled = false
+	14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+	kUI.txtHelp.StrValue = ""
+	0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 1F 00 
+
+	kUI.txtHelp.iState = 3
+	0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+else
+06 16 04 
+
+	if(Country(m_iCountry).HasSatelliteCoverage())
+	07 51 01 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 
+
+		kUI.bEnabled = false
+		14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+		kUI.txtHelp.StrValue = m_strLabelHasSatellite
+		0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 49 3B 00 00 
+
+		kUI.txtHelp.iState = 1
+		0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 
+
+	else
+	06 16 04 
+
+		if(Country(m_iCountry).LeftXCom())
+		07 0A 02 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 
+
+			kUI.bEnabled = false
+			14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+			kUI.txtHelp.StrValue = m_strLabelLeftXCom
+			0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 32 3B 00 00 
+
+			kUI.txtHelp.iState = 3
+			0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+		else
+		06 16 04 
+
+			if(!HasUplinkCapacity())
+			07 A6 02 81 1B 28 11 00 00 00 00 00 00 16 16 
+
+				kUI.bEnabled = false
+				14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+				kUI.txtHelp.StrValue = m_strLabelNoCapacity
+				0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 33 3B 00 00 
+
+				kUI.txtHelp.iState = 3
+				0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+			else
+			06 16 04 
+
+				if(STORAGE().GetNumItemsAvailable(108) == 0)
+				07 5B 03 9A 19 1B 23 27 00 00 00 00 00 00 16 0C 00 7D 40 00 00 00 1B CC 0F 00 00 00 00 00 00 2C 6C 16 25 16 
+
+					kUI.bEnabled = false
+					14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+					kUI.txtHelp.StrValue = m_strLabelNoSatellites
+					0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 4A 3B 00 00 
+
+					kUI.txtHelp.iState = 3
+					0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+				else
+				06 16 04 
+
+					kUI.bEnabled = true
+					14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 27 
+
+					kUI.txtHelp.iButton = 1
+					0F 35 5A FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 
+
+					kUI.txtHelp.StrValue = m_strLabelLaunchSatellite
+					0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 48 3B 00 00 
+
+					kUI.txtHelp.iState = 2
+					0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 02 
+
+m_kCursorUI = kUI
+0F 01 61 3B 00 00 00 83 3B 00 00 
+
+return
+04 0B 
+
+EOS
+53 	
+
+
+
+new hex broken down:
+kUI.txtHelp.StrValue = ""
+0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 1F 00 
+
+kUI.txtHelp.iState = 3
+0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+if(m_iCountry == -1)
+07 99 00 9A 01 5A 3B 00 00 1D FF FF FF FF 16 
+
+	kUI.bEnabled = false
+	14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+else
+06 F4 03 
+
+	if(Country(m_iCountry).LeftXCom())
+	07 30 01 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 
+
+		kUI.txtHelp.StrValue = m_strLabelLeftXCom
+		0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 32 3B 00 00 
+
+		kUI.txtHelp.iState = 6;
+		0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+	if(Country(m_iCountry).HasSatelliteCoverage())
+	07 E8 01 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 
+
+		kUI.bEnabled = false
+		14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+		kUI.txtHelp.StrValue = m_strLabelHasSatellite
+		0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 49 3B 00 00 
+
+		kUI.txtHelp.iState -= 2;  // 1 normally, 4 if occupied
+		0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 
+
+	else
+	06 F4 03 
+
+		if(!HasUplinkCapacity())
+		07 84 02 81 1B 28 11 00 00 00 00 00 00 16 16 
+
+			kUI.bEnabled = false
+			14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+			kUI.txtHelp.StrValue = m_strLabelNoCapacity
+			0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 33 3B 00 00 
+
+			kUI.txtHelp.iState -= 0; // 3 normally, 6 if occupied
+			0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+		else
+		06 F4 03 
+
+			if(STORAGE().GetNumItemsAvailable(108) == 0)
+			07 39 03 9A 19 1B 23 27 00 00 00 00 00 00 16 0C 00 7D 40 00 00 00 1B CC 0F 00 00 00 00 00 00 2C 6C 16 25 16 
+
+				kUI.bEnabled = false
+				14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 
+
+				kUI.txtHelp.StrValue = m_strLabelNoSatellites
+				0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 4A 3B 00 00 
+
+				kUI.txtHelp.iState -= 0; // 3 normally, 6 if occupied
+				0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 
+
+			else
+			06 F4 03 
+
+				kUI.bEnabled = true
+				14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 27 
+
+				kUI.txtHelp.iButton = 1
+				0F 35 5A FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 
+
+				kUI.txtHelp.StrValue = m_strLabelLaunchSatellite
+				0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 48 3B 00 00 
+
+				kUI.txtHelp.iState -= 1; // 1 normally, 5 if occupied
+				0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 02 
+
+m_kCursorUI = kUI
+0F 01 61 3B 00 00 00 83 3B 00 00 
+
+null-ops (22 bytes)
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return
+04 0B 
+
+EOS
+53 	
+
+--------------------
+
+XGSatelliteSitRoomUI.UpdateCountryHelp // allow launching of satellites over occupied countries
+
+original hex:
+header:
+83 3B 00 00 AB 1F 00 00 00 00 00 00 82 3B 00 00 00 00 00 00 00 00 00 00 83 3B 00 00 00 00 00 00 76 01 00 00 99 28 00 00 2C 04 00 00 AC 02 00 00 
+
+body:
+07 99 00 9A 01 5A 3B 00 00 1D FF FF FF FF 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 1F 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 06 16 04 07 51 01 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 49 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 06 16 04 07 0A 02 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 32 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 06 16 04 07 A6 02 81 1B 28 11 00 00 00 00 00 00 16 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 33 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 06 16 04 07 5B 03 9A 19 1B 23 27 00 00 00 00 00 00 16 0C 00 7D 40 00 00 00 1B CC 0F 00 00 00 00 00 00 2C 6C 16 25 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 4A 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 06 16 04 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 27 0F 35 5A FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 48 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 02 0F 01 61 3B 00 00 00 83 3B 00 00 04 0B 53 
+
+
+new hex: (virtual 0x420)
+header:
+83 3B 00 00 AB 1F 00 00 00 00 00 00 82 3B 00 00 00 00 00 00 00 00 00 00 83 3B 00 00 00 00 00 00 76 01 00 00 99 28 00 00 20 04 00 00 AC 02 00 00 
+
+body:
+0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 1F 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 07 99 00 9A 01 5A 3B 00 00 1D FF FF FF FF 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 06 F4 03 07 30 01 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 32 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 07 E8 01 19 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 49 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 06 F4 03 07 84 02 81 1B 28 11 00 00 00 00 00 00 16 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 33 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 06 F4 03 07 39 03 9A 19 1B 23 27 00 00 00 00 00 00 16 0C 00 7D 40 00 00 00 1B CC 0F 00 00 00 00 00 00 2C 6C 16 25 16 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 28 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 4A 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 03 06 F4 03 14 2D 35 F4 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 27 0F 35 5A FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 26 0F 35 E1 F9 FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 01 48 3B 00 00 0F 35 59 FB FF FF 6F FA FF FF 00 00 35 F3 3A 00 00 F5 3A 00 00 00 01 00 83 3B 00 00 2C 02 0F 01 61 3B 00 00 00 83 3B 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 04 0B 53 
+
+
+Pretty good ... was able to launch satellite.
+
+After satellites become operational the regular satellite icon and green outline was displayed.
+
+Continent Satellite bonuses do not appear to be accrued -- country income is also not accrued.
+
+
+---------------------------------------------
+
+
+Satellite coverage color is defined in XGHeadquarters.UpdateSatCoverageGraphics via the SatCoverage variable : 1 is normal (green), 2 is hyperwave (yellow) ... anything else defaults to black
+
+
+Colors are set in :
+XComHQCountryBordersToggle.ColorSatellite_SpecificIndex
+function ColorSatellite_SpecificIndex(int Country, XComHQCountryBorderToggles.ESatelliteCoverage SatCoverage)
+{
+    local Color SatColor;
+
+    SatColor = ChooseSatColor(SatCoverage);
+    SatelliteColors[Country].SetColorImmediate(SatColor);
+    bRenderSatelliteCoverage = true;
+    //return;    
+}
+
+function Color ChooseSatColor(XComHQCountryBorderToggles.ESatelliteCoverage SatCoverage)
+{
+    // End:0x7F
+    if(SatCoverage == 1)
+    {
+        return XComHeadquartersGame(class'Engine'.static.GetCurrentWorldInfo().Game).m_kGeoscapeData.RegularSatellite; // Color RegularSatellite=(R=0,G=70,B=0,A=255)
+    }
+    // End:0xFB
+    else
+    {
+        // End:0xFB
+        if(SatCoverage == 2)
+        {
+            return XComHeadquartersGame(class'Engine'.static.GetCurrentWorldInfo().Game).m_kGeoscapeData.HyperwaveSatellite; // Color HyperwaveSatellite=(R=96,G=16,B=0,A=255)
+        }
+    }
+    return Black;
+    //return ReturnValue;    
+}
+
+Could define a 3rd color option for satellite over occupied country by hard-coding three values into the function.
+
+Can use MakeColor(100, 0, 0, 255); to create colors.
+1C CC FD FF FF 24 64 24 00 24 00 24 FF 16 

@@ -50,6 +50,14 @@ import ui.dialogs.ReferenceUpdateDialog;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JTree;
+import javax.swing.text.Document;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import org.xml.sax.SAXException;
 
 /**
  * The application's primary frame.
@@ -294,7 +302,12 @@ public class MainFrame extends JFrame {
 				Component selComp = tabPane.getSelectedComponent();
 				if (selComp != null) {
 					ModTab tab = (ModTab) selComp;
-					tab.revertChanges();
+					if(tab.applyChanges()) {
+						// TODO: alter tab text color/etc to indicate hex has been applied
+						tabPane.setForegroundAt(tabPane.getSelectedIndex(),  new Color(0, 255, 0)); //new Color(80, 255, 40));
+						tabPane.setToolTipTextAt(tabPane.getSelectedIndex(), "Hex Applied");
+						tabPane.updateUI(); // needed to update tab with
+					}
 				}
 			}
 		};
@@ -310,7 +323,16 @@ public class MainFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				
+				Component selComp = tabPane.getSelectedComponent();
+				if (selComp != null) {
+					ModTab tab = (ModTab) selComp;
+					if(tab.revertChanges()) {
+						// TODO: alter tab text color/etc to indicate hex has been reverted
+						tabPane.setForegroundAt(tabPane.getSelectedIndex(),  new Color(0, 0, 255)); //new Color(80, 255, 40));
+						tabPane.setToolTipTextAt(tabPane.getSelectedIndex(), "Original Hex");
+						tabPane.updateUI(); // needed to update tab with
+					}
+				}
 			}
 		};
 		hexRevertAction.putValue(Action.SMALL_ICON, hexIcon);

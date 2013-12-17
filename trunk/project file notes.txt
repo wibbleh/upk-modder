@@ -1,0 +1,20 @@
+Project files
+
+Path to project folder
+Project consists of a list of modfiles, which should be in the project's modsrc/ folder.
+Each modfile has it's filename and target upk (can be null) target upks can be tested against UPKFILE= and GUID= in the modfile for consistency
+
+project-level operations :
+basic project primitives:
+new project / open project / save project / save as project
+
+project composition operations:
+create new modfile in project
+add existing modfile to project
+remove modfile from project
+open modfile in project to new tab
+
+modding-specific operations:
+set target upk for project (will only apply to those modfiles that match)
+apply/revert project
+updated references for project (maybe)

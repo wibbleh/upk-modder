@@ -1,0 +1,53 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=ApplyMissionPanic@XGStrategyAI
+
+// calls "JoinXCom" CostTest helper when Alien Base mission is successfully completed
+
+[BEFORE_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+case 6:
+0A 1D 0B 2C 06 
+
+	HQ().m_kLastResult.iWorldPanicChange = class'XGTacticalGameCore'.default.PANIC_ALIENBASE_CONQUERED
+	0F 35 58 03 00 00 5C 03 00 00 00 01 19 1B 5C 11 00 00 00 00 00 00 16 09 00 A3 32 00 00 00 01 A3 32 00 00 12 20 6D FE FF FF 09 00 E7 FB FF FF 00 02 E7 FB FF FF 
+
+	World().AddPanic(HQ().m_kLastResult.iWorldPanicChange)
+	19 1B 9C 2C 00 00 00 00 00 00 16 3C 00 00 00 00 00 00 1B B3 00 00 00 00 00 00 00 35 58 03 00 00 5C 03 00 00 00 00 19 1B 5C 11 00 00 00 00 00 00 16 09 00 A3 32 00 00 00 01 A3 32 00 00 16 
+
+	break;
+	06 20 0B 
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+case 6:
+0A 1D 0B 2C 06 
+
+	if(bXComSuccess)
+	07 0D 0B 2D 00 7D 43 00 00 
+
+		m_iAlienMonth = kCountry.GetID();
+		0F 01 10 42 00 00 19 00 7A 43 00 00 0A 00 5E 24 00 00 00 1B 58 0F 00 00 00 00 00 00 16 
+		
+		JoinXCom();
+		1B 3F 06 00 00 00 00 00 00 16 
+	
+		null-ops:
+		01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 01 10 42 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+	break;
+	06 20 0B 
+
+[/CODE]
+[/AFTER_HEX]

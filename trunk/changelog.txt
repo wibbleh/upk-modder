@@ -1,4 +1,6 @@
 v 0.51 (current)
+Added toolbar for common actions (r82)
+Fixed truncated lines in tree view (r82)
 Moved tree view to right side in preparation for project pane (r81)
 Added line/component memory size info to tree view (r81)
 Added "Apply/Revert" button, "Test Apply" button and update status messages (r80)

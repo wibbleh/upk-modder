@@ -269,46 +269,44 @@ public class ModTab extends JSplitPane {
 	/**
 	 * Searches the associated UPK file for the byte data of the <code>BEFORE</code>
 	 * block(s) and overwrites it using the byte data of the <code>AFTER</code> block(s).
+	 * @return true if changes applied successfully, false if not
 	 * @XTMS -- the key here is that there can be multiple non-adjacent before/after blocks
 	 * see AIAddNewObjectives@XGStrategyAI.upk_mod in the sample project
 	 *      -- a few lines at the end of the function are changed, as well as the header
 	 */
-	public void applyChanges() {
+	public boolean applyChanges() {
 		try {
 			if(this.searchAndReplace(
 					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
 					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
 					) {
-				this.setUpdateMessage("AFTER Hex Installed");
-				this.setUpdateBackgroundColor(new Color(255, 255, 0));
-				this.modIsApplied = true;
-			};
+				Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.INFO, "AFTER Hex Installed");
+				return true;
+			}
 		} catch(IOException ex) {
-			Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-			this.setUpdateMessage("File error " + ex);
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
+			Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
 		}
+		return false;
 	}
 
 	/**
 	 * Searches the associated UPK file for the byte data of the <code>AFTER</code>
 	 * block(s) and overwrites it using the byte data of the <code>BEFORE</code> block(s).
+	 * @return true if changes reverted successfully, false otherwise
 	 */
-	public void revertChanges() {
+	public boolean revertChanges() {
 		try {
 			if(this.searchAndReplace(
 					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
 					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
 					) {
-				this.setUpdateMessage("BEFORE Hex Installed");
-				this.setUpdateBackgroundColor(new Color(128, 255, 128));
-				this.modIsApplied = false;
+				Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.INFO, "BEFORE Hex Installed");
+				return true;
 			}
 		} catch(IOException ex) {
-			Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-			this.setUpdateMessage("File error " + ex);
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
+			Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
 		}
+		return false;
 	}
 	
 	/**
@@ -334,6 +332,7 @@ public class ModTab extends JSplitPane {
 	
 	public void setUpdateStatus(boolean checkBothDirections) {
 		if(this.modTree == null) {
+			Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.SEVERE, "No ModFile");
 			this.setUpdateMessage("No file data");
 			this.setUpdateBackgroundColor(new Color(255, 128, 128));
 			this.modIsApplied = false;

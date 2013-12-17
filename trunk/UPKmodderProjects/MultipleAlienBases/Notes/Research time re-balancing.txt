@@ -1,0 +1,114 @@
+Objective pacing
+
+Here are the following 'official' and 'unofficial subobjectives, along with Long War times to complete
+
+Research Xenobiology			~15 to 18 days (base 6 for 30 scientists)(assume 10 to 12 scientists)
+eSubObj_BuildAlienContainment	14 days (7 if rushed)
+eSubObj_ResearchArcThrower		~17 to 25 days (base 10 for 30 scientists) (assume 12 to 18 scientists)
+eSubObj_BuildArcThrower			10 days (5 if rushed)
+eSubObj_CaptureLiveAlien		variable (~1 to 3 days) 
+eSubObj_InterrogateCaptive		~18 to 24 days   (base 9 for 30 scientists for sectoid interrogation) (assume 14 to 22 scientists)
+eSubObj_CaptureOutsider			variable (~1 to 10 days)
+eSubObj_ResearchShard			~25 to 40 days (base 40 for 30 scientists) (assume 20 to 35 scientists)
+eSubObj_ObtainShards			~3 to 5 days (now launch sat over occupied country)
+eSubObj_BuildSkeletonKey		30 days (15 if rushed)
+eSubObj_AssaultAlienBase		0 days
+eSubObj_ResearchHyperwaveBeacon	~30 to 40 days (base 70 for 30 scientists) (assume 30 to 45 scientists)
+eSubObj_BuildHyperwaveUplink	28 days (15 if rushed)
+eSubObj_DetectAnOverseer		0 days (can start building firestorm immmediately)
+eSubObj_ResearchFirestorm		~20 to 35 days (base 70 for 30 scientists) (assume 35 to 55 scientists)
+eSubObj_BuildFirestorm			30 days (15 if rushed)
+eSubObj_ShootDownOverseer		~1 to 20 days (depending on alien mission timing)
+eSubObj_AssaultOverseer			0 days
+eSubObj_ResearchPsionics		~2 days (base 9 for 30 scientists for sectoid commander autopsy) (assume 45 to 65 scientists)
+eSubObj_BuildPsiLabs			28 days (14 if rushed)
+eSubObj_TestTroops				~20 to 40 days (depending if first batch succeeds or not)
+eSubObj_ResearchPsiLink			~20 to 35 days (base 80 for 30 scientists) (assume 60 to 80 scientists)
+eSubObj_BuildGollopChamber		28 days (14 if rushed)
+eSubObj_DevelopPsiStrength		~4 to 10 days
+eSubObj_UseDevice				0 days
+eSubObj_AssaultTempleShip		0 days
+
+Critical chain : 
+Xenobiology								min: 15		max: 18		cum_min: 15		cum_max: 18
+Research Arc Thrower					min: 24		max: 30		cum_min: 39		cum_max: 48
+Build Arc Thrower						min:  5		max: 10		cum_min: 44		cum_max: 58
+Capture Alien							min:  1		max:  3		cum_min: 45		cum_max: 61
+Interrogate Alien						min: 18		max: 24		cum_min: 63		cum_max: 85
+Research Shard							min: 25		max: 40		cum_min: 88		cum_max:125
+Build Skeleton Key						min: 15		max: 30		cum_min:103		cum_max:155  <-- can begin assaulting bases
+Research Hyperwave						min: 30		max: 40		cum_min:133		cum_max:195
+Build Hyperwave / Research Firestorm	min: 20		max: 35		cum_min:153		cum_max:230
+Build Firestorm							min: 15		max: 30		cum_min:168		cum_max:260
+Shoot Down / Assault Overseer			min:  1		max: 20		cum_min:169		cum_max:280
+Research Psionics						min:  1		max:  2		cum_min:170		cum_max:282
+Build Psi Labs							min: 14		max: 28		cum_min:184		cum_max:310
+Research Psi Link						min: 20		max: 35		cum_min:204		cum_max:345
+Build Gollop Chamber					min: 14		max: 28		cum_min:218		cum_max:373
+-----------------------------------------------------------
+Totals									min:218		max:373
+Total time spent researching:			min:153		max:224
+
+minimums assume rush building everything on critical chain, which is unrealistic
+Assumes optimal build order, which is unrealistic (e.g. requires researching xenobiology then arc thrower immediately for first 1.5 month)
+Over half (70% for min and 60% for max) of possible research time is spent on plot-related critical chain projects
+Psionic Research only requires a very short autopsy, and is inconsistent with other projects on the chain
+Does not include prerequisite research (e.g. UFO power supply / flight computer), nor any research credits
+
+Proposed critical chain : 
+Xenobiology								min: 15		max: 18		cum_min: 15		cum_max: 18
+Research Arc Thrower					min: 13		max: 20		cum_min: 39		cum_max: 48
+Build Arc Thrower						min:  5		max: 10		cum_min: 44		cum_max: 58
+Capture Alien							min:  1		max:  3		cum_min: 45		cum_max: 61
+Interrogate Alien						min: 16		max: 25		cum_min: 63		cum_max: 85
+Research Shard							min: 25		max: 45		cum_min: 88		cum_max:125
+Build Skeleton Key						min: 15		max: 30		cum_min:103		cum_max:155  <-- can begin assaulting bases
+Research Hyperwave						min: 30		max: 40		cum_min:133		cum_max:195
+Build Hyperwave / Research Firestorm	min: 20		max: 35		cum_min:153		cum_max:230
+Build Firestorm							min: 15		max: 30		cum_min:168		cum_max:260
+Shoot Down / Assault Overseer			min:  1		max: 20		cum_min:169		cum_max:280
+Research Psionics						min:  1		max:  2		cum_min:170		cum_max:282
+Build Psi Labs							min: 14		max: 28		cum_min:184		cum_max:310
+Research Psi Link						min: 20		max: 35		cum_min:204		cum_max:345
+Build Gollop Chamber					min: 14		max: 28		cum_min:218		cum_max:373
+-----------------------------------------------------------
+Totals									min:218		max:373
+Total time spent researching:			min:153		max:224
+
+
+Research Xenobiology				~15 to 18 days (base 6 for 30 scientists) (assume 10 to 12 scientists)
+eSubObj_BuildAlienContainment	14 days (7 if rushed)
+eSubObj_ResearchArcThrower		~13 to 20 days (base 8 for 30 scientists) (assume 12 to 18 scientists)
+eSubObj_BuildArcThrower			10 days (5 if rushed)
+eSubObj_CaptureLiveAlien		variable (~1 to 3 days) 
+eSubObj_InterrogateCaptive		~16 to 25 days   (base 12 for 30 scientists for sectoid interrogation) (assume 14 to 22 scientists)
+eSubObj_CaptureOutsider			variable (~1 to 10 days)
+eSubObj_ResearchShard			~25 to 45 days (base 30 for 30 scientists) (assume 20 to 35 scientists)
+eSubObj_ObtainShards			~3 to 5 days (now launch sat over occupied country)
+eSubObj_BuildSkeletonKey		30 days (15 if rushed)
+eSubObj_AssaultAlienBase		0 days
+eSubObj_ResearchHyperwaveBeacon	~33 to 50 days (base 50 for 30 scientists) (assume 30 to 45 scientists)
+eSubObj_BuildHyperwaveUplink	28 days (15 if rushed)
+eSubObj_DetectAnOverseer		0 days (can start building firestorm immmediately)
+eSubObj_ResearchFirestorm		~32 to 51 days (base 60 for 30 scientists) (assume 35 to 55 scientists)
+eSubObj_BuildFirestorm			30 days (15 if rushed)
+eSubObj_ShootDownOverseer		~1 to 20 days (depending on alien mission timing)
+eSubObj_AssaultOverseer			0 days
+eSubObj_ResearchPsionics		~14 to 20 days (base 30 for 30 scientists for ethereal autopsy) (assume 45 to 65 scientists)
+eSubObj_BuildPsiLabs			28 days (14 if rushed)
+eSubObj_TestTroops				~20 to 40 days (depending if first batch succeeds or not)
+eSubObj_ResearchPsiLink			~30 to 40 days (base 80 for 30 scientists) (assume 60 to 80 scientists)
+eSubObj_BuildGollopChamber		28 days (14 if rushed)
+eSubObj_DevelopPsiStrength		~4 to 10 days
+eSubObj_UseDevice				0 days
+eSubObj_AssaultTempleShip		0 days
+
+
+
+
+
+
+
+
+
+

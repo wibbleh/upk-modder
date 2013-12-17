@@ -1,0 +1,208 @@
+Changes to XGCountry.LeaveXComProject
+
+Can create base mission in country when country leaves, then control display / access to the mission via : base shard research, skeleton key creation, and satellite coverage
+
+base shard research : needed to reveal bases
+satellite coverage : needed to reveal base in occupied country
+skeleton key : needed to accept revealed base mission
+
+original code:
+function LeaveXComProject()
+{
+    if(LeftXCom())
+    {
+        return;
+    }
+    AI().ClearFromAbductionList(byte(GetID()));
+    m_iFunding = 0;
+    m_iPanic = -1;
+    m_bSecretPact = true;
+    GEOSCAPE().ColorCountry(byte(GetID()), GetPanicColor());
+    Game().CheckForLoseGame();
+    if(HasSatelliteCoverage())
+    {
+        HQ().RemoveSatellite(m_kTCountry.iEnum);
+    }
+    World().m_kFundingCouncil.OnCountryLeft(byte(GetID()));
+    World().m_iNumCountriesLost += 1;
+    STAT_AddStat(20, 1);
+    SetEntity(Spawn(class'XGEntity'), GetStormEntity());
+    //return;    
+}
+
+
+target code:
+function LeaveXComProject()
+{
+    if(LeftXCom())
+    {
+        return;
+    }
+    m_iPanic = 5;
+    m_bSecretPact = true;
+    GEOSCAPE().ColorCountry(byte(GetID()), GetPanicColor());
+    Game().CheckForLoseGame();
+	AI().IsAssetPresent(byte(getID()), none);  // take over function as helper to clear abductions and create alien base
+    if(HasSatelliteCoverage())
+    {
+        HQ().RemoveSatellite(m_kTCountry.iEnum);
+    }
+    World().m_kFundingCouncil.OnCountryLeft(byte(GetID()));
+    World().m_iNumCountriesLost += 1;
+    STAT_AddStat(20, 1);  // remove or move?
+    SetEntity(Spawn(class'XGEntity'), GetStormEntity()); // remove or move?
+    //return;    
+}
+
+helper function
+function bool IsAssetPresent(XComGame.XGGameData.ECharacter eAlien, out array<XGStrategyActor.ECharAssetFamilyType> arrAssets)
+{
+	ClearFromAbductionList(eAlien); // clear outstanding abductions planned
+	m_iAlienMonth = int(eAlien); // country ID from calling function
+	CreateAlienBase();
+	return true;
+}
+
+
+rename IsAssetPresent to CntryLeaveXCom
+rename eAlien to eCntry
+
+function bool CntryLeaveXCom(XComGame.XGGameData.ECharacter eCntry, out array<XGStrategyActor.ECharAssetFamilyType> arrAssets)
+{
+	ClearFromAbductionList(eCntry); // clear outstanding abductions planned
+	m_iAlienMonth = int(eCntry); // country ID from calling function, passed this way to CreateAlienBase
+	CreateAlienBase();
+	return true;
+}
+
+
+
+---------
+
+XGCountry.LeaveXComProject
+
+original hex broken down :
+if(LeftXCom())
+07 0F 00 1B B6 16 00 00 00 00 00 00 16 
+
+	return;
+	04 0B 
+
+AI().ClearFromAbductionList(byte(GetID()));
+19 1B E1 00 00 00 00 00 00 00 16 16 00 A3 43 00 00 00 1B C8 05 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 16 
+
+m_iFunding = 0;
+0F 01 2F 24 00 00 25 
+
+m_iPanic = -1;
+0F 01 2E 24 00 00 1D FF FF FF FF 
+
+m_bSecretPact = true;
+14 2D 01 33 24 00 00 27 
+
+GEOSCAPE().ColorCountry(byte(GetID()), GetPanicColor());
+19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B F4 05 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 1B EE 0F 00 00 00 00 00 00 16 16 
+
+Game().CheckForLoseGame();
+19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 3D 41 00 00 00 1B 65 05 00 00 00 00 00 00 16 
+
+if(HasSatelliteCoverage());
+07 00 01 1B 24 11 00 00 00 00 00 00 16 
+
+	HQ().RemoveSatellite(m_kTCountry.iEnum);
+	19 1B 5C 11 00 00 00 00 00 00 16 26 00 00 00 00 00 00 1B BB 22 00 00 00 00 00 00 35 63 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 16 
+
+World().m_kFundingCouncil.OnCountryLeft(byte(GetID()));
+19 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 EB 46 00 00 00 01 EB 46 00 00 16 00 00 00 00 00 00 1B 2E 20 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 16 
+
+World().m_iNumCountriesLost += 1;
+A1 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 E9 46 00 00 00 01 E9 46 00 00 26 16 
+
+STAT_AddStat(20, 1);
+1B C7 26 00 00 00 00 00 00 24 14 26 16 
+
+SetEntity(Spawn(class'XGEntity'), GetStormEntity());
+1B C6 23 00 00 00 00 00 00 1C A3 FD FF FF 20 48 22 00 00 4A 4A 4A 4A 4A 4A 4A 16 1B 60 10 00 00 00 00 00 00 16 16 
+
+return;
+04 0B 
+
+EOS
+53 
+
+
+
+
+new hex broken down :
+if(m_bSecretPact)
+07 0F 00 2D 01 33 24 00 00 
+
+	return;
+	04 0B 
+
+m_iFunding = 0;
+0F 01 2F 24 00 00 25 
+
+m_iPanic = 4;
+0F 01 2E 24 00 00 2C 04 
+
+HQ().RemoveSatellite(GetID());
+19 1B 5C 11 00 00 00 00 00 00 16 14 00 00 00 00 00 00 1B BB 22 00 00 00 00 00 00 1B 58 0F 00 00 00 00 00 00 16 16 
+
+m_bSecretPact = true;
+14 2D 01 33 24 00 00 27 
+
+AI().AddToAssets(byte(GetID()), arrAssets); // local variable from XGStrategyAI.TallySquadCost
+19 1B E1 00 00 00 00 00 00 00 16 17 00 00 00 00 00 00 1B C7 00 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 00 AB 44 00 00 16 
+
+GEOSCAPE().ColorCountry(byte(GetID()), GetPanicColor());
+19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B F4 05 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 1B EE 0F 00 00 00 00 00 00 16 16 
+
+Game().CheckForLoseGame();
+19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 3D 41 00 00 00 1B 65 05 00 00 00 00 00 00 16 
+
+World().m_kFundingCouncil.OnCountryLeft(byte(GetID()));
+19 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 EB 46 00 00 00 01 EB 46 00 00 16 00 00 00 00 00 00 1B 2E 20 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 16 
+
+World().m_iNumCountriesLost += 1;
+A1 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 E9 46 00 00 00 01 E9 46 00 00 26 16 
+
+STAT_AddStat(20, 1);
+1B C7 26 00 00 00 00 00 00 24 14 26 16 
+
+SetEntity(Spawn(class'XGEntity'), GetStormEntity());
+1B C6 23 00 00 00 00 00 00 1C A3 FD FF FF 20 48 22 00 00 4A 4A 4A 4A 4A 4A 4A 16 1B 60 10 00 00 00 00 00 00 16 16 
+
+null-ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return;
+04 0B 
+
+EOS
+53 
+
+
+
+----------------------
+
+XGCountry.LeaveXComProject
+
+original hex:
+header:
+43 24 00 00 AB 1F 00 00 00 00 00 00 43 24 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7C 00 00 00 49 0E 00 00 A1 01 00 00 5D 01 00 00 
+
+body:
+07 0F 00 1B B6 16 00 00 00 00 00 00 16 04 0B 19 1B E1 00 00 00 00 00 00 00 16 16 00 A3 43 00 00 00 1B C8 05 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 16 0F 01 2F 24 00 00 25 0F 01 2E 24 00 00 1D FF FF FF FF 14 2D 01 33 24 00 00 27 19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B F4 05 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 1B EE 0F 00 00 00 00 00 00 16 16 19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 3D 41 00 00 00 1B 65 05 00 00 00 00 00 00 16 07 00 01 1B 24 11 00 00 00 00 00 00 16 19 1B 5C 11 00 00 00 00 00 00 16 26 00 00 00 00 00 00 1B BB 22 00 00 00 00 00 00 35 63 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 16 19 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 EB 46 00 00 00 01 EB 46 00 00 16 00 00 00 00 00 00 1B 2E 20 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 16 A1 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 E9 46 00 00 00 01 E9 46 00 00 26 16 1B C7 26 00 00 00 00 00 00 24 14 26 16 1B C6 23 00 00 00 00 00 00 1C A3 FD FF FF 20 48 22 00 00 4A 4A 4A 4A 4A 4A 4A 16 1B 60 10 00 00 00 00 00 00 16 16 04 0B 53 
+
+
+new hex: (virtual 0x19D)
+header:
+43 24 00 00 AB 1F 00 00 00 00 00 00 43 24 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7C 00 00 00 49 0E 00 00 9D 01 00 00 5D 01 00 00 
+
+body:
+07 0F 00 2D 01 33 24 00 00 04 0B 0F 01 2F 24 00 00 25 0F 01 2E 24 00 00 2C 04 19 1B 5C 11 00 00 00 00 00 00 16 14 00 00 00 00 00 00 1B BB 22 00 00 00 00 00 00 1B 58 0F 00 00 00 00 00 00 16 16 14 2D 01 33 24 00 00 27 19 1B E1 00 00 00 00 00 00 00 16 17 00 00 00 00 00 00 1B C7 00 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 00 AB 44 00 00 16 19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B F4 05 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 1B EE 0F 00 00 00 00 00 00 16 16 19 1B 4C 0E 00 00 00 00 00 00 16 0A 00 3D 41 00 00 00 1B 65 05 00 00 00 00 00 00 16 19 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 EB 46 00 00 00 01 EB 46 00 00 16 00 00 00 00 00 00 1B 2E 20 00 00 00 00 00 00 38 3D 1B 58 0F 00 00 00 00 00 00 16 16 A1 19 1B 9C 2C 00 00 00 00 00 00 16 09 00 E9 46 00 00 00 01 E9 46 00 00 26 16 1B C7 26 00 00 00 00 00 00 24 14 26 16 1B C6 23 00 00 00 00 00 00 1C A3 FD FF FF 20 48 22 00 00 4A 4A 4A 4A 4A 4A 4A 16 1B 60 10 00 00 00 00 00 00 16 16 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 04 0B 53 
+
+
+-----------------
+
