@@ -1,0 +1,99 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=SetSatelliteCoverage@XGCountry
+
+//Correctly handle launching a satellite above a lost country
+//this function can add or remove satellite coverage
+
+[BEFORE_HEX]
+[HEADER]
+F8 00 00 00 B0 00 00 00 
+[/HEADER]
+[CODE]
+if(m_bSatellite == bCoverage)
+07 1B 00 F2 2D 01 32 24 00 00 2D 00 78 24 00 00 16 
+
+	return
+	04 0B 
+
+m_bSatellite = bCoverage
+14 2D 01 32 24 00 00 2D 00 78 24 00 00 
+
+Continent(m_kTCountry.iContinent).SetSatelliteCoverage(m_kTCountry.iEnum, bCoverage)
+19 1B 23 06 00 00 00 00 00 00 35 5D 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 16 30 00 00 00 00 00 00 1B F1 23 00 00 00 00 00 00 35 63 1E 00 00 64 1E 00 00 00 00 01 34 24 00 00 2D 00 78 24 00 00 16 
+
+if(bCoverage)
+07 D5 00 2D 00 78 24 00 00 
+
+	AddPanic(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY)
+	1B B3 00 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 4A 16 
+
+	BeginPaying()
+	1B 64 03 00 00 00 00 00 00 16 
+
+else
+06 F5 00 
+
+	BeginPaying()
+	1B 64 03 00 00 00 00 00 00 16 
+
+	m_arrUFORecord.Remove(0, m_arrUFORecord.Length)
+	40 01 2D 24 00 00 25 36 01 2D 24 00 00 16 
+
+return
+04 0B 
+
+EOS
+53 
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+E4 00 00 00 B0 00 00 00 
+[/HEADER]
+[CODE]
+if(m_bSatellite == bCoverage)
+07 1B 00 F2 2D 01 32 24 00 00 2D 00 78 24 00 00 16 
+
+	return
+	04 0B 
+
+m_bSatellite = bCoverage
+14 2D 01 32 24 00 00 2D 00 78 24 00 00 
+
+if(m_bSecretPact)
+07 40 00 2D 01 33 24 00 00 
+
+else
+06 B6 00 
+
+	Continent(int(GetContinent)).SetSatelliteCoverage(GetID(), bCoverage)
+	19 1B 23 06 00 00 00 00 00 00 38 3A 1B C5 0E 00 00 00 00 00 00 16 16 30 00 00 00 00 00 00 1B F1 23 00 00 00 00 00 00 1B 58 0F 00 00 00 00 00 00 16 2D 00 78 24 00 00 16 
+
+	if(bCoverage)
+	07 B6 00 2D 00 78 24 00 00 
+
+		AddPanic(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY)
+		1B B3 00 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 4A 16 
+
+m_arrUFORecord.Remove(0, m_arrUFORecord.Length)
+40 01 2D 24 00 00 25 36 01 2D 24 00 00 16 
+
+BeginPaying()
+1B 64 03 00 00 00 00 00 00 16 
+
+null-op
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B  
+
+return
+04 0B 
+
+EOS
+53 
+
+[/CODE]
+[/AFTER_HEX]

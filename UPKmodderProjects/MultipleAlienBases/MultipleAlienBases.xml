@@ -1,0 +1,116 @@
+<modproject name="MultipleAlienBases" path="C:\Games\JavaProjects\UPKmodder\UPKmodderProjects\MultipleAlienBases\">
+	<modpackage name = "EU">
+		<modpackage name = "UIChanges">
+			<modfile name = "UpdateAlert@XGMissionControlUI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateAlert@XGMissionControlUI"/>
+			</modfile>
+			<modfile name = "UpdateContinent@XGSatelliteSitRoomUI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateContinent@XGSatelliteSitRoomUI"/>
+			</modfile>
+			<modfile name = "UpdateConfirmUI@XGSatelliteSitRoom.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateContinent@XGSatelliteSitRoomUI"/>
+			</modfile>
+			<modfile name = "UpdateCountry@XGSatelliteSitRoom.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateContinent@XGSatelliteSitRoomUI"/>
+			</modfile>	
+			<modfile name = "CalcFunding@XGCountry.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateContinent@XGSatelliteSitRoomUI"/>
+			</modfile>
+			<modfile name = "GetObjectiveImagePath@XComHQPresentationLayer.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateContinent@XGSatelliteSitRoomUI"/>
+			</modfile>
+			<modfile name = "UpdateCouncilDebrief@XGDebriefUI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateContinent@XGSatelliteSitRoomUI"/>
+			</modfile>
+		</modpackage>
+		<modpackage name = "GameplayChanges">
+			<modfile name = "CreateAlienBase@XGStrategyAI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "CreateAlienBase@XGStrategyAI"/>
+			</modfile>
+			<modfile name = "ApplyMissionPanic@XGStrategyAI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "ApplyMissionPanic@XGStrategyAI"/>
+			</modfile>
+			<modfile name = "UpdateCountryHelp@XGSatelliteSitRoomUI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateCountryHelp@XGSatelliteSitRoomUI"/>
+			</modfile>
+			<modfile name = "SetSatelliteCoverage@XGCountry.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "SetSatelliteCoverage@XGCountry"/>
+			</modfile>
+			<modfile name = "ActivateSatellite@XGHeadquarters.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "ActivateSatellite@XGHeadquarters"/>
+			</modfile>
+			<modfile name = "InitNewGame@XGStrategyAI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "InitNewGame@XGStrategyAI"/>
+			</modfile>
+			<modpackage name = "OnCodeCracked">
+				<modfile name = "OnCodeCracked@XGFacility_SituationRoom.upk_mod">
+					<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+					<targetfunction name = "OnCodeCracked@XGFacility_SituationRoom"/>
+				</modfile>
+				<modfile name = "IsCodeActive@XGFacility_SituationRoom.upk_mod">
+					<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+					<targetfunction name = "IsCodeActive@XGFacility_SituationRoom"/>
+				</modfile>
+				<modfile name = "AddToAssets@XGStrategyAI.upk_mod">
+					<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+					<targetfunction name = "AddToAssets@XGStrategyAI"/>
+				</modfile>
+			</modpackage>
+			<modfile name = "BuildSubObjective@XGObjectiveManager.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "BuildSubObjective@XGObjectiveManager"/>
+			</modfile>
+			<modfile name = "UpdateView@XGResearchUI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateView@XGResearchUI"/>
+			</modfile>
+			<modpackage name = "AIAddNewObjectives">
+				<modfile name = "AIAddNewObjectives@XGStrategyAI.upk_mod">
+					<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+					<targetfunction name = "AIAddNewObjectives@XGStrategyAI"/>
+				</modfile>
+				<modfile name = "RevealBase@XGStrategyAI.upk_mod">
+					<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+					<targetfunction name = "RevealBase@XGStrategyAI"/>
+				</modfile>
+			</modpackage>
+			<modfile name = "OnResearchComplete@XGFacility_Labs.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "OnResearchComplete@XGFacility_Labs"/>
+			</modfile>
+			<modfile name = "CheckForMatinee@XGDebriefUI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "CheckForMatinee@XGDebriefUI"/>
+			</modfile>
+			<modfile name = "PostCombat@XGStrategy.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "PostCombat@XGStrategy"/>
+			</modfile>			
+			<modfile name = "UpdateView@XGSituationRoomUI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "UpdateView@XGSituationRoomUI"/>
+			</modfile>			
+			<modfile name = "GetSubObjectives@XGObjectiveManager.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "GetSubObjectives@XGObjectiveManager"/>
+			</modfile>			
+			<modfile name = "CostTest@XGStrategyAI.upk_mod">
+				<targetupkfile name = "C:\Games\Java Projects\UPKmodder\XComStrategyGame_test_apply_revert.upk"/>
+				<targetfunction name = "CostTest@XGStrategyAI"/>
+			</modfile>			
+		</modpackage>
+	<modpackage>
+</modproject>

@@ -1,0 +1,158 @@
+Return to base debrief after alien base mission complete
+
+After returning to base there is a summary display which reads :
+"XCOM successfully infiltrated and eliminated the alien base in !"
+
+The location is blank because it must be trying to report the continent. This should be changed to country, and could also be used to inform the player that the occupied country was liberated.
+
+m_strAlienBaseFeedback="XCOM successfully infiltrated and eliminated the alien base in <XGParam:StrValue0/>!"
+
+Happens in XGDebriefUI.UpdateCouncilDebrief :
+            if(kHQ.m_kLastResult.eType == 6)
+            {
+                kContinent = Continent(kHQ.m_kLastResult.iContinentTarget);
+                kTag.StrValue0 = kContinent.GetName();
+                // End:0x68C
+                if(kHQ.m_kLastResult.bSuccess)
+                {
+                    strFeedback = class'XComLocalizer'.static.ExpandStringByTag(m_strAlienBaseFeedback, kTag);
+                }
+                // End:0x6C7
+                else
+                {
+                    strFeedback = class'XComLocalizer'.static.ExpandStringByTag(m_strAlienBaseLoss, kTag);
+                }
+            else
+			
+Need to change iContinentTarget to iCountryTarget. Could also expand / alter the two m_strAlienBase config strings.
+
+original hex broken down:
+if(kHQ.m_kLastResult.eType == 6)
+07 CA 06 9A 38 3A 35 5B 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 38 3A 24 06 16 
+
+	kContinent = Continent(kHQ.m_kLastResult.iContinentTarget)
+	0F 00 65 26 00 00 1B 23 06 00 00 00 00 00 00 35 53 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 16 
+
+	kTag.StrValue0 = kContinent.GetName()
+	0F 19 00 60 26 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 00 65 26 00 00 0A 00 9E 23 00 00 00 1B A3 0F 00 00 00 00 00 00 16 
+
+	if(kHQ.m_kLastResult.bSuccess)
+	07 8C 06 2D 35 52 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 
+
+		strFeedback = class'XComLocalizer'.static.ExpandStringByTag(m_strAlienBaseFeedback, kTag)
+		0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 12 26 00 00 00 60 26 00 00 16 
+
+	else
+	06 C7 06 
+
+		strFeedback = class'XComLocalizer'.static.ExpandStringByTag(m_strAlienBaseLoss, kTag)
+		0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 11 26 00 00 00 60 26 00 00 16 
+
+else
+06 1C 09 
+	
+	
+new hex broken down:
+if(kHQ.m_kLastResult.eType == 6)
+07 CA 06 9A 38 3A 35 5B 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 38 3A 24 06 16 
+
+	kTag.StrValue0 = Country(kHQ.m_kLastResult.iCountryTarget).GetNameWithArticle(true)
+	0F 19 00 60 26 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 1B 45 06 00 00 00 00 00 00 35 54 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 16 0B 00 5B 24 00 00 00 1B A6 0F 00 00 00 00 00 00 27 16 
+
+	if(kHQ.m_kLastResult.bSuccess)
+	07 7A 06 2D 35 52 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 
+
+		strFeedback = class'XComLocalizer'.static.ExpandStringByTag(m_strAlienBaseFeedback, kTag)
+		0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 12 26 00 00 00 60 26 00 00 16 
+
+else
+06 C7 06 
+
+	strFeedback = class'XComLocalizer'.static.ExpandStringByTag(m_strAlienBaseLoss, kTag)
+	0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 11 26 00 00 00 60 26 00 00 16 
+
+	null-ops (10 bytes)
+	00 60 26 00 00 00 60 26 00 00 
+	
+else
+06 1C 09 
+
+
+--------------------
+
+XGDebriefUI.UpdateCouncilDebrief
+
+original hex:
+07 CA 06 9A 38 3A 35 5B 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 38 3A 24 06 16 0F 00 65 26 00 00 1B 23 06 00 00 00 00 00 00 35 53 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 16 0F 19 00 60 26 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 00 65 26 00 00 0A 00 9E 23 00 00 00 1B A3 0F 00 00 00 00 00 00 16 07 8C 06 2D 35 52 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 12 26 00 00 00 60 26 00 00 16 06 C7 06 0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 11 26 00 00 00 60 26 00 00 16 06 1C 09 
+
+
+new hex:
+07 CA 06 9A 38 3A 35 5B 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 38 3A 24 06 16 0F 19 00 60 26 00 00 09 00 EF F9 FF FF 00 01 EF F9 FF FF 19 1B 45 06 00 00 00 00 00 00 35 54 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 16 0B 00 5B 24 00 00 00 1B A6 0F 00 00 00 00 00 00 27 16 07 7A 06 2D 35 52 03 00 00 5C 03 00 00 00 00 19 00 59 26 00 00 09 00 A3 32 00 00 00 01 A3 32 00 00 0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 12 26 00 00 00 60 26 00 00 16 06 C7 06 0F 00 61 26 00 00 12 20 8C FE FF FF 1C 00 08 FA FF FF 00 1B 3A 0D 00 00 00 00 00 00 01 11 26 00 00 00 60 26 00 00 16 00 60 26 00 00 00 60 26 00 00 06 1C 09 
+
+
+------------
+
+
+Need to disable the Base Destruction Narrative Cinematic and the special callback and instead allow regular post-mission things to occur.
+
+XGStrategy.PostCombat
+
+original hex broken down: (next line at 0x1133)
+if(kMission.m_iMissionType == 6)
+07 36 11 9A 19 00 5F 41 00 00 09 00 35 37 00 00 00 01 35 37 00 00 2C 06 16 
+
+	if(bSuccess)
+	07 33 11 2D 00 5D 41 00 00 
+
+		PRES().HideLoadingScreen()
+		19 1B 12 22 00 00 00 00 00 00 16 0A 00 00 00 00 00 00 1B 46 11 00 00 00 00 00 00 16 
+
+		PRES().UINarrative(xcomnarrativemoment'TP06A_Victory',, PostMatinee)
+		19 1B 12 22 00 00 00 00 00 00 16 29 00 66 FF FF FF 00 1B 27 2B 00 00 00 00 00 00 20 F7 48 00 00 4A 43 00 22 00 00 00 00 00 00 00 00 00 00 4A 4A 4A 4A 16 
+
+		kContinent.m_kMonthly.iAlienBasesAssaulted += 1
+		A1 35 DF 02 00 00 F3 02 00 00 00 01 19 00 5B 41 00 00 09 00 90 23 00 00 00 01 90 23 00 00 26 16 
+
+		GEOSCAPE().RemoveMission(kMission, bSuccess)
+		19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B B5 22 00 00 00 00 00 00 00 5F 41 00 00 2D 00 5D 41 00 00 4A 4A 4A 16 
+
+		return true
+		04 27 
+
+
+new hex broken down:
+if(kMission.m_iMissionType == 6)
+07 36 11 9A 19 00 5F 41 00 00 09 00 35 37 00 00 00 01 35 37 00 00 2C 06 16 
+
+	if(bSuccess)
+	07 33 11 2D 00 5D 41 00 00 
+
+		kContinent.m_kMonthly.iAlienBasesAssaulted += 1
+		A1 35 DF 02 00 00 F3 02 00 00 00 01 19 00 5B 41 00 00 09 00 90 23 00 00 00 01 90 23 00 00 26 16 
+
+		GEOSCAPE().RemoveMission(kMission, bSuccess)
+		19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B B5 22 00 00 00 00 00 00 00 5F 41 00 00 2D 00 5D 41 00 00 4A 4A 4A 16 
+
+		null-ops (+4 memory words)
+		00 5B 41 00 00 00 5B 41 00 00 00 5B 41 00 00 00 5B 41 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+-----------------------
+		
+XGStrategy.PostCombat // Remove alien base destruction cinematic and other junk		
+
+original hex:
+07 36 11 9A 19 00 5F 41 00 00 09 00 35 37 00 00 00 01 35 37 00 00 2C 06 16 07 33 11 2D 00 5D 41 00 00 19 1B 12 22 00 00 00 00 00 00 16 0A 00 00 00 00 00 00 1B 46 11 00 00 00 00 00 00 16 19 1B 12 22 00 00 00 00 00 00 16 29 00 66 FF FF FF 00 1B 27 2B 00 00 00 00 00 00 20 F7 48 00 00 4A 43 00 22 00 00 00 00 00 00 00 00 00 00 4A 4A 4A 4A 16 A1 35 DF 02 00 00 F3 02 00 00 00 01 19 00 5B 41 00 00 09 00 90 23 00 00 00 01 90 23 00 00 26 16 19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B B5 22 00 00 00 00 00 00 00 5F 41 00 00 2D 00 5D 41 00 00 4A 4A 4A 16 04 27 
+
+new hex:
+07 36 11 9A 19 00 5F 41 00 00 09 00 35 37 00 00 00 01 35 37 00 00 2C 06 16 07 33 11 2D 00 5D 41 00 00 A1 35 DF 02 00 00 F3 02 00 00 00 01 19 00 5B 41 00 00 09 00 90 23 00 00 00 01 90 23 00 00 26 16 19 1B 69 0E 00 00 00 00 00 00 16 20 00 00 00 00 00 00 1B B5 22 00 00 00 00 00 00 00 5F 41 00 00 2D 00 5D 41 00 00 4A 4A 4A 16 00 5B 41 00 00 00 5B 41 00 00 00 5B 41 00 00 00 5B 41 00 00 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+	
+------------
+
+Update Alien Base debrief localization text:
+change:
+m_strAlienBaseFeedback="XCOM successfully infiltrated and eliminated the alien base in <XGParam:StrValue0/>!"
+
+to:
+m_strAlienBaseFeedback="XCOM successfully infiltrated and eliminated the alien base in <XGParam:StrValue0/>, which has now rejoined the XCOM Project."
+

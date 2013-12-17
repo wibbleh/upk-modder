@@ -1,0 +1,28 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=UpdateView@XGResearchUI
+
+// make the objective popup after finishing outsider shard objective 3 instead of objective 4 
+
+[BEFORE_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+PRES().UIObjectiveDisplay(4)
+38 3A 24 03 16 19 1B 12 22 00 00 00 00 00 00 16 0C 00 00 00 00 00 00 1B 2B 2B 00 00 00 00 00 00 24 04 16 
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+
+[/HEADER]
+[CODE]
+PRES().UIObjectiveDisplay(3)
+38 3A 24 03 16 19 1B 12 22 00 00 00 00 00 00 16 0C 00 00 00 00 00 00 1B 2B 2B 00 00 00 00 00 00 24 03 16 
+[/CODE]
+[/AFTER_HEX]
