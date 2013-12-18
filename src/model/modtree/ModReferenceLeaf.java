@@ -46,6 +46,16 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	 */
 	@Override
 	public String toString() {
+		return super.toString();
+	}
+	
+	/**
+	 * Overrides string naming for display via JTreePane
+	 * @param expanded
+	 * @return
+	 */
+	@Override
+	public String toString(boolean expanded) {
 		String refName = "";
 		if (this.getTree().getSourceUpk() != null) {
 			if(!this.isName()) {
@@ -60,8 +70,8 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 				}
 			}
 		}
-		if(getParentNode().expanded) {
-			if(refName == "") {
+		if(expanded) {
+			if(refName.isEmpty()) {
 				return super.toString() + "  (Reference)";
 			} else {
 				return super.toString() + "  (Reference " + refName + ")";

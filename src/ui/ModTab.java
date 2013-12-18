@@ -34,9 +34,13 @@ import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import model.modtree.ModGenericLeaf;
+import model.modtree.ModOffsetLeaf;
 
 import model.modtree.ModOperandNode;
+import model.modtree.ModReferenceLeaf;
 import model.modtree.ModTree;
+import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
 import org.bounce.text.LineNumberMargin;
@@ -198,8 +202,12 @@ public class ModTab extends JSplitPane {
 			public Component getTreeCellRendererComponent(JTree tree,
 					Object value, boolean sel, boolean expanded, boolean leaf,
 					int row, boolean hasFocus) {
-				if ((value instanceof ModOperandNode) && expanded) {
-					value = ((ModOperandNode) value).toString(expanded);
+				if (((value instanceof ModOperandNode) && expanded )) {
+					value = ((ModTreeNode) value).toString(expanded);
+				} else if((value instanceof ModReferenceLeaf) 
+						|| (value instanceof ModGenericLeaf) 
+						|| (value instanceof ModOffsetLeaf)) {
+					value = ((ModTreeNode) value).toString(true);
 				}
 				Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded,
 						leaf, row, hasFocus);
@@ -331,93 +339,72 @@ public class ModTab extends JSplitPane {
 	}
 	
 	public void setUpdateStatus(boolean checkBothDirections) {
+		String loggerName = ModTab.class.getName()+this.modFile.getAbsolutePath();
 		if(this.modTree == null) {
-			Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.SEVERE, "No ModFile");
-			this.setUpdateMessage("No file data");
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			this.modIsApplied = false;
-			this.modCanBeApplied = false;
+			Logger.getLogger(loggerName).log(Level.SEVERE, "No ModFile");
 			return;
 		}
 		if(this.getUpkFile() == null) {
-			this.setUpdateMessage("No upk present");
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			this.modIsApplied = false;
-			this.modCanBeApplied = false;
+			Logger.getLogger(loggerName).log(Level.SEVERE, "No upk present");
 			return;
 		}
 		List<byte[]> beforeHex = HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile());
 		if(beforeHex.isEmpty()) {
-			this.setUpdateMessage("No/empty BEFORE Blocks");
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			this.modIsApplied = false;
-			this.modCanBeApplied = false;
+			Logger.getLogger(loggerName).log(Level.INFO, "No/empty BEFORE Blocks");
 			return;
 		}
 		List<byte[]> afterHex =	HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile());
 		if(afterHex.isEmpty()) {
-			this.setUpdateMessage("No/empty AFTER Blocks");
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			this.modIsApplied = false;
-			this.modCanBeApplied = false;
+			Logger.getLogger(loggerName).log(Level.INFO, "No/empty AFTER Blocks");
 			return;
 		}
 		try {
 			if(checkBothDirections) {
 				if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
-					this.setUpdateMessage("BEFORE Hex Installed");
-					this.setUpdateBackgroundColor(new Color(128, 255, 128));
-					this.modIsApplied = false;
-					this.modCanBeApplied = true;
+					Logger.getLogger(loggerName).log(Level.INFO, "BEFORE Hex Installed");
+					// TODO: set tab text color
 				} else if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
-					this.setUpdateMessage("AFTER Hex Installed");
-					this.setUpdateBackgroundColor(new Color(128, 255, 128));
-					this.modIsApplied = true;
-					this.modCanBeApplied = true;
+					Logger.getLogger(loggerName).log(Level.INFO, "AFTER Hex Installed");
+					// TODO: set tab text color
 				} else {
 					modIsApplied = false;
 				}
 			} else { // check only based on the current status
 				if(this.modIsApplied) {
 					if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
+					Logger.getLogger(loggerName).log(Level.INFO, "AFTER Hex Installed");
 						this.setUpdateMessage("AFTER Hex Installed");
-						this.setUpdateBackgroundColor(new Color(128, 255, 128));
-						this.modIsApplied = true;
-						this.modCanBeApplied = true;
+						// TODO: set tab text color
 					}						
 				} else {
 					if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
+					Logger.getLogger(loggerName).log(Level.INFO, "BEFORE Hex Installed");
 						this.setUpdateMessage("BEFORE Hex Installed");
-						this.setUpdateBackgroundColor(new Color(128, 255, 128));
-						this.modIsApplied = false;
-						this.modCanBeApplied = true;
+						// TODO: set tab text color
 					}						
 				}
 			}
 			
 		} catch(IOException ex) {
-			Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-			this.setUpdateMessage("File error " + ex);
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
+			Logger.getLogger(loggerName).log(Level.SEVERE, "File error", ex);
 		}
 	}
 	
 	private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
+		String loggerName = ModTab.class.getName()+this.modFile.getAbsolutePath();
 		// perform simple error checking first
 		// check for same number of blocks
 		if(patterns.size() != replacements.size()) {
-			this.setUpdateMessage("Block count mismatch");
-			this.setUpdateBackgroundColor(new Color(255, 128, 128));
-			this.modCanBeApplied = false;
+			Logger.getLogger(loggerName).log(Level.INFO, "Block count mismatch");
 			return null;
 		}
 		// check each block has same number of bytes
 		long[] filePositions = new long[patterns.size()];
 		for (int i = 0; i < patterns.size() ; i++) {
 			if(patterns.get(i).length != replacements.get(i).length) {
-				this.setUpdateMessage("Block " + i + " bytecount mismatch");
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-				this.modCanBeApplied = false;
+			Logger.getLogger(loggerName).log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
+					+ patterns.get(i).length + ", REPLACE = " 
+					+ replacements.get(i).length);
 				return null;
 			}
 		}
@@ -425,9 +412,7 @@ public class ModTab extends JSplitPane {
 		for(int j = 0; j < patterns.size() ; j ++) {
 			long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), this.getUpkFile(), this.modTree);
 			if(filePos == -1) {
-				this.setUpdateMessage("Block " + j + " not found");
-				this.setUpdateBackgroundColor(new Color(255, 128, 128));
-				this.modCanBeApplied = false;
+				Logger.getLogger(loggerName).log(Level.INFO, "Block " + j + " FIND not found");
 				return null;
 			} else {
 				filePositions[j]= filePos;

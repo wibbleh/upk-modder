@@ -3,6 +3,7 @@ package ui.frames;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import javax.swing.JFrame;
@@ -13,8 +14,12 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import model.modtree.ModGenericLeaf;
+import model.modtree.ModOffsetLeaf;
 import model.modtree.ModOperandNode;
+import model.modtree.ModReferenceLeaf;
 import model.modtree.ModTree;
+import model.modtree.ModTreeNode;
 
 /**
  * Displays the current code in the editor as a tree view in a new frame.
@@ -85,31 +90,24 @@ public class CodeTreeViewFrame extends JFrame{
 		modElemTree.setRootVisible(false);
 		modElemTree.putClientProperty("JTree.lineStyle", "Angled");
 		modElemTree.setShowsRootHandles(false);
-		// Display alternate operand text info for opened ModOperandNodes
+		// display alternate operand text info for opened ModOperandNodes
 		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
-			
 			@Override
-			public Component getTreeCellRendererComponent(
-									JTree tree,
-									Object value,
-									boolean sel,
-									boolean expanded,
-									boolean leaf,
-									int row,
-									boolean hasFocus) {
-
-					if(value instanceof ModOperandNode) {
-							((ModOperandNode) value ).expanded = expanded;
-							if(expanded) {
-								
-							}
-					} 
-					super.getTreeCellRendererComponent(
-									tree, value, sel,
-									expanded, leaf, row,
-									hasFocus);
-					return this;
-				}		
+			public Component getTreeCellRendererComponent(JTree tree,
+					Object value, boolean sel, boolean expanded, boolean leaf,
+					int row, boolean hasFocus) {
+				if (((value instanceof ModOperandNode) && expanded )) {
+					value = ((ModTreeNode) value).toString(expanded);
+				} else if((value instanceof ModReferenceLeaf) 
+						|| (value instanceof ModGenericLeaf) 
+						|| (value instanceof ModOffsetLeaf)) {
+					value = ((ModTreeNode) value).toString(true);
+				}
+				Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded,
+						leaf, row, hasFocus);
+				comp.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+				return comp;
+			}
 		};
 		renderer.setLeafIcon(null);
 		renderer.setClosedIcon(null);

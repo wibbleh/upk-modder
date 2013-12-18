@@ -28,11 +28,12 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 
 	/**
 	 * Overrides string naming for display via JTreePane
+	 * @param expanded
 	 * @return
 	 */
 	@Override
-	public String toString() {
-		if(getParentNode().expanded) {
+	public String toString(boolean expanded) {
+		if(expanded) {
 			if(this.operand == null) {
 				return super.toString() + "  (Absolute Jump)";
 			} else {
@@ -82,6 +83,10 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 		return res;
 	}
 
+	public String getOperand() {
+		return this.operand;
+	}
+	
 	@Override
 	public int getOffset() {
 		return this.jumpOffset;

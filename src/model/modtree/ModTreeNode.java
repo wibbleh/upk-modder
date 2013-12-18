@@ -65,7 +65,12 @@ public class ModTreeNode implements TreeNode {
 	/**
 	 * Flag indicating if the current node has been updated during the most recent insert/remove operation.
 	 */
-	protected boolean hasBeenUpdated;
+//	protected boolean hasBeenUpdated;
+	
+		/**
+	 * Flag indicating if the current node has been updated during the most recent insert/remove operation.
+	 */
+	protected int memoryPosition;
 	
     /**
      * Constructs a mod node from the specified parent node.
@@ -78,38 +83,38 @@ public class ModTreeNode implements TreeNode {
 	/**
 	 * Indicates whether the node is expanded in the current view.
 	 */
-	public boolean expanded;
+//	public boolean expanded;
 
 	/**
 	 * Indicates whether the node was updated during the most recent insert/remove operation.
 	 * @return
 	 */
-	@Deprecated
-	public boolean hasBeenUpdated() {
-		return hasBeenUpdated;
-	}
+//	@Deprecated
+//	public boolean hasBeenUpdated() {
+//		return hasBeenUpdated;
+//	}
 	
 	/**
 	 * Inits update flag of current node and all child nodes.
 	 * @param b value to init flags to.
 	 */
-	public void initUpdateFlags(boolean b) {
-		this.hasBeenUpdated = b;
-		if(isLeaf()) {
-			return;
-		}
-		for (int i = 0; i < this.getNodeCount(); i++) {
-			this.getChildNodeAt(i).initUpdateFlags(b);
-		}
-	}
+//	public void initUpdateFlags(boolean b) {
+//		this.hasBeenUpdated = b;
+//		if(isLeaf()) {
+//			return;
+//		}
+//		for (int i = 0; i < this.getNodeCount(); i++) {
+//			this.getChildNodeAt(i).initUpdateFlags(b);
+//		}
+//	}
 	
 	/**
 	 * Sets update flag for the current node.
 	 * @param b
 	 */
-	protected void setUpdateFlag(boolean b) {
-		this.hasBeenUpdated = b;
-	}
+//	protected void setUpdateFlag(boolean b) {
+//		this.hasBeenUpdated = b;
+//	}
 	
 	/**
 	 * Constructs a mod node from the specified parent node and a flag
@@ -400,7 +405,7 @@ public class ModTreeNode implements TreeNode {
     
 	protected void updateContexts() {
 		if(getTree() == null) {return;}
-		String content = this.getFullText().toUpperCase();
+		String content = this.getFullText().toUpperCase().trim();
 		if (this.plainText) {
 			if (content.startsWith("UPKFILE=")) {
 				getTree().setUpkName(this.getTagValue(this.getFullText()));
@@ -506,13 +511,13 @@ public class ModTreeNode implements TreeNode {
                 }
                 startOffset -= s - rs;
                 endOffset -= length;
-				this.setUpdateFlag(true);
+//				this.setUpdateFlag(true);
             } else { // removal start happens within node -- case 3
                 if(isLeaf()) { // remove middle part of data string for leaf
                     setText(getText().substring(0, rs-s) + getText().substring(re-s, getText().length()));
                 }
                 endOffset -= length;
-				this.setUpdateFlag(true);
+//				this.setUpdateFlag(true);
             }
         } else { // removal end happens after node end -- cases 4, 5, 6
             if(rs < s) { // remove start occurs prior to node start -- case 6
@@ -520,14 +525,14 @@ public class ModTreeNode implements TreeNode {
                     setText("");
                 }
                 endOffset = startOffset;
-				this.setUpdateFlag(true);
+//				this.setUpdateFlag(true);
 //                removeModNode();
             } else if(rs < e) { // remove start happens in middle of node -- case 4
                 if(isLeaf()) { // remove end part of data string for leaf
                     setText(getText().substring(0, e-rs));
                 }
                 endOffset -= e - rs;
-				this.setUpdateFlag(true);
+//				this.setUpdateFlag(true);
             } else { // removal is after node -- case 5
                 // no update needed
                 removeInBranches = false;
@@ -578,7 +583,7 @@ public class ModTreeNode implements TreeNode {
             }
         } else { // recursive step for nodes
             if(offset >= s && offset <= e){ // insertion is at leaf
-				this.setUpdateFlag(true);
+//				this.setUpdateFlag(true);
 			}
             for(ModTreeNode branch : children) {
                 branch.insertString(offset, string, as);
@@ -599,16 +604,16 @@ public class ModTreeNode implements TreeNode {
 			this.setText(text.substring(0, offset - startOffset) + string
 					+ text.substring(offset - startOffset, text.length()));
 			this.endOffset += string.length();
-			this.setUpdateFlag(true);
+//			this.setUpdateFlag(true);
 		} else {
 			ModTreeNode lineParent = getLineParent();
 			String lineText = lineParent.getFullText();
 			lineParent.children.clear();
 			ModTreeLeaf newChild = new ModTreeLeaf(lineParent, lineText, true);
-			newChild.setUpdateFlag(true);
+//			newChild.setUpdateFlag(true);
 			lineParent.addNode(newChild);
 			lineParent.setPlainText(true);
-			lineParent.setUpdateFlag(true);
+//			lineParent.setUpdateFlag(true);
 			
 		}
 	}
@@ -656,7 +661,7 @@ public class ModTreeNode implements TreeNode {
 		if(this.getMemorySize() == 0) {
 			return "      " +getFullText(); 
 		} else {
-			return String.format("%04X: ", this.getMemorySize()) + getFullText();
+			return String.format("%04X: ", this.getMemoryPosition()) + getFullText();
 		}
 //		if (getParentNode() == null) {
 //			return "ROOT";
@@ -672,6 +677,15 @@ public class ModTreeNode implements TreeNode {
 //			return "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: " + " (" + getName() + ")";
 ////			return "(" + getName() + ")";
 //		}
+	}
+	
+	/**
+	 * Overrides string naming for display via JTreePane
+	 * @param expanded
+	 * @return
+	 */
+	public String toString(boolean expanded) {
+		return this.toString();
 	}
 	
     /**
@@ -898,6 +912,14 @@ public class ModTreeNode implements TreeNode {
     {
         return -1;
     }
+	
+	public int getMemoryPosition() {
+		return this.memoryPosition;
+	}
+	
+	public void setMemoryPosition(int position) {
+		this.memoryPosition = position;
+	}
 
 	public ModTreeNode positionToNode(int pos){
 		return getChildNodeAt(getNodeIndex(pos));

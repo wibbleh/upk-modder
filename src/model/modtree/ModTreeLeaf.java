@@ -41,9 +41,18 @@ public class ModTreeLeaf extends ModTreeNode {
         this.setContextFlag(ModContextType.HEX_CODE, this.isCode());
 		this.text = text;
 		this.setPlainText(plainText);
-		this.hasBeenUpdated = true;
+//		this.hasBeenUpdated = true;
 	}
 	
+	@Override
+	public String toString(){
+		// display memory size of line/component in tree view
+		if(this.getMemorySize() == 0) {
+			return "       " +getFullText(); 
+		} else {
+			return String.format("(%04X) ", this.getMemorySize()) + getFullText();
+		}
+	}
 	/**
 	 * TODO: API
 	 * @param s
