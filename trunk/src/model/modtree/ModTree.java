@@ -96,7 +96,7 @@ public class ModTree {
 	/**
 	 * ModTree constructor.
 	 * Initializes queue of 10 DocumentEvents.
-	 * @param modDocument 
+	 * @param document 
 	 * @throws BadLocationException 
 	 */
 	public ModTree(Document document) throws BadLocationException {
@@ -151,7 +151,7 @@ public class ModTree {
 		try {
 			setDocument(this.doc);
 		} catch(BadLocationException ex) {
-			Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, "Error Setting Document", ex);
 		}
 	}
 
@@ -169,7 +169,7 @@ public class ModTree {
 			root.insertString(0, s, null);
 			root.reorganizeAfterInsertion();
 			if(updatingEnabled) {
-				this.updateDocument();
+				this.updateDocument(0,0);
 				// TODO: figure out how to refresh JTreePane when tree gets updated
 //				if(treeViewer != null)
 //					treeViewer.repaint();
@@ -190,20 +190,43 @@ public class ModTree {
 	 * Update the current document based on ModTree structure/content.
 	 * Initially will only perform styling.
 	 * Later may modify text to implement reference/offset corrections.
+	 * @param deltaLines lines inserted or removed
+	 * @param lineInsertPoint point where first line change occurs
 	 */
-	protected void updateDocument() {
+	protected void updateDocument(int deltaLines, int lineInsertPoint) {
 		if (this.getDocument() == null) {
 			return;
 		}
 		int count = 0;
 		int total = 0;
 		List<Integer> updates = new ArrayList<>();
-		if(this.prevRootNode == null || (this.currRootNode.getChildNodeCount() != this.prevRootNode.getChildCount())) {
+		if((this.prevRootNode == null) || (this.currRootNode.getChildCount() <= 1) || (this.prevRootNode.getChildCount() <= 1)) {
 			this.updateNodeStyles(this.currRootNode);
+		} else if (this.currRootNode.getChildNodeCount() != this.prevRootNode.getChildCount()) {
+			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
+				int j;
+				if(i < lineInsertPoint) {
+					j = i;
+				} else {
+					j = i - deltaLines;
+				}
+				if((i == lineInsertPoint) && (deltaLines > 0)) {
+					for(int k = i ; k < deltaLines + i ; k++) {
+						this.updateNodeStyles(this.currRootNode.getChildNodeAt(k));
+					}
+				}
+				if(lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(j))) {
+						this.updateNodeStyles(this.currRootNode.getChildNodeAt(i));
+						count ++;
+						updates.add(i+1);
+				}
+			}
+//			this.updateNodeStyles(this.currRootNode);
 //			System.out.println("ChildCount mismatch");
 		} else {
 			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
-				if(lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(i))) {
+				if (lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(i))
+						|| (i == lineInsertPoint)) {
 						this.updateNodeStyles(this.currRootNode.getChildNodeAt(i));
 						count ++;
 						updates.add(i+1);
@@ -293,6 +316,7 @@ public class ModTree {
 				StyleConstants.setForeground((MutableAttributeSet) as, new Color(220, 180, 50)); //Color.ORANGE);
 				StyleConstants.setUnderline((MutableAttributeSet) as, true);
 			}
+			end--;
 		}
 		// invalid code
 		if ((node.getContextFlag(HEX_CODE) &&  ! node.getContextFlag(VALID_CODE))) {
@@ -308,10 +332,14 @@ public class ModTree {
 				StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
 				StyleConstants.setBold((MutableAttributeSet) as, true);
 			}
+			end--;
 		}
-		if (node.getName().contains("Jump")) {
-			StyleConstants.setBackground((MutableAttributeSet) as,
-					new Color( 255, 255, 180));  // yellow
+		if (node instanceof ModOffsetLeaf) {
+			if(((ModOffsetLeaf)node).getOperand() == null) { // is absolute jump offset
+				StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
+			} else { // is relative jump offset
+				StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 255, 180));  // yellow
+			}end--;
 		}
 		((StyledDocument) this.getDocument()).setCharacterAttributes(start, end-start, as, replace);
 	}
@@ -354,9 +382,19 @@ public class ModTree {
 //			r.remove(offset, length);
 //			r.reorganizeAfterDeletion();
 //		}
+		docEvents.clear();
 		if(updatingEnabled) {
 			if (de.getDocument().getLength() > 0) {
+				// retrieve the new document text
 				String s = de.getDocument().getText(0, doc.getLength());
+				
+				// calculate information about new lines and the insertion point
+				String o = this.currRootNode.getFullText();
+				int nLines = s.length() - s.replace("\n", "").length();
+				int oLines = o.length() - o.replace("\n", "").length();
+				int deltaLines = nLines - oLines;
+				int lineInsertPoint = this.currRootNode.getNodeIndex(de.getOffset());
+				
 				this.prevRootNode = currRootNode;
 				this.currRootNode = new ModTreeRootNode(this);
 				System.out.print("Inserting text... ");
@@ -367,22 +405,10 @@ public class ModTree {
 				startTime = System.currentTimeMillis();
 				this.currRootNode.reorganizeAfterInsertion();
 				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
-			}
-		}
 
-		docEvents.clear();
-		if(updatingEnabled) {
-	//		docEvents.remove(de);
-			if (this.getDocument() != null && docEvents.isEmpty()) {
 				System.out.print("Styling document ... ");
-				long startTime = System.currentTimeMillis();
-				this.updateDocument();
-				// TODO: figure out how to refresh JTreePane when tree gets updated
-//				if(treeViewer != null) {
-//					// reset mod tree
-//					((DefaultTreeModel) treeViewer.getModel()).setRoot(this.getRoot());
-//					treeViewer.repaint();
-//				}
+				startTime = System.currentTimeMillis();
+				this.updateDocument(deltaLines, lineInsertPoint);
 				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
 			}
 		}
@@ -470,6 +496,8 @@ public class ModTree {
 	 */
 	private class ModTreeListener implements DocumentListener {
 
+		private Thread deHandler;
+	
 		@Override
 		public void insertUpdate(DocumentEvent evt) {
 			this.update(evt);
@@ -519,27 +547,76 @@ public class ModTree {
 //					System.out.println("done");
 //				}
 //			});
+			
+			// Amineri - my attempt to make the DocEvent processing more efficient -- doesn't work
+//			if(this.deHandler == null) {
+//				deHandler = new Thread() {
+//				   public void run() {
+//					   try {
+//						   SwingUtilities.invokeAndWait(new Runnable() {
+//							   @Override
+//							   public void run() {
+//								   while (!docEvents.isEmpty()) {
+//									   try {
+//										   ModTree.this.processNextEvent();
+//									   } catch (BadLocationException e) {
+//										   e.printStackTrace();
+//									   }
+//								   }
+//							   }
+//						   });
+//					   } catch (Exception e) {
+//						   e.printStackTrace();
+//					   }
+//				   };
+//				};
+//				deHandler.start();
+//			} else if (this.deHandler.isAlive()) {
+//				this.deHandler.interrupt();
+//				deHandler = new Thread() {
+//				   public void run() {
+//					   try {
+//						   SwingUtilities.invokeAndWait(new Runnable() {
+//							   @Override
+//							   public void run() {
+//								   while (!docEvents.isEmpty()) {
+//									   try {
+//										   ModTree.this.processNextEvent();
+//									   } catch (BadLocationException e) {
+//										   e.printStackTrace();
+//									   }
+//								   }
+//							   }
+//						   });
+//					   } catch (Exception e) {
+//						   e.printStackTrace();
+//					   }
+//				   };
+//				};
+//				deHandler.start();
+//			}	
+			
+			
 			new Thread() {
-				public void run() {
-					try {
-						SwingUtilities.invokeAndWait(new Runnable() {
-							@Override
-							public void run() {
-								while (!docEvents.isEmpty()) {
-									try {
-										ModTree.this.processNextEvent();
-									} catch (BadLocationException e) {
-										e.printStackTrace();
-									}
-								}
-							}
-						});
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-//					System.out.println("done");
-				};
-		}.start();
+				   public void run() {
+					   try {
+						   SwingUtilities.invokeAndWait(new Runnable() {
+							   @Override
+							   public void run() {
+								   while (!docEvents.isEmpty()) {
+									   try {
+										   ModTree.this.processNextEvent();
+									   } catch (BadLocationException e) {
+										   e.printStackTrace();
+									   }
+								   }
+							   }
+						   });
+					   } catch (Exception e) {
+						   e.printStackTrace();
+					   }
+				   };
+				}.start();
 		}
 	}
 

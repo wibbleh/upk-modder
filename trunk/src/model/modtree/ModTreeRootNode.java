@@ -48,6 +48,7 @@ public class ModTreeRootNode extends ModTreeNode {
 		this.resetContextFlags();
 		this.splitElementsOnNewline();
 		this.buildContextsParseUnreal();
+		this.setMemoryPositions();
 	}
     
 	private void splitElementsOnNewline() {
@@ -73,9 +74,9 @@ public class ModTreeRootNode extends ModTreeNode {
         					grandChild.setRange(child.getStartOffset(), childEndOffset);
 
         					ModTreeNode newElement = new ModTreeNode(this, true);
-							newElement.setUpdateFlag(true);
+//							newElement.setUpdateFlag(true);
         					ModTreeLeaf newToken = new ModTreeLeaf(newElement, strings[1], true);
-							newToken.setUpdateFlag(true);
+//							newToken.setUpdateFlag(true);
 
         					this.addNode(index, newElement);
         					newElement.addNode(newToken);
@@ -98,6 +99,7 @@ public class ModTreeRootNode extends ModTreeNode {
         this.resetContextFlags();
         this.glueElementsWithoutNewline();
         this.buildContextsParseUnreal();
+		this.setMemoryPositions();
     }
 
 	private void glueElementsWithoutNewline() {
@@ -116,8 +118,8 @@ public class ModTreeRootNode extends ModTreeNode {
 						branchBranch.setText(gluedString);
 						branch.setRange(branch.getStartOffset(),branch.getStartOffset() + gluedString.length());
 						branchBranch.setRange(branchBranch.getStartOffset(),branchBranch.getStartOffset() + gluedString.length());
-						branch.setUpdateFlag(true);
-						branchBranch.setUpdateFlag(true);
+//						branch.setUpdateFlag(true);
+//						branchBranch.setUpdateFlag(true);
 						this.removeChildNodeAt(count + 1);
 					} else {
 						count++;
@@ -217,4 +219,21 @@ public class ModTreeRootNode extends ModTreeNode {
 		return "";
 	}
 
+	/**
+	 * Sets memory positions for each line 
+	 */
+	protected void setMemoryPositions() {
+		int currPosition = 0;
+		for (int i = 0; i < this.getChildNodeCount(); i++) {
+			// store current positions
+			this.getChildNodeAt(i).setMemoryPosition(currPosition);
+			// increment position with current line size
+			currPosition += this.getChildNodeAt(i).getMemorySize();
+			// if not valid hex code reset the position
+			if(!this.getChildNodeAt(i).getContextFlag(HEX_CODE)) {
+				currPosition = 0;
+			}
+		}
+	}
+	
 }

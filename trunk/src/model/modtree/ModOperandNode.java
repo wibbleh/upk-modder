@@ -30,19 +30,22 @@ public class ModOperandNode extends ModTreeNode {
 		return "ModOperandNode_" + this.operand;
 	}
 	
-	/**
-	 * Overrides string naming for display via JTreePane
-	 * @return
-	 */
 	@Override
-	public String toString() {
-		if (this.expanded) {
-			return OperandTable.getOperandName(operand);
+	public String toString(){
+		// display memory size of line/component in tree view
+		if(this.getMemorySize() == 0) {
+			return "       " +getFullText(); 
 		} else {
-			return super.toString();
+			return String.format("(%04X) ", this.getMemorySize()) + getFullText();
 		}
 	}
 	
+	/**
+	 * Overrides string naming for display via JTreePane
+	 * @param expanded
+	 * @return
+	 */
+	@Override
 	public String toString(boolean expanded) {
 		return (expanded) ? OperandTable.getOperandName(operand) : this.toString();
 	}

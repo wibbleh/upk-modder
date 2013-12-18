@@ -20,11 +20,12 @@ public class ModGenericLeaf extends ModTreeLeaf {
 
 	/**
 	 * Overrides string naming for display via JTreePane
+	 * @param expanded
 	 * @return
 	 */
 	@Override
-	public String toString() {
-		if(getParentNode().expanded) {
+	public String toString(boolean expanded) {
+		if(expanded) {
 			if(this.isOperand) {
 				return super.toString() + "  (Operand Token)";
 			} else {
