@@ -1,7 +1,10 @@
 package model.modtree;
 
+import static model.modtree.ModContext.ModContextType.AFTER_HEX;
+import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
 import static model.modtree.ModContext.ModContextType.FILE_HEADER;
 import static model.modtree.ModContext.ModContextType.HEX_CODE;
+import static model.modtree.ModContext.ModContextType.HEX_HEADER;
 import static model.modtree.ModContext.ModContextType.VALID_CODE;
 
 import java.awt.Color;
@@ -9,8 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JTree;
 
+import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -22,10 +25,7 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import javax.swing.tree.DefaultTreeModel;
-import static model.modtree.ModContext.ModContextType.AFTER_HEX;
-import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
-import static model.modtree.ModContext.ModContextType.HEX_HEADER;
+
 import model.upk.UpkFile;
 
 /**
@@ -33,6 +33,11 @@ import model.upk.UpkFile;
  * @author Amineri
  */
 public class ModTree {
+	
+	/**
+	 * The logger.
+	 */
+	public static final Logger logger = Logger.getLogger(ModTree.class.getName());
 	
 	/**
 	 * The tree's DocumentListener implementation.
@@ -151,7 +156,7 @@ public class ModTree {
 		try {
 			setDocument(this.doc);
 		} catch(BadLocationException ex) {
-			Logger.getLogger(ModTree.class.getName()).log(Level.SEVERE, "Error Setting Document", ex);
+			logger.log(Level.SEVERE, "Error Setting Document", ex);
 		}
 	}
 
@@ -397,19 +402,19 @@ public class ModTree {
 				
 				this.prevRootNode = currRootNode;
 				this.currRootNode = new ModTreeRootNode(this);
-				System.out.print("Inserting text... ");
+				logger.log(Level.INFO, "Inserting text...");
 				long startTime = System.currentTimeMillis();
 				this.currRootNode.insertString(0, s, null);
-				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
-				System.out.print("Parsing text... ");
+				logger.log(Level.INFO, "...done, took " + (System.currentTimeMillis() - startTime) + "ms");
+				logger.log(Level.INFO, "Parsing text...");
 				startTime = System.currentTimeMillis();
 				this.currRootNode.reorganizeAfterInsertion();
-				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+				logger.log(Level.INFO, "...done, took " + (System.currentTimeMillis() - startTime) + "ms");
 
-				System.out.print("Styling document ... ");
+				logger.log(Level.INFO, "Styling document...");
 				startTime = System.currentTimeMillis();
 				this.updateDocument(deltaLines, lineInsertPoint);
-				System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+				logger.log(Level.INFO, "...done, took " + (System.currentTimeMillis() - startTime) + "ms");
 			}
 		}
 	}

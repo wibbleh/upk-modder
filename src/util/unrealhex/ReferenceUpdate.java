@@ -1,30 +1,37 @@
 package util.unrealhex;
 
+import static util.unrealhex.HexStringLibrary.convertByteArrayToHexString;
+import static util.unrealhex.HexStringLibrary.convertIntToHexString;
+
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
-import model.modtree.*;
+
+import model.modtree.ModReferenceLeaf;
+import model.modtree.ModTree;
+import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
-import util.unrealhex.HexStringLibrary.*;
-import static util.unrealhex.HexStringLibrary.convertIntToHexString;
-import static util.unrealhex.HexStringLibrary.convertByteArrayToHexString;
 
 /**
  * Utility class for performing reference updating functions.
  * @author Amineri
  */
-
-
 public class ReferenceUpdate {
+	
+	/**
+	 * The logger.
+	 */
+	public static final Logger logger = Logger.getLogger(ReferenceUpdate.class.getName());
 	
 	private Document document;									// Document reference updates to be applied to
 	private List<Integer> referenceOffsets = new ArrayList<>();		// location of references within Document -- used for replacement
