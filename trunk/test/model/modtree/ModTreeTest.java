@@ -23,7 +23,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
-import javax.swing.text.Segment;
 import javax.swing.text.StyledDocument;
 
 import model.modtree.ModContext.ModContextType;
@@ -599,40 +598,6 @@ public class ModTreeTest
 		String expResult2 = "g1\nte";
 //		String result2 = d.getText(6, 5);
 //		assertEquals(expResult2, result2);
-    }
-
-    /**
-     * Test of getText method, of class ModTreeNode.
-     */
-    @Test
-    public void testGetText_3args() throws BadLocationException
-    {
-        System.out.println("getText");
-        Segment segment = new Segment();
-        ModTreeNode e = new ModTreeNode(null);
-        e.getText(0, 0, segment);
-		String expResult = "";
-		assertEquals(expResult, segment.toString());
-		ModTree d = new ModTree();
-		ModTreeRootNode r = (ModTreeRootNode) d.getRoot();
-		ModTreeNode e1 = new ModTreeNode(r, true);
-		r.addNode(0, e1);
-		r.setRange(0, 6);
-		e1.setRange(0, 6);
-		ModTreeLeaf t1 = new ModTreeLeaf(e1, "foobar", true);
-		e1.addNode(t1);
-		t1.setRange(0, 6);
-//		d.getText(2, 2, segment);
-//		assertEquals("ob", segment.toString());
-//		r.getText(2, 2, segment);
-//		assertEquals("ob", segment.toString());
-//		e1.getText(2, 2, segment);
-//		assertEquals("ob", segment.toString());
-//		t1.getText(2, 2, segment);
-//		assertEquals("ob", segment.toString());
-		
-		
-				
     }
 
     /**

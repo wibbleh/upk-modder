@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://code.google.com/p/upk-modder/project/1">
+    <type>org.netbeans.modules.java.j2seproject</type>
+    <configuration>
+        <data xmlns="http://code.google.com/p/upk-modder/project/3">
+            <name>Base Missions EU</name>
+            <source-root>UPKmodderProjects/Base Missions EU/modsrc/</source-root>
+        </data>
+    </configuration>
+</project>

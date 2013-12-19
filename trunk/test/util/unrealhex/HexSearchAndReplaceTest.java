@@ -79,7 +79,7 @@ public class HexSearchAndReplaceTest {
 		System.out.println("Read test_mod_HexSearchAndReplace.upk_mod");
 		document = new DefaultStyledDocument();
 		// arbitrary default AttributeSet
-		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+		AttributeSet as = new SimpleAttributeSet();
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 		StyleConstants.setItalic((MutableAttributeSet) as, false);
 		String encoding = System.getProperty("file.encoding");

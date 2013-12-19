@@ -223,15 +223,19 @@ public class ModTreeRootNode extends ModTreeNode {
 	 * Sets memory positions for each line 
 	 */
 	protected void setMemoryPositions() {
-		int currPosition = 0;
+		int currMemoryPosition = 0;
+		int currFilePosition = 0;
 		for (int i = 0; i < this.getChildNodeCount(); i++) {
 			// store current positions
-			this.getChildNodeAt(i).setMemoryPosition(currPosition);
+			this.getChildNodeAt(i).setMemoryPosition(currMemoryPosition);
+			this.getChildNodeAt(i).setFilePosition(currFilePosition);
 			// increment position with current line size
-			currPosition += this.getChildNodeAt(i).getMemorySize();
+			currMemoryPosition += this.getChildNodeAt(i).getMemorySize();
+			currFilePosition += this.getChildNodeAt(i).getFileSize();
 			// if not valid hex code reset the position
 			if(!this.getChildNodeAt(i).getContextFlag(HEX_CODE)) {
-				currPosition = 0;
+				currMemoryPosition = 0;
+				currFilePosition = 0;
 			}
 		}
 	}

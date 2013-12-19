@@ -134,32 +134,46 @@ public class HexSearchAndReplace {
 		long functLength = functionEntry.getUpkSize();
 		
 		//allocate buffer as large as we need
-		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
+//		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
+		ByteBuffer fileBuf = ByteBuffer.allocate((int) functLength); // read entire target
 		
 		//open channel to upk for read-only
 		SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.READ);
-		long endSearch = functPos + functLength - hex.length;
-		for (long currPos = functPos; currPos < endSearch; currPos++) {
-			
-			// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
-			// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?
-			// TODO: @Amineri we could also implement Knuth-Morris-Pratt or Boyer-Moore algorithm for maximum pattern matching performance
-			boolean bMatch = true;
-			sbc.position(currPos); // set file position
-			sbc.read(fileBuf);
-			for (int jCount = 0; jCount < hex.length; jCount++) {
-				if (fileBuf.get(jCount) != hex[jCount]) {
-					bMatch = false;
-					break;
-				}
-			}
-			if (bMatch) {
-				replaceOffset = currPos;
-				break;
-			}
-			fileBuf.clear();
+		
+		sbc.position(functPos); // set file position
+		sbc.read(fileBuf); // read entire search space
+		String searchSpace = new String(fileBuf.array()); // allocate buffer into String
+		
+		int findIndex = searchSpace.indexOf(new String(hex)); // search for instance
+		if(findIndex <0) { // failure
+			return findIndex;
+		} else { // success
+			return findIndex + functPos;
 		}
-		return replaceOffset;
+		
+		// replaced with above -- remove after some more testing done : 19/12/2013 - amineri
+//		long endSearch = functPos + functLength - hex.length;
+//		for (long currPos = functPos; currPos < endSearch; currPos++) {
+//			
+//			// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
+//			// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?
+//			// TODO: @Amineri we could also implement Knuth-Morris-Pratt or Boyer-Moore algorithm for maximum pattern matching performance
+//			boolean bMatch = true;
+//			sbc.position(currPos); // set file position
+//			sbc.read(fileBuf);
+//			for (int jCount = 0; jCount < hex.length; jCount++) {
+//				if (fileBuf.get(jCount) != hex[jCount]) {
+//					bMatch = false;
+//					break;
+//				}
+//			}
+//			if (bMatch) {
+//				replaceOffset = currPos;
+//				break;
+//			}
+//			fileBuf.clear();
+//		}
+//		return replaceOffset;
 	}
 	
 	/**

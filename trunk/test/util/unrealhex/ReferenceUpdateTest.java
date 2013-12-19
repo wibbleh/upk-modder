@@ -15,13 +15,11 @@ import java.util.logging.Logger;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.Document;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import model.modtree.ModTree;
 import model.modtree.ModTreeTest;
-import model.upk.UpkFile;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -81,7 +79,7 @@ public class ReferenceUpdateTest {
 		System.out.println("Read test_mod_RefUpdate.upk_mod");
 		document = new DefaultStyledDocument();
 		// arbitrary default AttributeSet
-		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+		AttributeSet as = new SimpleAttributeSet(); 
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 		StyleConstants.setItalic((MutableAttributeSet) as, false);
 		String encoding = System.getProperty("file.encoding");

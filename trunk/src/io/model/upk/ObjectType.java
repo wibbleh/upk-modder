@@ -6,6 +6,8 @@ package io.model.upk;
  * @author XMS
  */
 // TODO: review whether this enumeration is actually useful to have ;)
+// there are certain general names of things (e.g. "function" that would be useful to know.
+// however the "function" is an import table entry so its value changes from upk to upk
 public enum ObjectType {
 	
 	CLASS(0),

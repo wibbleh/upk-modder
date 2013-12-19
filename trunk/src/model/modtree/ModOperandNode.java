@@ -4,19 +4,20 @@ import model.modtree.ModContext.ModContextType;
 import parser.unrealhex.OperandTable;
 
 /**
- * TODO: API 
+ * A specialized node type for parsing unreal hex bytecode.
+ * The branching point for operands defined in OperandTable
  * @author Amineri
  */
 public class ModOperandNode extends ModTreeNode {
 
 	/**
-	 * TODO: API
+	 * The hex operand that generated the branches, as a string
 	 */
     private String operand = "";
 	
     /**
-     * TODO: API
-     * @param parent
+     * Constructor that creates a new ModOperandNode with specified parent
+     * @param parent Can be a generic TreeNode (line) or another ModOperandNode
      */
 	public ModOperandNode(ModTreeNode parent) {
 		super(parent);

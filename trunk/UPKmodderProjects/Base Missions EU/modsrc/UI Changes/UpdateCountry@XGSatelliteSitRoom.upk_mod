@@ -1,0 +1,180 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=UpdateCountry@XGSatelliteSitRoom
+
+[BEFORE_HEX]
+[HEADER]
+B7 03 00 00 77 02 00 00 
+[/HEADER]
+[CODE]
+if(m_iCountry != -1)
+07 A1 03 9B 01 5A 3B 00 00 1D FF FF FF FF 16 
+
+	kCountry = Country(m_iCountry)
+	0F 00 86 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 
+
+	kUI.txtCountry.StrValue = kCountry.GetName()
+	0F 35 D5 F9 FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+	kUI.iPanicLevel = kCountry.GetPanicBlocks()
+	0F 35 F7 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 3D 24 00 00 00 1B ED 0F 00 00 00 00 00 00 16 
+
+	kUI.bHasSatCoverage = kCountry.HasSatelliteCoverage()
+	14 2D 35 F6 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 
+
+	if(kUI.bHasSatCoverage)
+	07 4E 01 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+		kUI.txtCountry.iState = 5
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 
+
+	else
+	06 80 01 
+
+		kUI.txtCountry.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	iFunding = kCountry.m_kTCountry.iFunding
+	0F 00 85 3B 00 00 35 5C 1E 00 00 64 1E 00 00 00 00 19 00 86 3B 00 00 09 00 34 24 00 00 00 01 34 24 00 00 
+
+	if(m_kCursorUI.bEnabled)
+	07 10 02 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 
+
+		kUI.txtFunding.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	else
+	06 9B 02 
+
+		if(kCountry.GetCurrentFunding() > 0)
+		07 6A 02 97 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 25 16 
+
+			kUI.txtFunding.iState = 5
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 
+
+		else
+		06 9B 02 
+
+			kUI.txtFunding.iState = 1
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 26 
+
+	if((IsOptionEnabled(12)) || IsOptionEnabled(8))
+	07 4E 03 84 1B A7 14 00 00 00 00 00 00 24 0C 16 18 0D 00 1B A7 14 00 00 00 00 00 00 24 08 16 16 
+
+		if(kUI.bHasSatCoverage)
+		07 07 03 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+			iFunding = kCountry.GetCurrentFunding()
+			0F 00 85 3B 00 00 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 
+
+		else
+		06 4E 03 
+
+			iFunding = kCountry.CalcFunding(class'XGTacticalGameCore'.default.PANIC_SAT_ADDED_COUNTRY)
+			0F 00 85 3B 00 00 19 00 86 3B 00 00 28 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 12 20 6D FE FF FF 09 00 D5 FB FF FF 00 02 D5 FB FF FF 16 
+
+	kUI.txtFunding.StrValue = ("+" $ (ConvertCashToString(iFunding))) @ m_strLabelPerMonth
+	0F 35 D5 F9 FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 A8 70 1F 2B 00 1B 34 06 00 00 00 00 00 00 00 85 3B 00 00 16 16 01 46 3B 00 00 16 
+
+m_kCountryUI = kUI
+0F 01 60 3B 00 00 00 87 3B 00 00 
+
+return
+04 0B 
+
+EOS
+53 	
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+AF 03 00 00 77 02 00 00 
+[/HEADER]
+[CODE]
+if(m_iCountry != -1)
+07 78 03 9B 01 5A 3B 00 00 1D FF FF FF FF 16 
+
+	kCountry = Country(m_iCountry)
+	0F 00 86 3B 00 00 1B 45 06 00 00 00 00 00 00 01 5A 3B 00 00 16 
+
+	kUI.txtCountry.StrValue = kCountry.GetName()
+	0F 35 D5 F9 FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0B 00 58 24 00 00 00 1B A3 0F 00 00 00 00 00 00 4A 16 
+
+	kUI.iPanicLevel = kCountry.GetPanicBlocks()
+	0F 35 F7 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 3D 24 00 00 00 1B ED 0F 00 00 00 00 00 00 16 
+
+	kUI.bHasSatCoverage = kCountry.HasSatelliteCoverage()
+	14 2D 35 F6 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 19 00 86 3B 00 00 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 
+
+	if(kCountry.LeftXCOM())
+	07 50 01 19 00 86 3B 00 00 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 
+
+		kUI.txtCountry.iState = 2
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 02 
+
+	else
+	06 82 01 
+
+		kUI.txtCountry.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	if(kUI.bHasSatCoverage)
+	07 D5 01 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+		kUI.txtCountry.iState -= 1
+		A2 35 54 FB FF FF 66 FA FF FF 00 00 35 F9 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 01 16 
+
+	if(m_kCursorUI.bEnabled)
+	07 2A 02 2D 35 F4 3A 00 00 F5 3A 00 00 00 00 01 61 3B 00 00 
+
+		kUI.txtFunding.iState = 6
+		0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 06 
+
+	else
+	06 B3 02 
+
+		if(kCountry.LeftXCOM())
+		07 81 02 19 00 86 3B 00 00 0A 00 41 24 00 00 00 1B B6 16 00 00 00 00 00 00 16 
+
+			kUI.txtFunding.iState = 1
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 01 
+
+		else
+		06 B3 02 
+
+			kUI.txtFunding.iState = 5
+			0F 35 54 FB FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 2C 05 
+
+	if(kUI.bHasSatCoverage)
+	07 FF 02 2D 35 F6 3A 00 00 FA 3A 00 00 00 00 00 87 3B 00 00 
+
+		iFunding = kCountry.GetCurrentFunding()
+		0F 00 85 3B 00 00 19 00 86 3B 00 00 0A 00 54 24 00 00 00 1B E0 0E 00 00 00 00 00 00 16 
+
+	else
+	06 2A 03 
+
+		iFunding = kCountry.CalcFunding(11)
+		0F 00 85 3B 00 00 19 00 86 3B 00 00 28 00 4F 24 00 00 00 1B D6 04 00 00 00 00 00 00 2C 0B 16 
+
+	kUI.txtFunding.StrValue = ((ConvertCashToString(iFunding))) @ m_strLabelPerMonth
+	0F 35 D5 F9 FF FF 66 FA FF FF 00 00 35 F8 3A 00 00 FA 3A 00 00 00 01 00 87 3B 00 00 A8 1B 34 06 00 00 00 00 00 00 00 85 3B 00 00 16 01 46 3B 00 00 16 
+
+m_kCountryUI = kUI
+0F 01 60 3B 00 00 00 87 3B 00 00 
+
+null-ops (33 bytes)
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return
+04 0B 
+
+EOS
+53 	
+
+[/CODE]
+[/AFTER_HEX]
