@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
@@ -39,6 +40,17 @@ public class ButtonTabbedPane extends JTabbedPane {
 		super.addTab(title, component);
 		// add 'Close' button to new tab
 		this.setTabComponentAt(this.getTabCount() - 1, new ButtonTabComponent(this));
+	}
+	
+	@Override
+	public void setForegroundAt(int index, Color color) {
+		ButtonTabComponent comp = (ButtonTabComponent) this.getTabComponentAt(index);
+		comp.getComponent(0).setForeground(color);
+	}
+	
+	public void setFontAt(int index, Font font) {
+		ButtonTabComponent comp = (ButtonTabComponent) this.getTabComponentAt(index);
+		comp.getComponent(0).setFont(font);
 	}
 	
 	/**

@@ -39,6 +39,7 @@ import model.modtree.ModGenericLeaf;
 import model.modtree.ModOffsetLeaf;
 import model.modtree.ModOperandNode;
 import model.modtree.ModReferenceLeaf;
+import model.modtree.ModStringLeaf;
 import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
@@ -74,30 +75,35 @@ public class ModTab extends JSplitPane {
 	 */
 	private File modFile;
 	
-	// TODO: consolidate message, font, color into class?
+	// TODO: deprecate message, font, color 
 	/**
 	 * The current update message.
 	 */
+	@Deprecated
 	private String updateMessage = "no modfile loaded";
 	
 	/**
 	 * The current update message font.
 	 */
+	@Deprecated
 	private Font updateFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 	
 	/**
 	 * The current update background color.
 	 */
+	@Deprecated
 	private Color updateBGColor  = new Color(214, 217, 223);
 
 	/**
 	 * Flag indicating whether the mod is applied or not.
 	 */
+	@Deprecated
 	private boolean modIsApplied = false;
 	
 	/**
 	 * Flag indicating whether the mod can be applied or not (if errors or not).
 	 */
+	@Deprecated
 	private boolean modCanBeApplied = false;
 
 	/**
@@ -212,6 +218,7 @@ public class ModTab extends JSplitPane {
 					value = ((ModTreeNode) value).toString(expanded);
 				} else if((value instanceof ModReferenceLeaf) 
 						|| (value instanceof ModGenericLeaf) 
+						|| (value instanceof ModStringLeaf) 
 						|| (value instanceof ModOffsetLeaf)) {
 					value = ((ModTreeNode) value).toString(true);
 				}
@@ -294,11 +301,11 @@ public class ModTab extends JSplitPane {
 					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
 					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
 					) {
-				Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.INFO, "AFTER Hex Installed");
+				ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
 				return true;
 			}
 		} catch(IOException ex) {
-			Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
+			ModTab.logger.log(Level.SEVERE, "File error", ex);
 		}
 		return false;
 	}
@@ -314,11 +321,11 @@ public class ModTab extends JSplitPane {
 					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
 					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
 					) {
-				Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.INFO, "BEFORE Hex Installed");
+				ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
 				return true;
 			}
 		} catch(IOException ex) {
-			Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
+			ModTab.logger.log(Level.SEVERE, "File error", ex);
 		}
 		return false;
 	}
@@ -344,71 +351,66 @@ public class ModTab extends JSplitPane {
 		return true;
 	}
 	
+	// TODO: Rewrite to return apply/revert status for setting file/project string attributes
 	public void setUpdateStatus(boolean checkBothDirections) {
-		String loggerName = ModTab.class.getName() + "." + this.modFile.getAbsolutePath();
 		if(this.modTree == null) {
-			Logger.getLogger(loggerName).log(Level.SEVERE, "No ModFile");
+			ModTab.logger.log(Level.SEVERE, "No ModFile");
 			return;
 		}
 		if(this.getUpkFile() == null) {
-			Logger.getLogger(loggerName).log(Level.SEVERE, "No upk present");
+			ModTab.logger.log(Level.SEVERE, "No upk present");
 			return;
 		}
 		List<byte[]> beforeHex = HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile());
 		if(beforeHex.isEmpty()) {
-			Logger.getLogger(loggerName).log(Level.INFO, "No/empty BEFORE Blocks");
+			ModTab.logger.log(Level.INFO, "No/empty BEFORE Blocks");
 			return;
 		}
 		List<byte[]> afterHex =	HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile());
 		if(afterHex.isEmpty()) {
-			Logger.getLogger(loggerName).log(Level.INFO, "No/empty AFTER Blocks");
+			ModTab.logger.log(Level.INFO, "No/empty AFTER Blocks");
 			return;
 		}
 		try {
 			if(checkBothDirections) {
 				if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
-					Logger.getLogger(loggerName).log(Level.INFO, "BEFORE Hex Installed");
-					// TODO: set tab text color
+					ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
 				} else if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
-					Logger.getLogger(loggerName).log(Level.INFO, "AFTER Hex Installed");
-					// TODO: set tab text color
+					ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
 				} else {
 					modIsApplied = false;
 				}
 			} else { // check only based on the current status
 				if(this.modIsApplied) {
 					if (testBeforeAndAfterBlocks(afterHex, beforeHex) != null) {
-					Logger.getLogger(loggerName).log(Level.INFO, "AFTER Hex Installed");
+					ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
 						this.setUpdateMessage("AFTER Hex Installed");
-						// TODO: set tab text color
 					}						
 				} else {
 					if (testBeforeAndAfterBlocks(beforeHex, afterHex) != null) {
-					Logger.getLogger(loggerName).log(Level.INFO, "BEFORE Hex Installed");
+					ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
 						this.setUpdateMessage("BEFORE Hex Installed");
-						// TODO: set tab text color
 					}						
 				}
 			}
 			
 		} catch(IOException ex) {
-			Logger.getLogger(loggerName).log(Level.SEVERE, "File error", ex);
+			ModTab.logger.log(Level.SEVERE, "File error", ex);
 		}
 	}
 	
 	private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
-		String loggerName = ModTab.class.getName() + "." + this.modFile.getAbsolutePath();
 		// perform simple error checking first
 		// check for same number of blocks
 		if(patterns.size() != replacements.size()) {
-			Logger.getLogger(loggerName).log(Level.INFO, "Block count mismatch");
+			ModTab.logger.log(Level.INFO, "Block count mismatch");
 			return null;
 		}
 		// check each block has same number of bytes
 		long[] filePositions = new long[patterns.size()];
 		for (int i = 0; i < patterns.size() ; i++) {
 			if(patterns.get(i).length != replacements.get(i).length) {
-			Logger.getLogger(loggerName).log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
+			ModTab.logger.log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
 					+ patterns.get(i).length + ", REPLACE = " 
 					+ replacements.get(i).length);
 				return null;
@@ -418,7 +420,7 @@ public class ModTab extends JSplitPane {
 		for(int j = 0; j < patterns.size() ; j ++) {
 			long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), this.getUpkFile(), this.modTree);
 			if(filePos == -1) {
-				Logger.getLogger(loggerName).log(Level.INFO, "Block " + j + " FIND not found");
+				ModTab.logger.log(Level.INFO, "Block " + j + " FIND not found");
 				return null;
 			} else {
 				filePositions[j]= filePos;

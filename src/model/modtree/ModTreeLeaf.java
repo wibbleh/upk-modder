@@ -3,7 +3,8 @@ package model.modtree;
 import model.modtree.ModContext.ModContextType;
 
 /**
- * TODO: API
+ * A generic tree leaf.
+ * Can contain a generic single line string or be specialized for holding unreal bytecode.
  * @author Amineri
  */
 public class ModTreeLeaf extends ModTreeNode {
@@ -14,27 +15,27 @@ public class ModTreeLeaf extends ModTreeNode {
     protected String text;
     
     /**
-     * TODO: API
-     * @param parent
+     * Constructs a leaf node with the given parent.
+     * @param parent -- can be ModTreeNode or ModOperandNode
      */
 	public ModTreeLeaf(ModTreeNode parent) {
 		this(parent, "");
 	}
     
 	/**
-	 * TODO: API
-	 * @param parent
-	 * @param data
+	 * Constructs a leaf node with the given parent and string data
+	 * @param parent -- can be ModTreeNode or ModOperandNode
+	 * @param data -- initial string data
 	 */
 	public ModTreeLeaf(ModTreeNode parent, String data) {
 		this(parent, data, false);
 	}
     
 	/**
-	 * TODO: API
-	 * @param parent
-	 * @param text
-	 * @param plainText
+	 * Constructs a leaf node with the given parent and string data, marked as plain text (not unreal bytecode)
+	 * @param parent -- can be ModTreeNode or ModOperandNode
+	 * @param text -- initial string text
+	 * @param plainText -- boolean indicating whether the node is plain text
 	 */
 	public ModTreeLeaf(ModTreeNode parent, String text, boolean plainText) {
 		super(parent);
@@ -54,10 +55,11 @@ public class ModTreeLeaf extends ModTreeNode {
 		}
 	}
 	/**
-	 * TODO: API
-	 * @param s
-	 * @param num
-	 * @return
+	 * Generic unreal bytecode parser.
+	 * Removes the specified number of unreal bytecode entries.
+	 * @param s -- the unreal bytecode as string
+	 * @param num -- number of bytecodes to remove
+	 * @return -- the remaining unreal bytecode string
 	 */
 	@Override
 	public String parseUnrealHex(String s, int num) {
@@ -82,6 +84,19 @@ public class ModTreeLeaf extends ModTreeNode {
 	 */
 	@Override
 	public int getMemorySize() {
+		if (this.isPlainText()) {
+			return 0;
+		} else {
+			return text.length() / 3;
+		}
+	}
+
+	/**
+	 * Computes unreal engine file size of hex bytecodes represented as text
+	 * @return
+	 */
+	@Override
+	public int getFileSize() {
 		if (this.isPlainText()) {
 			return 0;
 		} else {

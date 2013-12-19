@@ -37,7 +37,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
@@ -60,11 +59,22 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTree;
+import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.TreePath;
+import model.modproject.ProjectTreeMdl;
 
 /**
  * The application's primary frame.
  * 
- * @author XMS
+ * @author XMS, Amineri 
  */
 @SuppressWarnings("serial")
 public class MainFrame extends JFrame {
@@ -78,6 +88,12 @@ public class MainFrame extends JFrame {
 	 * The tabbed pane component of the application's main frame.
 	 */
 	private JTabbedPane tabPane;
+	
+	/**
+	 * The JTree pane component of the application's main frame.
+	 */
+//	private JTree projectTree;
+	private ProjectPaneTree projectPaneTree;
 	
 	/**
 	 * The cache of shared UI actions.
@@ -95,7 +111,6 @@ public class MainFrame extends JFrame {
 	 */
 	private MainFrame(String title) {
 		// instantiate frame
-		// TODO: add application icon
 		super(title);
 		try {
 			this.setIconImage(ImageIO.read(this.getClass().getResource("/ui/resources/icons/hex16.png")));
@@ -310,8 +325,9 @@ public class MainFrame extends JFrame {
 				if (selComp != null) {
 					ModTab tab = (ModTab) selComp;
 					if(tab.applyChanges()) {
-						// TODO: alter tab text color/etc to indicate hex has been applied
-						tabPane.setForegroundAt(tabPane.getSelectedIndex(),  new Color(0, 255, 0)); //new Color(80, 255, 40));
+						// set Tab color/font/tooltip style to indicate apply/revert status
+						tabPane.setForegroundAt(tabPane.getSelectedIndex(),  new Color(0, 0, 230)); // blue indicates AFTER
+						((ButtonTabbedPane) tabPane).setFontAt(tabPane.getSelectedIndex(), new Font(Font.MONOSPACED, Font.ITALIC, 12));
 						tabPane.setToolTipTextAt(tabPane.getSelectedIndex(), "Hex Applied");
 						tabPane.updateUI(); // needed to update tab with
 					}
@@ -334,8 +350,9 @@ public class MainFrame extends JFrame {
 				if (selComp != null) {
 					ModTab tab = (ModTab) selComp;
 					if(tab.revertChanges()) {
-						// TODO: alter tab text color/etc to indicate hex has been reverted
-						tabPane.setForegroundAt(tabPane.getSelectedIndex(),  new Color(0, 0, 255)); //new Color(80, 255, 40));
+						// set Tab color/font/tooltip style to indicate apply/revert status
+						tabPane.setForegroundAt(tabPane.getSelectedIndex(),  new Color(0, 128, 0)); // green indicates BEFORE
+						((ButtonTabbedPane) tabPane).setFontAt(tabPane.getSelectedIndex(), new Font(Font.MONOSPACED, Font.PLAIN, 12));
 						tabPane.setToolTipTextAt(tabPane.getSelectedIndex(), "Original Hex");
 						tabPane.updateUI(); // needed to update tab with
 					}
@@ -410,6 +427,83 @@ public class MainFrame extends JFrame {
 	 * @throws Exception if an I/O error occurs
 	 */
 	private void initComponents() {
+
+		// TODO: wrap this under "Open Project..." and "New Project" actions
+		projectPaneTree = new ProjectPaneTree(new File("UPKmodderProjects/Expanded Perk Tree EW/Expanded Perk Tree EW.xml"));
+		projectPaneTree.addProject(new File("UPKmodderProjects/Base Missions EU/Base Missions EU.xml"));
+		//TODO: sort out relative pathing issues for modsrc directories in xml files
+		// Should be relative to the xml file location, I think.
+		
+		// alter display characteristics
+		final JTree projectTree = new JTree(projectPaneTree);
+		// TODO: use custom icons for projects/modpackages/modfiles ?
+		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
+			@Override
+			public Component getTreeCellRendererComponent(JTree tree,
+					Object value, boolean sel, boolean expanded, boolean leaf,
+					int row, boolean hasFocus) {
+
+				if(value instanceof ProjectTreeMdl) {
+					ProjectTreeMdl model = (ProjectTreeMdl) value;
+					value = model.getName();
+					this.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+					this.setIcon(null);
+				}
+				if(value instanceof File) {
+					File file = (File) value;
+					if(file.isFile()) {
+						value = file.getName();
+						this.setFont(new Font(Font.DIALOG, Font.TRUETYPE_FONT, 11));
+					}
+					if(file.isDirectory()) {
+						value = file.getName();
+						this.setFont(new Font(Font.DIALOG, Font.TRUETYPE_FONT, 11));
+					}
+				}		
+				super.getTreeCellRendererComponent(tree, value, sel, expanded,
+						leaf, row, hasFocus);
+				if(value instanceof ProjectTreeMdl) {
+					this.setIcon(null);
+				}
+				return this;
+			}
+		};
+		projectTree.setCellRenderer(renderer);
+		projectTree.setRootVisible(false);
+		
+		// mouse adapter to handle opening files from the project pane
+		MouseListener ml = new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				int selRow = projectTree.getRowForLocation(e.getX(), e.getY());
+				TreePath selPath = projectTree.getPathForLocation(e.getX(), e.getY());
+				if(selRow != -1) {
+					if(e.getClickCount() == 1) {
+//						mySingleClick(selRow, selPath);
+					} else if(e.getClickCount() == 2) {
+						if(selPath.getLastPathComponent() instanceof File) {
+							File file = (File) selPath.getLastPathComponent();
+							if(file.isFile()) {
+								try {
+									ModTab tab = new ModTab(file);
+									tabPane.addTab(file.getName(), tab);
+									tabPane.setSelectedComponent(tab);
+
+									setFileActionsEnabled(true);
+								} catch (Exception ex) {
+									ex.printStackTrace();
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+		projectTree.addMouseListener(ml);
+		
+		JScrollPane projectPane = new JScrollPane(projectTree);
+		projectPane.setPreferredSize(new Dimension(320, 600));
+		
 		// create menu bar
 		JMenuBar menuBar = this.createMenuBar();
 		
@@ -459,10 +553,14 @@ public class MainFrame extends JFrame {
 		// create status bar
 		JPanel statusBar = this.createStatusBar();
 
-		// add components to frame
+		// Wrap projectpane and tabs into a split pane
+		JSplitPane centerPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, projectPane, tabPane);
+		
 		this.setJMenuBar(menuBar);
 		contentPane.add(toolBar, BorderLayout.NORTH);
-		contentPane.add(tabPane, BorderLayout.CENTER);
+//		contentPane.add(projectPane, BorderLayout.WEST);
+//		contentPane.add(tabPane, BorderLayout.EAST);
+		contentPane.add(centerPane, BorderLayout.CENTER);
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
 	}
@@ -763,6 +861,97 @@ public class MainFrame extends JFrame {
 		aboutDlg.setResizable(false);
 		aboutDlg.setLocationRelativeTo(this);
 		aboutDlg.setVisible(true);
+	}
+
+	/**
+	 * Container class for multiple projects to display in project pane.
+	 */
+	private class ProjectPaneTree extends ProjectTreeMdl {
+
+		private final List<ProjectTreeMdl> projectRoot;
+
+		/**
+		 * Construct an empty list with no projects.
+		 */
+		public ProjectPaneTree() {
+			this.projectRoot = new ArrayList<>();
+		}
+		
+		/**
+		 * Construct a list initially populated with the specified project.
+		 * @param project modproject xml file
+		 */
+		public ProjectPaneTree(File project) {
+			this.projectRoot = new ArrayList<>();
+			this.projectRoot.add(new ProjectTreeMdl(project));
+		}
+
+		/**
+		 * Adds an existing project to the list.
+		 * @param project File link to the project xml file
+		 */
+		public void addProject(File project) {
+			projectRoot.add(new ProjectTreeMdl(project));
+		}
+
+		/**
+		 * Creates a new project directory and xml file at the specified directory.
+		 * @param directory File link to the directory to create the new project at
+		 */
+		public void createNewProject(File directory) {
+			// TODO: implement
+		}
+		
+		/**
+		 * Removes the designated project.
+		 * @param i project index to remove.
+		 */
+		public void removeProjectAt(int i) {
+			if(i >= 0 && i < this.projectRoot.size()) {
+				this.projectRoot.remove(i);
+			}
+		}
+		
+		@Override
+		public Object getRoot() {
+			return this.projectRoot;
+		}
+
+		@Override
+		public Object getChild(Object o, int i) {
+			if (o.equals(this.projectRoot)) { // getting project
+				return this.projectRoot.get(i);
+			} else {
+				return super.getChild(o, i);
+			}
+		}
+
+		@Override
+		public int getChildCount(Object o) {
+			if(o.equals(this.projectRoot)) {
+				return this.projectRoot.size();
+			} else {
+				return super.getChildCount(o);
+			}
+		}
+
+		@Override
+		public boolean isLeaf(Object o) {
+			if(o.equals(this.projectRoot)) {
+				return this.projectRoot.isEmpty();
+			} else {
+				return super.isLeaf(o);
+			}
+		}
+
+		@Override
+		public int getIndexOfChild(Object o, Object o1) {
+			if(o.equals(this.projectRoot)) {
+				return this.projectRoot.indexOf(o1);
+			} else {
+				return super.getIndexOfChild(o, o1);
+			}
+		}
 	}
 	
 }

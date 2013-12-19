@@ -1,4 +1,8 @@
 v 0.51 (current)
+Added editor pane tab styling based on apply/revert status (r87)
+Added line file position in tree view (r87)
+Added initial Project pane (r87)
+Added logger display (r86)
 Added line memory position in tree view (r85)
 Better optimization when restyling when adding/removing lines (r85)
 Added toolbar for common actions (r82)

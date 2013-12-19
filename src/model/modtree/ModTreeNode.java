@@ -14,7 +14,6 @@ import java.util.Enumeration;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
-import javax.swing.text.Segment;
 import javax.swing.tree.TreeNode;
 
 import model.modtree.ModContext.ModContextType;
@@ -67,10 +66,15 @@ public class ModTreeNode implements TreeNode {
 	 */
 //	protected boolean hasBeenUpdated;
 	
-		/**
-	 * Flag indicating if the current node has been updated during the most recent insert/remove operation.
+	/**
+	 * Memory position of current line (if it is a valid hex line)
 	 */
 	protected int memoryPosition;
+	
+	/**
+	 * File position of current line (if it is a valid hex line)
+	 */
+	protected int filePosition;
 	
     /**
      * Constructs a mod node from the specified parent node.
@@ -458,10 +462,6 @@ public class ModTreeNode implements TreeNode {
 	 * Returns whether this node wraps header-type content.
 	 * @return <code>true</code> 
 	 */
-	// TODO: this method would probably better belong in the document itself, i.e. getDocument().hasValidHeader() or somesuch
-	// Amineri : Good point. When updating a file after insert/remove, this header has to be reset
-	//			 and each line the value updated, in case the insert/remove invalidated the header (i.e edits to header lines)
-	// Update : call is made to ModTree owner, which may hold local copy or redirect to document
 	protected boolean foundHeader() {
 		ModTree tree = getTree();
 		if(tree == null) {return false;}
@@ -659,9 +659,9 @@ public class ModTreeNode implements TreeNode {
 	public String toString(){
 		// display memory size of line/component in tree view
 		if(this.getMemorySize() == 0) {
-			return "      " +getFullText(); 
+			return "           " +getFullText(); 
 		} else {
-			return String.format("%04X: ", this.getMemoryPosition()) + getFullText();
+			return String.format("%04X/", this.getMemoryPosition()) + String.format("%04X: ", this.getFilePosition()) + getFullText();
 		}
 //		if (getParentNode() == null) {
 //			return "ROOT";
@@ -759,27 +759,6 @@ public class ModTreeNode implements TreeNode {
             }
         }
         return returnString;
-    }
-
-    /**
-     * Returns text of given length at offset via the segment.
-     * Implements the ModDocument.getText required method
-     * TODO -- Figure out if this is used and optimize if necessary
-     * @param offset
-     * @param length
-     * @param segment
-     */
-	@Deprecated
-    public void getText(int offset, int length, Segment segment)
-    {
-        String s = getText(offset, length);
-        segment.array = s.toCharArray();
-        segment.count = s.length();
-        segment.offset = 0;
-        
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        // TODO -- figure out if this call is needed
-        // TODO -- figure out how to return segment as "out" variable
     }
 
     /**
@@ -888,10 +867,28 @@ public class ModTreeNode implements TreeNode {
         }
     }
 
+	/**
+	 * Computes unreal engine memory size of hex bytecodes represented as text
+	 * @return
+	 */
 	public int getMemorySize() {
 		int num = 0;
 		for (ModTreeNode branch : children) {
 			num += branch.getMemorySize();
+		}
+		if (num < 0)
+			return 0;
+		return num;
+	}
+
+	/**
+	 * Computes unreal engine file size of hex bytecodes represented as text
+	 * @return
+	 */
+	public int getFileSize() {
+		int num = 0;
+		for (ModTreeNode branch : children) {
+			num += branch.getFileSize();
 		}
 		if (num < 0)
 			return 0;
@@ -919,6 +916,14 @@ public class ModTreeNode implements TreeNode {
 	
 	public void setMemoryPosition(int position) {
 		this.memoryPosition = position;
+	}
+
+	public int getFilePosition() {
+		return this.filePosition;
+	}
+	
+	public void setFilePosition(int position) {
+		this.filePosition = position;
 	}
 
 	public ModTreeNode positionToNode(int pos){

@@ -3,24 +3,32 @@ package model.modtree;
 import model.modtree.ModContext.ModContextType;
 
 /**
- * TODO: API
+ * An ModTree Leaf node that contains a jump offset
+ * Can be an absolute offset (relative to start of function) 
+ * or relative offset (relative to current position)
+ * There are three types of relative offsets.
  * @author Amineri
  */
 public class ModOffsetLeaf extends ModTreeLeaf {
 	
 	/**
-	 * TODO: API
+	 * Stores the operand type of the offset.
+	 * Is null for absolute jumps.
+	 * Is "S0, S1, or S2" for the three types of relative offset.
 	 */
 	private String operand;
 	
 	/**
-	 * TODO: API
+	 * Current jump offset as an integer.
+	 * Is a short int (2-byte, unsigned) in hex.
 	 */
 	private int jumpOffset;
 
 	/**
-	 * TODO: API
-	 * @param parent
+	 * Constructs an offset-type leaf with the given parent.
+	 * Operand is by default set to null.
+	 * Use this constructor for absolute jump offsets.
+	 * @param parent can only be a ModOperandNode
 	 */
 	public ModOffsetLeaf(ModOperandNode parent) {
 		this(parent, null);
@@ -45,9 +53,12 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 	}
 	
 	/**
-	 * TODO: API
-	 * @param parent
-	 * @param operand
+	 * Constructs an offset-type leaf with a specified parent and operand
+	 * @param parent can only be a ModOperandNode
+	 * @param operand the subtype of relative offset
+	 *  "S0" indicates a context-type (0x12 or 0x19) relative skip (size of final G in context)
+	 *  "S1" indicates an object-type skip relative offset (size of next single G object)
+	 *  "S2" indicates a parameter-type relative skip (size of next G objects parsed until 0x16 read + 1 for 0x16 token)
 	 */
 	public ModOffsetLeaf(ModOperandNode parent, String operand) {
 		super(parent);
@@ -62,17 +73,17 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 	}
 	
 	/**
-	 * TODO: API
+	 * Parse the unreal hex 
 	 * @param s
 	 * @return
 	 */
 	public String parseUnrealHex(String s) {
-		return this.parseUnrealHex(s, 0);
+		return this.parseUnrealHex(s, 2);
 	}
 
 	@Override
 	public String parseUnrealHex(String s, int num) {
-		String res = super.parseUnrealHex(s, 2);
+		String res = super.parseUnrealHex(s, num);
 		
 		// parse jump offset
 		String[] split = this.getText().split("\\s");

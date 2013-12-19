@@ -66,8 +66,6 @@ public class ModTree {
     private ModTreeRootNode currRootNode; // current root node
 	private ModTreeRootNode prevRootNode; // copy of previous tree -- used to determine what styles to re-apply
 	
-	// TODO -- Should retrieve this information from ModDocument if stored there
-	// @ XMTS : Would it make more sense to store these values here? Does the document even need them?
 	/**
 	 * The version number of the document.
 	 */
@@ -89,7 +87,7 @@ public class ModTree {
 	private String functionName = "";
 
 	/**
-	 * The source UpkFile to use to generate reference mouseover tipes
+	 * The source UpkFile to use to generate reference mouse-over tips and name references
 	 */
 	private UpkFile sourceUpk = null;
 	
@@ -175,9 +173,6 @@ public class ModTree {
 			root.reorganizeAfterInsertion();
 			if(updatingEnabled) {
 				this.updateDocument(0,0);
-				// TODO: figure out how to refresh JTreePane when tree gets updated
-//				if(treeViewer != null)
-//					treeViewer.repaint();
 			}
 		}
 		doc.addDocumentListener(this.mtListener);
@@ -298,21 +293,22 @@ public class ModTree {
 		boolean replace = true;
 		
 		// perform attribute updates
-		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+		// TODO perform node-to-style mapping in more customizable way
+		AttributeSet as = new SimpleAttributeSet(); 
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 		StyleConstants.setItalic((MutableAttributeSet) as, false);
 		// attempt to style comments separately. 
-//		if(node.isPlainText()) {
-//			// find comment marker
-//			String s = node.getFullText();
-//			if(s.contains("//")) {
-//				int startComment = s.indexOf("//");
-//				start = node.getStartOffset() + startComment;
-//				end = node.getEndOffset();
-//				StyleConstants.setForeground((MutableAttributeSet) as, new Color( 80, 80, 80));  // grey
-//				StyleConstants.setItalic((MutableAttributeSet) as, replace);
-//			}
-//		}
+		if(node.isPlainText()) {
+			// find comment marker
+			String s = node.getFullText();
+			if(s.contains("//")) {
+				int startComment = s.indexOf("//");
+				start = node.getStartOffset() + startComment;
+				end = node.getEndOffset();
+				StyleConstants.setForeground((MutableAttributeSet) as, new Color( 128, 128, 128));  // grey
+				StyleConstants.setItalic((MutableAttributeSet) as, replace);
+			}
+		}
 		if (node instanceof ModReferenceLeaf) {
 			if (node.isVirtualFunctionRef()) {
 				StyleConstants.setForeground((MutableAttributeSet) as, new Color(160, 140, 100)); //Color.MAGENTA);
@@ -357,10 +353,7 @@ public class ModTree {
 	 */
 	public void processNextEvent() throws BadLocationException {
 		if (!docEvents.isEmpty()) {
-//			System.out.print("Starting processing Document Event... \n");
-//			long startTime = System.currentTimeMillis();
 			this.processDocumentEvent(docEvents.get(0));
-//			System.out.print("Document Event processing done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
 		}
 	}
 	
@@ -431,7 +424,6 @@ public class ModTree {
 		return this.currRootNode;
 	}
 
-	// TODO: redirect these calls to the Document if necessary
 	/**
 	 * Returns the file version number.
 	 * @return the version number
@@ -498,6 +490,8 @@ public class ModTree {
 
 	/**
 	 * Implements the Listener to be registered with a StyledDocument
+	 * // TODO: stop spawning more threads if the first is already running
+	 * //		if new insert/remove update comes in could conceivably halt current styling
 	 */
 	private class ModTreeListener implements DocumentListener {
 
@@ -520,38 +514,7 @@ public class ModTree {
 		}
 		
 		private void update(DocumentEvent evt) {
-//			System.out.println("new event: " + evt.getType());
 			docEvents.add(evt);
-//			new SwingWorker<Object, Object>() {
-//
-//				@Override
-//				protected Object doInBackground() throws Exception {
-//					while (!docEvents.isEmpty()) {
-//						ModTree.this.processNextEvent();
-//					}
-//					return null;
-//				}
-//				
-//				@Override
-//				protected void done() {
-//					System.out.println("done");
-//				};
-//
-//			}.execute();
-//			SwingUtilities.invokeLater(new Runnable() {
-//				
-//				@Override
-//				public void run() {
-//					while (!docEvents.isEmpty()) {
-//						try {
-//							ModTree.this.processNextEvent();
-//						} catch (BadLocationException e) {
-//							e.printStackTrace();
-//						}
-//					}
-//					System.out.println("done");
-//				}
-//			});
 			
 			// Amineri - my attempt to make the DocEvent processing more efficient -- doesn't work
 //			if(this.deHandler == null) {

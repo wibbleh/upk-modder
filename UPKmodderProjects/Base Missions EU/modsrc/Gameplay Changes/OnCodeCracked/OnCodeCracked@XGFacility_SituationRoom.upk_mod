@@ -1,0 +1,106 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
+FUNCTION=OnCodeCracked@XGFacility_SituationRoom
+
+[BEFORE_HEX]
+[HEADER]
+59 01 00 00 FD 00 00 00 
+[/HEADER]
+[CODE]
+m_iCodePieces = 1
+0F 01 2B 2E 00 00 26 
+
+m_bCodeCracked = true
+14 2D 01 2D 2E 00 00 27 
+
+iMission = 0
+0F 00 AE 2E 00 00 25 
+
+if(iMission < GEOSCAPE().m_arrMissions.Length)
+07 3E 01 96 00 AE 2E 00 00 36 19 1B 69 0E 00 00 00 00 00 00 16 09 00 94 2F 00 00 00 01 94 2F 00 00 16 
+
+	if(GEOSCAPE().m_arrMissions[iMission].m_iMissionType == 6)
+	07 30 01 9A 19 10 00 AE 2E 00 00 19 1B 69 0E 00 00 00 00 00 00 16 09 00 94 2F 00 00 00 01 94 2F 00 00 09 00 35 37 00 00 00 01 35 37 00 00 2C 06 16 
+
+		GEOSCAPE().m_arrMissions[iMission].m_iDetectedBy = 0
+		0F 19 10 00 AE 2E 00 00 19 1B 69 0E 00 00 00 00 00 00 16 09 00 94 2F 00 00 00 01 94 2F 00 00 09 00 30 37 00 00 00 01 30 37 00 00 25 
+
+		GEOSCAPE().m_arrMissions[iMission].SetEntity(Spawn(class'XGMissionEntity'), 19)
+		19 10 00 AE 2E 00 00 19 1B 69 0E 00 00 00 00 00 00 16 09 00 94 2F 00 00 00 01 94 2F 00 00 26 00 00 00 00 00 00 1B C6 23 00 00 00 00 00 00 1C A3 FD FF FF 20 DB 38 00 00 4A 4A 4A 4A 4A 4A 4A 16 24 13 16 
+
+	++ iMission
+	A5 00 AE 2E 00 00 16 
+
+	Loop Continue
+	06 22 00 
+
+Achieve(19)
+1B 72 00 00 00 00 00 00 00 24 13 16 
+
+PushNarrativeHeadline(2)
+1B 4C 22 00 00 00 00 00 00 24 02 16 
+
+return
+04 0B 
+
+EOF
+53 	
+
+[/CODE]
+[/BEFORE_HEX]
+
+// loop over all countries, CREATING base missions where appropriate. 
+// newly created base missions will be immediately visible, and will not be created until they should be visible.
+[AFTER_HEX]
+[HEADER]
+39 01 00 00 FD 00 00 00 
+[/HEADER]
+[CODE]
+foreach World().m_arrCountries(kCountry,)  // kCountry from XGStrategyAI.SignPact
+58 19 1B 9C 2C 00 00 00 00 00 00 16 ED 00 EF 46 00 00 00 01 EF 46 00 00 00 DD 42 00 00 00 4A 03 01 
+
+	if(kCountry.m_bSecretPact)
+	07 02 01 19 00 DD 42 00 00 0A 00 33 24 00 00 00 2D 01 33 24 00 00 
+
+		if(kCountry.HasSatelliteCoverage())
+		07 02 01 19 00 DD 42 00 00 0A 00 76 24 00 00 00 1B 24 11 00 00 00 00 00 00 16 
+
+			AI().AddToAssets(byte(kCountry.GetID()), arrAssets); // local variable from XGStrategyAI.TallySquadCost  // helper to create base mission in country
+			19 1B E1 00 00 00 00 00 00 00 16 17 00 00 00 00 00 00 1B C7 00 00 00 00 00 00 00 38 3D 19 00 DD 42 00 00 0A 00 5E 24 00 00 00 1B 58 0F 00 00 00 00 00 00 16 00 AB 44 00 00 16 
+
+			if(!m_bCodeCracked)
+			07 02 01 81 2D 01 2D 2E 00 00 16 
+
+				m_bCodeCracked = true
+				14 2D 01 2D 2E 00 00 27 
+
+				IsCodeActive();
+				1B 34 14 00 00 00 00 00 00 16 
+
+				PRES().UIObjectiveDisplay(4); // presentation pop-up to assault the alien base
+				19 1B 12 22 00 00 00 00 00 00 16 0C 00 00 00 00 00 00 1B 2B 2B 00 00 00 00 00 00 24 04 16 
+
+	Iterator Next
+	31 
+		
+	Iterator Pop
+	30 
+
+Achieve(19)
+1B 72 00 00 00 00 00 00 00 24 13 16 
+
+PushNarrativeHeadline(2)
+1B 4C 22 00 00 00 00 00 00 24 02 16 
+
+null-ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+return
+04 0B 
+
+EOF
+53 
+
+[/CODE]
+[/AFTER_HEX]

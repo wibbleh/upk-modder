@@ -49,12 +49,12 @@ public class ReferenceUpdate {
 	
 	private List<Integer> failedMappings = new ArrayList<>();		// list of references that failed to map to a valid name
 	private List<Integer> failedOffsets = new ArrayList<>();		// list of file offset positions of failed references
-	private List<Integer> failedTypes = new ArrayList<>();			// TODO-- convert to enumeration of failure modes
+	private List<Integer> failedTypes = new ArrayList<>();			
 																		// 1 = SOURCE_TO_NAME_FAIL = 1
 																		// 2 = NAME_TO_DST_FAIL = 2
 																		// 3 = SOURCE STRING MISMATCH = 3
 
-	private int failureMode = 0;	// TODO -- convert to enumeration of high-level failure modes
+	private int failureMode = 0;	
 									// 0 = NO ERROR
 									// 1 = UNEQUAL ARRAY SIZE DURING REPLACEMENT
 									// 2 = FILE READ ERROR
@@ -211,8 +211,6 @@ public class ReferenceUpdate {
 			return "";
 		}
 	}
-	// TODO : replace with new methods based on enumeration
-	// temporary error reporting methods
 	@Deprecated
 	public int getFailureMode(){
 		return failureMode;
@@ -247,7 +245,7 @@ public class ReferenceUpdate {
 			for(int i = 0; i < sourceReferences.size(); i ++) {
 				try {
 					// arbitrary default AttributeSet
-					AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+					AttributeSet as = new SimpleAttributeSet(); 
 					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 					StyleConstants.setItalic((MutableAttributeSet) as, false);
 					
@@ -300,7 +298,7 @@ public class ReferenceUpdate {
 				} else {
 					try {
 						// arbitrary default AttributeSet
-						AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+						AttributeSet as = new SimpleAttributeSet(); 
 						StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 						StyleConstants.setItalic((MutableAttributeSet) as, false);
 
@@ -349,7 +347,7 @@ public class ReferenceUpdate {
 					String destGUID = convertByteArrayToHexString(destUpk.getHeader().getGUID()).trim();
 					document.remove(offset, guid.length());
 					// arbitrary default AttributeSet
-					AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+					AttributeSet as = new SimpleAttributeSet(); 
 					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 					StyleConstants.setItalic((MutableAttributeSet) as, false);
 					document.insertString(offset, destGUID, as);
@@ -619,7 +617,7 @@ public class ReferenceUpdate {
 	 */
 	public static int replaceRefStringInDocument(String findString, String replString, ModReferenceLeaf leaf, int offsetIncrease) throws BadLocationException {
 		// arbitrary default AttributeSet
-		AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+		AttributeSet as = new SimpleAttributeSet(); 
 		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 		StyleConstants.setItalic((MutableAttributeSet) as, false);
 
@@ -669,7 +667,7 @@ public class ReferenceUpdate {
 				tree.getDocument().remove(offset, originalLine.length());
 				
 				// arbitrary default AttributeSet
-				AttributeSet as = new SimpleAttributeSet(); // TODO perform node-to-style mapping
+				AttributeSet as = new SimpleAttributeSet(); 
 				StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
 				StyleConstants.setItalic((MutableAttributeSet) as, false);
 				

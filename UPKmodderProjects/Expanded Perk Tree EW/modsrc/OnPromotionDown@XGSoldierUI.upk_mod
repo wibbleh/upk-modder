@@ -1,0 +1,64 @@
+MODFILEVERSION=3
+UPKFILE=XComStrategyGame.upk 
+GUID=31 9C 3B 3F 9C 5D E4 40 AB AF 92 8E 25 65 74 F2 // XComStrategyGame_EW_patch1.upk
+FUNCTION=OnPromotionDown@XGSoldierUI
+
+//clamp keyboard/gamepad down motion to no more than current soldier rank
+
+[BEFORE_HEX]
+[HEADER]
+79 00 00 00 61 00 00 00 
+[/HEADER]
+[CODE]
+//newBranch = (GetAbilityTreeBranch()) + 1
+0F 00 BE 4C 00 00 92 1B 1D 11 00 00 00 00 00 00 16 26 16 
+
+//if(newBranch > ((m_iCurrentView == 1) ? 7 : 3))
+07 59 00 97 00 BE 4C 00 00 45 9A 01 1C 09 00 00 26 16 02 00 2C 07 02 00 2C 03 16 
+
+	//newBranch = ((m_iCurrentView == 1) ? 7 : 3)
+	0F 00 BE 4C 00 00 45 9A 01 1C 09 00 00 26 16 02 00 2C 07 02 00 2C 03 
+
+//SetAbilityTreeBranch(newBranch)
+1B 58 2A 00 00 00 00 00 00 00 BE 4C 00 00 16 
+
+//PlayScrollSound()
+1B 0F 28 00 00 00 00 00 00 16 
+
+//return
+04 0B 
+
+//EOS
+53 
+	
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+75 00 00 00 61 00 00 00 
+[/HEADER]
+[CODE]
+// newBranch = ((m_iCurrentView == 1) ? GetRank() : GetPsiRank())
+0F 00 BE 4C 00 00 45 9A 01 1C 09 00 00 26 16 0A 00 1B 00 13 00 00 00 00 00 00 16 0A 00 1B F5 12 00 00 00 00 00 00 16 
+
+// newBranch = Max(GetAbilityTreeBranch() + 1, newBranch)
+0F 00 BE 4C 00 00 FA 92 1B 1D 11 00 00 00 00 00 00 16 26 16 00 BE 4C 00 00 16 
+
+//SetAbilityTreeBranch(newBranch)
+1B 58 2A 00 00 00 00 00 00 00 BE 4C 00 00 16 
+
+//PlayScrollSound()
+1B 0F 28 00 00 00 00 00 00 16 
+
+//return
+04 0B 
+
+//null ops
+0B 0B 0B 0B 
+
+//EOS
+53 
+[/CODE]
+[/AFTER_HEX]

@@ -3,7 +3,13 @@ package model.modtree;
 import model.modtree.ModContext.ModContextType;
 
 /**
- * TODO: API
+ * A specific type of Leaf Node used when parsing Unreal hex bytecode.
+ * References are always 4 bytes long, signed integers.
+ * References can be Virtual Function references - which index to the namelist
+ * Virtual Function references are always non-negative >= 0
+ * References can be "regular" - which index to the objectlist or importlist
+ * Positive regular references index the objectlist
+ * Negative regular references index the importlist
  * @author Amineri
  */
 public class ModReferenceLeaf extends ModTreeLeaf {
@@ -24,9 +30,9 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	private boolean isName;
 	
 	/**
-	 * TODO: API
-	 * @param o
-	 * @param virtualFunction
+	 * Construct a ModReferenceLeaf, indicating whether the Reference is a Virtual Function reference.
+	 * @param o - parent node, must always be a ModOperandNode
+	 * @param virtualFunction - boolean indicating if the reference is a virtual function or not
 	 */
 	public ModReferenceLeaf(ModTreeNode o, boolean virtualFunction) {
 		super(o);
@@ -82,9 +88,10 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	}
 	
 	/**
-	 * TODO: API
-	 * @param s
-	 * @return
+	 * Parses a string of unreal hex byte code (represented as a string)
+	 * removes the appropriate number of bytecodes and returns the remaining string portion
+	 * @param s - unreal bytecode as string
+	 * @return - remainder of bytecode as string
 	 */
 	public String parseUnrealHex(String s) {
 		return this.parseUnrealHex(s, 0);
