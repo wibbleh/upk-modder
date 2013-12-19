@@ -20,6 +20,7 @@ import javax.swing.JToolBar;
  * Custom tabbed pane featuring a 'Close' button in its tabs.
  * @author XMS
  */
+@SuppressWarnings("serial")
 public class ButtonTabbedPane extends JTabbedPane {
 	
 	// TODO: focus traversal on tabs is dodgy, investigate

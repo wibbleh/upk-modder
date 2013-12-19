@@ -34,9 +34,9 @@ import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+
 import model.modtree.ModGenericLeaf;
 import model.modtree.ModOffsetLeaf;
-
 import model.modtree.ModOperandNode;
 import model.modtree.ModReferenceLeaf;
 import model.modtree.ModTree;
@@ -51,7 +51,13 @@ import util.unrealhex.HexSearchAndReplace;
  * The basic component inside the tabbed pane.
  * @author XMS
  */
+@SuppressWarnings("serial")
 public class ModTab extends JSplitPane {
+	
+	/**
+	 * The logger.
+	 */
+	public static final Logger logger = Logger.getLogger(ModTab.class.getName());
 
 	/**
 	 * The modfile editor instance.
@@ -288,11 +294,11 @@ public class ModTab extends JSplitPane {
 					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
 					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
 					) {
-				Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.INFO, "AFTER Hex Installed");
+				Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.INFO, "AFTER Hex Installed");
 				return true;
 			}
 		} catch(IOException ex) {
-			Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
+			Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
 		}
 		return false;
 	}
@@ -308,11 +314,11 @@ public class ModTab extends JSplitPane {
 					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
 					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
 					) {
-				Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.INFO, "BEFORE Hex Installed");
+				Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.INFO, "BEFORE Hex Installed");
 				return true;
 			}
 		} catch(IOException ex) {
-			Logger.getLogger(ModTab.class.getName()+this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
+			Logger.getLogger(ModTab.class.getName() + "." + this.modFile.getAbsolutePath()).log(Level.SEVERE, "File error", ex);
 		}
 		return false;
 	}
@@ -339,7 +345,7 @@ public class ModTab extends JSplitPane {
 	}
 	
 	public void setUpdateStatus(boolean checkBothDirections) {
-		String loggerName = ModTab.class.getName()+this.modFile.getAbsolutePath();
+		String loggerName = ModTab.class.getName() + "." + this.modFile.getAbsolutePath();
 		if(this.modTree == null) {
 			Logger.getLogger(loggerName).log(Level.SEVERE, "No ModFile");
 			return;
@@ -391,7 +397,7 @@ public class ModTab extends JSplitPane {
 	}
 	
 	private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
-		String loggerName = ModTab.class.getName()+this.modFile.getAbsolutePath();
+		String loggerName = ModTab.class.getName() + "." + this.modFile.getAbsolutePath();
 		// perform simple error checking first
 		// check for same number of blocks
 		if(patterns.size() != replacements.size()) {

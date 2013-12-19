@@ -10,6 +10,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
@@ -19,7 +20,9 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Handler;
 
+import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
@@ -27,12 +30,14 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
@@ -43,21 +48,18 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.InsetsUIResource;
 import javax.swing.plaf.nimbus.AbstractRegionPainter;
+import javax.swing.text.DefaultStyledDocument;
 
 import model.modtree.ModTree;
 import model.upk.UpkFile;
+
+import org.bounce.text.LineNumberMargin;
+
 import ui.dialogs.ReferenceUpdateDialog;
+import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.JTree;
-import javax.swing.text.Document;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import org.xml.sax.SAXException;
 
 /**
  * The application's primary frame.
@@ -86,7 +88,7 @@ public class MainFrame extends JFrame {
 	 * The cache of shared UPK files.
 	 */
 	private Map<File, UpkFile> upkCache = new HashMap<>();
-	
+
 	/**
 	 * Constructs the application's main frame.
 	 * @param title the title string appearing in the frame's title bar
@@ -95,6 +97,11 @@ public class MainFrame extends JFrame {
 		// instantiate frame
 		// TODO: add application icon
 		super(title);
+		try {
+			this.setIconImage(ImageIO.read(this.getClass().getResource("/ui/resources/icons/hex16.png")));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		// init action cache
 		this.initActions();
@@ -413,6 +420,7 @@ public class MainFrame extends JFrame {
 		Container contentPane = this.getContentPane();
 		contentPane.setLayout(new BorderLayout());
 		
+		// create central tabbed pane
 		UIManager.put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(3, 0, 4, 0));
 		UIManager.put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
 		tabPane = new ButtonTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT) {
@@ -448,8 +456,10 @@ public class MainFrame extends JFrame {
 		};
 		tabPane.setPreferredSize(new Dimension(1000, 600));
 		
+		// create status bar
 		JPanel statusBar = this.createStatusBar();
 
+		// add components to frame
 		this.setJMenuBar(menuBar);
 		contentPane.add(toolBar, BorderLayout.NORTH);
 		contentPane.add(tabPane, BorderLayout.CENTER);
@@ -457,10 +467,15 @@ public class MainFrame extends JFrame {
 		
 	}
 	
+	/**
+	 * Creates and configures the menu bar.
+	 * @return the menu bar
+	 */
 	private JMenuBar createMenuBar() {
-		
+		// init menu bar
 		JMenuBar menuBar = new JMenuBar();
 	
+		// create file menu
 		JMenu fileMenu = new JMenu("File");
 		fileMenu.setMnemonic('f');
 		fileMenu.add(actionCache.get("new"));
@@ -476,6 +491,7 @@ public class MainFrame extends JFrame {
 		fileMenu.addSeparator();
 		fileMenu.add(actionCache.get("exit"));
 		
+		// create edit menu
 		JMenu editMenu = new JMenu("Edit");
 		editMenu.setMnemonic('e');
 		editMenu.add(actionCache.get("refUpdate"));
@@ -483,12 +499,14 @@ public class MainFrame extends JFrame {
 		editMenu.add(actionCache.get("hexApply"));
 		editMenu.add(actionCache.get("hexRevert"));
 		
+		// create help menu
 		JMenu helpMenu = new JMenu("Help");
 		helpMenu.setMnemonic('h');
 		helpMenu.add(actionCache.get("help"));
 		helpMenu.addSeparator();
 		helpMenu.add(actionCache.get("about"));
 
+		// add menus to menu bar
 		menuBar.add(fileMenu);
 		menuBar.add(editMenu);
 		menuBar.add(helpMenu);
@@ -649,6 +667,38 @@ public class MainFrame extends JFrame {
 		loggingBtn.setIcon(defaultIcon);
 		loggingBtn.setRolloverIcon(rolloverIcon);
 		loggingBtn.setPressedIcon(pressedIcon);
+		
+		// create simple message log dialog
+		final JDialog loggingDlg = new JDialog(this, "Message Log");
+		loggingDlg.setIconImage(normalImg);
+		Container loggingCont = loggingDlg.getContentPane();
+		
+		JEditorPane loggingEditor = new JEditorPane();
+		loggingEditor.setDocument(new DefaultStyledDocument());
+		loggingEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+		loggingEditor.setEditable(false);
+		
+		Handler logHandler = new LogHandler(loggingEditor,
+				ModTree.logger, ModTab.logger, ReferenceUpdate.logger);
+		
+		JScrollPane loggingScpn = new JScrollPane(loggingEditor,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		loggingScpn.setPreferredSize(new Dimension(480, 300));
+		loggingScpn.setRowHeaderView(new LineNumberMargin(loggingEditor));
+		
+		loggingCont.add(loggingScpn);
+		
+		loggingDlg.pack();
+		loggingDlg.setMinimumSize(loggingDlg.getSize());
+		loggingDlg.setLocationRelativeTo(this);
+		
+		// install listener on logging button to show dialog
+		loggingBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				loggingDlg.setVisible(true);
+			}
+		});
 		
 		// exchange borders
 		statusMsgPnl.setBorder(statusMsgTtf.getBorder());
