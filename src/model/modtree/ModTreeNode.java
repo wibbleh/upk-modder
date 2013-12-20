@@ -819,11 +819,11 @@ public class ModTreeNode implements TreeNode {
 			return 0;
 		}
 		for (int i = 0 ; i < children.size() ; i++) {
-			if (children.get(i).getEndOffset() < offset) {
+			if (children.get(i).getEndOffset() > offset) {
 				return i;
 			}
 		}
-		return children.size();
+		return children.size()-1;
     }
     
     /**
