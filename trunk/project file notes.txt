@@ -6,13 +6,17 @@ Each modfile has it's filename and target upk (can be null) target upks can be t
 
 project-level operations :
 basic project primitives:
-new project / open project / save project / save as project
+new project -- DONE
+open project -- DONE
+save project - NOT NEEDED
+save as project -- change to "rename project"
+close project -- DONE
 
 project composition operations:
-create new modfile in project
-add existing modfile to project
-remove modfile from project
-open modfile in project to new tab
+create new modfile in project  -- handled by creating new file and saving in project modsrc directory
+add existing modfile to project -- handled by creating new file and saving in project modsrc directory
+remove modfile from project  -- handled by deleting / moving file in OS
+open modfile in project to new tab -- DONE
 
 modding-specific operations:
 set target upk for project (will only apply to those modfiles that match)

@@ -3,7 +3,7 @@ UPKFILE=XComStrategyGame.upk
 GUID=F8 43 46 A3 80 60 96 49 A4 27 0B 1C 3B 66 7E 33 // XComStrategyGame_EU_patch6.upk
 FUNCTION=UpdateCountryHelp@XGSatelliteSitRoomUI
 
-// Allow for launching of satellites over occupied countries
+// Allow for launching of satellites over occupied countries --- test
 
 //From the action script (#36), in SituationRoomHUD :
 //   function SetLaunchButton(icon, msg, bEnable)

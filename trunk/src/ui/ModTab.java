@@ -124,6 +124,15 @@ public class ModTab extends JSplitPane {
 	 * @param modFile the modfile to parse
 	 */
 	public ModTab(File modFile) {
+		this(modFile, false);
+	}
+
+	/**
+	 * Creates a new tab from the specified modfile reference.
+	 * @param modFile the modfile to parse
+	 * @param isTemplate specifies whether the file being opened is a template file
+	 */
+	public ModTab(File modFile, boolean isTemplate) {
 		super(JSplitPane.HORIZONTAL_SPLIT);
 		this.modFile = modFile;
 		
@@ -132,8 +141,12 @@ public class ModTab extends JSplitPane {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
+		if(isTemplate) {
+			this.modFile = null;  // remove link to file
+		}
 
+	}
+	
 	/**
 	 * Creates and lays out the components of the tab.
 	 * @param modFile
@@ -148,6 +161,7 @@ public class ModTab extends JSplitPane {
 			@Override
 			public ViewFactory getViewFactory() {
 				return new ViewFactory() {
+					@Override
 			        public View create(Element elem) {
 			            String kind = elem.getName();
 			            if (kind != null) {

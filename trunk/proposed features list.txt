@@ -1,0 +1,19 @@
+Feature to-do list for UPKmodder :
+
+Courtesy of johnnylump :)
+
+	Add enum reverse lookup
+	Add jump offset tool
+	Add "consolidated hex" Frame viewer
+	Add [keyword] section for searching
+*	Load default template when loading new modfile
+	Add hex line-wrapping
+	Conversion / parsing to generate line-separated hex
+	Add auto-populate suggested name when saving new modfile
+	Assistant for putting in GUIDs
+	Toggle line numbers to memory location / file location
+	
+my own list:
+
+	adding tab coloring when file is loaded
+	add coloring to projects tab based on modfile status
