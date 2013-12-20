@@ -53,7 +53,6 @@ public class ModTree {
 	 * The tree's document it is listening to.
 	 */
 	protected Document doc = null;
-	protected Document newDoc = null; // temp new doc for testing
 	
 	/**
 	 * Currently registered 
@@ -391,23 +390,21 @@ public class ModTree {
 				int nLines = s.length() - s.replace("\n", "").length();
 				int oLines = o.length() - o.replace("\n", "").length();
 				int deltaLines = nLines - oLines;
+				// TODO: fix out of bounds error when adding to end of document
 				int lineInsertPoint = this.currRootNode.getNodeIndex(de.getOffset());
 				
 				this.prevRootNode = currRootNode;
 				this.currRootNode = new ModTreeRootNode(this);
-				logger.log(Level.INFO, "Inserting text...");
 				long startTime = System.currentTimeMillis();
 				this.currRootNode.insertString(0, s, null);
-				logger.log(Level.INFO, "...done, took " + (System.currentTimeMillis() - startTime) + "ms");
-				logger.log(Level.INFO, "Parsing text...");
+				logger.log(Level.INFO, "Inserted text, took " + (System.currentTimeMillis() - startTime) + "ms");
 				startTime = System.currentTimeMillis();
 				this.currRootNode.reorganizeAfterInsertion();
-				logger.log(Level.INFO, "...done, took " + (System.currentTimeMillis() - startTime) + "ms");
+				logger.log(Level.INFO, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 
-				logger.log(Level.INFO, "Styling document...");
 				startTime = System.currentTimeMillis();
 				this.updateDocument(deltaLines, lineInsertPoint);
-				logger.log(Level.INFO, "...done, took " + (System.currentTimeMillis() - startTime) + "ms");
+				logger.log(Level.INFO, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
 			}
 		}
 	}
@@ -493,7 +490,7 @@ public class ModTree {
 	 * // TODO: stop spawning more threads if the first is already running
 	 * //		if new insert/remove update comes in could conceivably halt current styling
 	 */
-	private class ModTreeListener implements DocumentListener {
+	protected class ModTreeListener implements DocumentListener {
 
 		private Thread deHandler;
 	

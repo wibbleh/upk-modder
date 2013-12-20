@@ -9,14 +9,10 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.RescaleOp;
 import java.io.File;
@@ -26,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -47,12 +42,9 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
-import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
@@ -64,12 +56,10 @@ import javax.swing.plaf.InsetsUIResource;
 import javax.swing.plaf.nimbus.AbstractRegionPainter;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -86,6 +76,27 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import util.properties.UpkModderProperties;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTree;
+import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.TreePath;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import static ui.Constants.DIRECTORY_FILTER;
 
 /**
  * The application's primary frame.
@@ -106,6 +117,21 @@ public class MainFrame extends JFrame {
 	private JTabbedPane tabPane;
 	
 	/**
+	 * The JTree pane component of the application's main frame.
+	 */
+//	private ProjectPaneTreeMdl projectPaneTree;
+	
+	
+	/**
+	 * Class enabling persistence of app properties.
+	 * Includes:
+	 *			open status of projects and files
+	 *			association of files with target upks
+	 *			configuration settings
+	 */
+	private static UpkModderProperties appProperties;
+	
+	/**
 	 * The cache of shared UI actions.
 	 */
 	private Map<String, Action> actionCache;
@@ -116,10 +142,21 @@ public class MainFrame extends JFrame {
 	private Map<File, UpkFile> upkCache = new HashMap<>();
 
 	/**
+	 * UPK status text field
+	 */
+	JTextField upkTtf;
+		
+	/**
 	 * The tree model of the project pane.
 	 */
 	private ProjectTreeModel projectMdl;
 
+	/**
+	 * The current active project.
+	 * Used to determine which project the "Close Project" action affects.
+	 */
+	private int currentProject = -1;
+	
 	/**
 	 * Constructs the application's main frame.
 	 * @param title the title string appearing in the frame's title bar
@@ -129,23 +166,39 @@ public class MainFrame extends JFrame {
 		super(title);
 		
 		// set icon images
-		List<Image> images = new ArrayList<>();
-		images.add(((ImageIcon) Constants.HEX_SMALL_ICON).getImage());
-		images.add(((ImageIcon) Constants.HEX_LARGE_ICON).getImage());
-		this.setIconImages(images);
+//		List<Image> images = new ArrayList<>();
+//		images.add(((ImageIcon) Constants.HEX_SMALL_ICON).getImage());
+//		images.add(((ImageIcon) Constants.HEX_LARGE_ICON).getImage());
+//		this.setIconImages(images);
 
-		// init action cache
-		this.initActions();
-		
-		// create and lay out the frame's components
-		this.initComponents();
-		
+
 		// TODO: move this elsewhere
 		try {
 			new OperandTableParser(Paths.get("config/operand_data.ini")).parseFile();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		appProperties = new UpkModderProperties();
+		
+		// TODO: move initial/default configuration elsewhere
+		// TODO: add configuration dialogue?
+		if(appProperties.getConfigProperty("project.path") == null) {
+			appProperties.setConfigProperty("project.path", "UPKmodderProjects");
+		}
+		if(appProperties.getConfigProperty("project.template.file") == null) {
+			appProperties.setConfigProperty("project.template.file", "defaultProjectTemplate.xml");
+		}
+		if(appProperties.getConfigProperty("modfile.template.file") == null) {
+			appProperties.setConfigProperty("modfile.template.file", "defaultModfileTemplate.upk_mod");
+		}
+		
+
+		// init action cache
+		this.initActions();
+		
+		// create and lay out the frame's components
+		this.initComponents();
 		
 		// make closing the main frame terminate the application
 		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -176,44 +229,45 @@ public class MainFrame extends JFrame {
 	private void initActions() {
 		this.actionCache = new HashMap<>();
 		
-		// new
-		Action newAction = new AbstractAction("New") {
+		// added this because later Constant-derived ones were missing
+		Icon hexIcon = new ImageIcon(this.getClass().getResource("/ui/resources/icons/hex16.png"));
+
+		// new project
+		Action newProjectAction = new BrowseAbstractAction("New Project", this, DIRECTORY_FILTER) {
+			@Override
+			protected void execute(File file) {
+				try {
+					projectMdl.newProject(file.getName(), file.toPath());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		newProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.fileIcon"));
+//		newProjectAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
+//		newProjectAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
+		newProjectAction.putValue(Action.SHORT_DESCRIPTION, "New Proj");
+
+		// new file
+		Action newFileAction = new AbstractAction("New File") {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
-				ModTab tab = new ModTab();
+				// load configured template file
+				File templateFile = new File(appProperties.getConfigProperty("modfile.template.file"));
+				ModTab tab = new ModTab(templateFile, true);
 				tabPane.addTab("New File", tab);
 				tabPane.setSelectedComponent(tab);
 
 				setFileActionsEnabled(true);
 			}
 		};
-		newAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.fileIcon"));
-		newAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
-		newAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
-		newAction.putValue(Action.SHORT_DESCRIPTION, "New");
+		newFileAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.fileIcon"));
+		newFileAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
+		newFileAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
+		newFileAction.putValue(Action.SHORT_DESCRIPTION, "New File");
 
-//		// open
-//		Action openAction = new BrowseAbstractAction("Open File...", this, Constants.MOD_FILE_FILTER) {
-//			@Override
-//			protected void execute(File file) {
-//				try {
-//					ModTab tab = new ModTab(file);
-//					tabPane.addTab(file.getName(), tab);
-//					tabPane.setSelectedComponent(tab);
-//
-//					setFileActionsEnabled(true);
-//				} catch (Exception e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		};
-//		openAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
-//		openAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-//		openAction.putValue(Action.MNEMONIC_KEY, (int) 'o');
-//		openAction.putValue(Action.SHORT_DESCRIPTION, "Open");
-
-		// open project
-		Action openAction = new BrowseAbstractAction("Open Project...", this, Constants.XML_FILE_FILTER) {
+		// open file
+		Action openFileAction = new BrowseAbstractAction("Open File...", this, Constants.MOD_FILE_FILTER) {
 			@Override
 			protected void execute(File file) {
 				try {
@@ -225,28 +279,67 @@ public class MainFrame extends JFrame {
 				}
 			}
 		};
-		openAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
-		openAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-		openAction.putValue(Action.MNEMONIC_KEY, (int) 'o');
-		openAction.putValue(Action.SHORT_DESCRIPTION, "Open");
+		openFileAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
+//		openFileAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
+//		openFileAction.putValue(Action.MNEMONIC_KEY, (int) 'o');
+		openFileAction.putValue(Action.SHORT_DESCRIPTION, "Open File");
+
+		// open project
+		Action openProjectAction = new BrowseAbstractAction("Open Project...", this, Constants.XML_FILE_FILTER) {
+			@Override
+			protected void execute(File file) {
+				try {
+					projectMdl.addProject(file);
+
+					appProperties.saveOpenState(tabPane, projectMdl);
+					setFileActionsEnabled(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		openProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
+		openProjectAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
+		openProjectAction.putValue(Action.MNEMONIC_KEY, (int) 'o');
+		openProjectAction.putValue(Action.SHORT_DESCRIPTION, "Open Proj");
 		
-		// close
-		Action closeAction = new AbstractAction("Close") {
+		// close project
+		Action closeProjectAction = new AbstractAction("Close Project") {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				if(currentProject >= 0) {
+					projectMdl.removeProject(currentProject);
+					currentProject = -1;
+					MainFrame.instance.setTitle(Constants.APPLICATION_NAME + " " + Constants.VERSION_NUMBER + "");
+				}
+				appProperties.saveOpenState(tabPane, projectMdl);
+			}
+		};
+//		closeProjectAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
+//		closeProjectAction.putValue(Action.MNEMONIC_KEY, (int) 'c');
+		closeProjectAction.putValue(Action.SHORT_DESCRIPTION, "Close Proj");
+		closeProjectAction.setEnabled(true);
+
+		
+		// close file
+		Action closeFileAction = new AbstractAction("Close File") {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
 				tabPane.remove(tabPane.getSelectedComponent());
+				appProperties.saveOpenState(tabPane, projectMdl);
 			}
 		};
-		closeAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
-		closeAction.putValue(Action.MNEMONIC_KEY, (int) 'c');
-		closeAction.putValue(Action.SHORT_DESCRIPTION, "Close");
-		closeAction.setEnabled(false);
+		closeFileAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK));
+		closeFileAction.putValue(Action.MNEMONIC_KEY, (int) 'c');
+		closeFileAction.putValue(Action.SHORT_DESCRIPTION, "Close File");
+		closeFileAction.setEnabled(false);
 		
 		// close all
 		Action closeAllAction = new AbstractAction("Close All") {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
 				tabPane.removeAll();
+				appProperties.saveOpenState(tabPane, projectMdl);
 			}
 		};
 		closeAllAction.putValue(Action.ACCELERATOR_KEY,
@@ -264,7 +357,7 @@ public class MainFrame extends JFrame {
 					File file = ((ModTab) selComp).getModFile();
 					if ((file == null) || !file.exists()) {
 						file = new File(getLastSelectedFile().getParent()
-								+ tabPane.getTitleAt(tabPane.getSelectedIndex()) + ".mod");
+								+ tabPane.getTitleAt(tabPane.getSelectedIndex()) + ".upk_mod");
 					}
 					return file;
 				}
@@ -279,6 +372,7 @@ public class MainFrame extends JFrame {
 					ModTab tab = (ModTab) selComp;
 					tab.setModFile(file);
 					tab.saveFile();
+					appProperties.saveOpenState(tabPane, projectMdl);
 				}
 			}
 		};
@@ -327,6 +421,7 @@ public class MainFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
 				// dispose main frame (thereby terminating the application)
+				appProperties.saveOpenState(tabPane, projectMdl);
 				MainFrame.this.dispose();
 			}
 		};
@@ -365,8 +460,9 @@ public class MainFrame extends JFrame {
 					}
 				}
 			}
-		};
-		hexApplyAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+		}; 
+		hexApplyAction.putValue(Action.SMALL_ICON, hexIcon);
+//		hexApplyAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
 		hexApplyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
 		hexApplyAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
 		hexApplyAction.putValue(Action.SHORT_DESCRIPTION, "Apply Hex Changes");
@@ -377,7 +473,6 @@ public class MainFrame extends JFrame {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
 				Component selComp = tabPane.getSelectedComponent();
 				if (selComp != null) {
 					ModTab tab = (ModTab) selComp;
@@ -386,12 +481,13 @@ public class MainFrame extends JFrame {
 						tabPane.setForegroundAt(tabPane.getSelectedIndex(),  new Color(0, 128, 0)); // green indicates BEFORE
 						((ButtonTabbedPane) tabPane).setFontAt(tabPane.getSelectedIndex(), new Font(Font.MONOSPACED, Font.PLAIN, 12));
 						tabPane.setToolTipTextAt(tabPane.getSelectedIndex(), "Original Hex");
-						tabPane.updateUI(); // needed to update tab with
+						tabPane.updateUI(); // needed to update tab 
 					}
 				}
 			}
 		};
-		hexRevertAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+//		hexRevertAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+		hexRevertAction.putValue(Action.SMALL_ICON, hexIcon);
 		hexRevertAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
 		hexRevertAction.putValue(Action.MNEMONIC_KEY, (int) 'r');
 		hexRevertAction.putValue(Action.SHORT_DESCRIPTION, "Revert Hex Changes");
@@ -436,9 +532,12 @@ public class MainFrame extends JFrame {
 		aboutAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
 		
 		// file actions
-		actionCache.put("new", newAction);
-		actionCache.put("open", openAction);
-		actionCache.put("close", closeAction);
+		actionCache.put("newProj", newProjectAction);
+		actionCache.put("openProj", openProjectAction);
+		actionCache.put("closeProj", closeProjectAction);
+		actionCache.put("newFile", newFileAction);
+		actionCache.put("openFile", openFileAction);
+		actionCache.put("closeFile", closeFileAction);
 		actionCache.put("closeAll", closeAllAction);
 		actionCache.put("saveAs", saveAsAction);
 		actionCache.put("save", saveAction);
@@ -462,6 +561,7 @@ public class MainFrame extends JFrame {
 
 //		//TODO: sort out relative pathing issues for modsrc directories in xml files, should be relative to the xml file location, I think.
 		final JTree projectTree = new JTree(this.projectMdl = new ProjectTreeModel());
+//		final JTree projectTree = new JTree(this.projectMdl = new ProjectPaneTreeMdl());
 		
 		// TODO: use custom icons for projects/modpackages/modfiles ?
 		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
@@ -481,12 +581,12 @@ public class MainFrame extends JFrame {
 					comp.setFont(new Font(Font.DIALOG, Font.TRUETYPE_FONT, 11));
 				}
 				return comp;
-			}
+					}
 		};
 		projectTree.setCellRenderer(renderer);
 		projectTree.setRootVisible(false);
 		this.projectMdl.addTreeModelListener(new TreeModelListener() {
-			
+		
 			@Override
 			public void treeNodesInserted(TreeModelEvent e) {
 				projectTree.expandPath(new TreePath(projectMdl.getRoot()));
@@ -504,6 +604,30 @@ public class MainFrame extends JFrame {
 		MouseListener ml = new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent evt) {
+				// handler to set active project
+				if (evt.getClickCount() == 1) {
+					TreePath selPath = projectTree.getPathForLocation(evt.getX(), evt.getY());
+					if (selPath != null) {
+						if (selPath.getPathComponent(1) instanceof ProjectTreeModel.ProjectNode) { // should always be a project file
+							// find the project node
+							ProjectTreeModel.ProjectNode target = (ProjectTreeModel.ProjectNode) selPath.getPathComponent(1);
+							int foundIndex = -1;
+							for ( int i = 0 ; i < projectMdl.getRoot().getChildCount(); i++) {
+								if (projectMdl.getRoot().getChildAt(i) == target) {
+									foundIndex = i;
+								}
+							}
+							if(foundIndex >= 0) {
+//								projectMdl.getProjectFileAt(foundIndex).getName();
+								MainFrame.instance.setTitle(Constants.APPLICATION_NAME + " " + Constants.VERSION_NUMBER 
+										+ " : " + projectMdl.getProjectFileAt(foundIndex).getName());
+								currentProject = foundIndex;
+							}
+						}
+					}
+				}
+				
+				// handler for opening files
 				if (evt.getClickCount() == 2) {
 					TreePath selPath = projectTree.getPathForLocation(evt.getX(), evt.getY());
 					if (selPath != null) {
@@ -514,6 +638,33 @@ public class MainFrame extends JFrame {
 									ModTab tab = new ModTab(file);
 									tabPane.addTab(file.getName(), tab);
 									tabPane.setSelectedComponent(tab);
+									appProperties.saveOpenState(tabPane, projectMdl);
+									
+									// TODO: create function for upk re-association
+									//re-associate upk if possible
+									if(appProperties.getUpkProperty(file.getName()) != null) {
+										File ufile = new File(appProperties.getUpkProperty(file.getName()));
+										// grab UPK file from cache
+										UpkFile upkFile = upkCache.get(ufile);
+										if (upkFile == null) {
+											// if cache doesn't contain UPK file instantiate a new one
+											upkFile = new UpkFile(ufile);
+										}
+
+										// check whether UPK file is valid (i.e. header parsing worked properly)
+										if (upkFile.getHeader() != null) {
+											// store UPK file in cache
+											upkCache.put(ufile, upkFile);
+											// link UPK file to tab
+											tab.setUpkFile(upkFile);
+											// show file name in status bar
+											upkTtf.setText(ufile.getPath());
+											// enable 'update', 'apply' and 'revert' actions
+											setEditActionsEnabled(true);
+										} else {
+											// TODO: show error/warning message
+										}
+									}
 
 									setFileActionsEnabled(true);
 								} catch (Exception ex) {
@@ -529,12 +680,12 @@ public class MainFrame extends JFrame {
 		
 		JToolBar projectBar = new JToolBar();
 		projectBar.setFloatable(false);
-
+		
 		projectBar.add(Box.createHorizontalGlue());
-		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
-		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
-		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
-		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
+//		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
+//		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
+//		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
+//		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
 		
 		JScrollPane projectScpn = new JScrollPane(projectTree);
 		projectScpn.setPreferredSize(new Dimension(320, 600));
@@ -582,6 +733,7 @@ public class MainFrame extends JFrame {
 				if (this.getTabCount() == 0) {
 					setFileActionsEnabled(false);
 				}
+				appProperties.saveOpenState(tabPane, projectMdl);
 			}
 		};
 		tabPane.setPreferredSize(new Dimension(1000, 600));
@@ -597,6 +749,64 @@ public class MainFrame extends JFrame {
 		contentPane.add(centerPane, BorderLayout.CENTER);
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
+		// restore mappings from file to target upks
+		appProperties.restoreUpkState();
+		
+		// restore open projects/files from last time app was run
+		appProperties.restoreOpenState();
+		
+		List<String> projectPathList = appProperties.getOpenProjects();
+		if(projectPathList != null) {
+			if(!projectPathList.isEmpty()) {
+				for (String filePath : projectPathList) {
+					projectMdl.addProject(new File(filePath));
+				}
+				setFileActionsEnabled(true);
+			}
+		}
+
+		// open previously open files
+		List<String> filePathList = appProperties.getOpenFiles();
+		if(filePathList != null) {
+			if(!filePathList.isEmpty()) {
+				for (String filePath : filePathList) {
+					File file = new File(filePath);
+					if(file.exists()) {
+						//create new tab
+						ModTab tab = new ModTab(file);
+						tabPane.addTab(file.getName(), tab);
+						tabPane.setSelectedComponent(tab);
+						
+						// TODO: create function for upk re-association
+						//re-associate upk if possible
+						if(appProperties.getUpkProperty(file.getName()) != null) {
+							File ufile = new File(appProperties.getUpkProperty(file.getName()));
+							// grab UPK file from cache
+							UpkFile upkFile = upkCache.get(ufile);
+							if (upkFile == null) {
+								// if cache doesn't contain UPK file instantiate a new one
+								upkFile = new UpkFile(ufile);
+							}
+
+							// check whether UPK file is valid (i.e. header parsing worked properly)
+							if (upkFile.getHeader() != null) {
+								// store UPK file in cache
+								upkCache.put(ufile, upkFile);
+								// link UPK file to tab
+								tab.setUpkFile(upkFile);
+								// show file name in status bar
+								upkTtf.setText(ufile.getPath());
+								// enable 'update', 'apply' and 'revert' actions
+								setEditActionsEnabled(true);
+							} else {
+								// TODO: show error/warning message
+							}
+						}
+					}
+				}
+				setFileActionsEnabled(true);
+			}
+		}
 	}
 	
 	/**
@@ -610,10 +820,13 @@ public class MainFrame extends JFrame {
 		// create file menu
 		JMenu fileMenu = new JMenu("File");
 		fileMenu.setMnemonic('f');
-		fileMenu.add(actionCache.get("new"));
-		fileMenu.add(actionCache.get("open"));
+		fileMenu.add(actionCache.get("newProj"));
+		fileMenu.add(actionCache.get("openProj"));
+		fileMenu.add(actionCache.get("closeProj"));
 		fileMenu.addSeparator();
-		fileMenu.add(actionCache.get("close"));
+		fileMenu.add(actionCache.get("newFile"));
+		fileMenu.add(actionCache.get("openFile"));
+		fileMenu.add(actionCache.get("closeFile"));
 		fileMenu.add(actionCache.get("closeAll"));
 		fileMenu.addSeparator();
 		fileMenu.add(actionCache.get("save"));
@@ -677,7 +890,7 @@ public class MainFrame extends JFrame {
 		
 		JPanel upkPnl = new JPanel(new FormLayout("p:g, r:p", "b:p"));
 		
-		final JTextField upkTtf = new JTextField("no modfile loaded");
+		upkTtf = new JTextField("no modfile loaded");
 		upkTtf.setEditable(false);
 		upkTtf.setBackground(bgCol);
 		
@@ -715,6 +928,7 @@ public class MainFrame extends JFrame {
 						upkFile = new UpkFile(file);
 					}
 
+					// TODO: create function for upk association
 					// check whether UPK file is valid (i.e. header parsing worked properly)
 					if (upkFile.getHeader() != null) {
 						// store UPK file in cache
@@ -725,6 +939,9 @@ public class MainFrame extends JFrame {
 						upkTtf.setText(file.getPath());
 						// enable 'update', 'apply' and 'revert' actions
 						setEditActionsEnabled(true);
+						// persistently store file-to-upk association
+						appProperties.setUpkProperty(tab.getModFile().getName(), file.getAbsolutePath());
+						appProperties.saveUpkState();;
 					} else {
 						// TODO: show error/warning message
 					}
@@ -815,7 +1032,7 @@ public class MainFrame extends JFrame {
 		ModTab.logger.addHandler(logHandler);
 		ReferenceUpdate.logger.addHandler(logHandler);
 		ProjectTreeModel.logger.addHandler(logHandler);
-
+		
 		JScrollPane loggingScpn = new JScrollPane(loggingEditor,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		loggingScpn.setPreferredSize(new Dimension(480, 300));
@@ -855,7 +1072,7 @@ public class MainFrame extends JFrame {
 	 * @param enabled the enable state
 	 */
 	protected void setFileActionsEnabled(boolean enabled) {
-		actionCache.get("close").setEnabled(enabled);
+		actionCache.get("closeFile").setEnabled(enabled);
 		actionCache.get("closeAll").setEnabled(enabled);
 		actionCache.get("save").setEnabled(enabled);
 		actionCache.get("saveAs").setEnabled(enabled);
@@ -904,8 +1121,8 @@ public class MainFrame extends JFrame {
 	 * A hybrid tree model combining a tree node-based setup with a file tree model.
 	 * @author XMS
 	 */
-	private static class ProjectTreeModel implements TreeModel {
-		
+	public static class ProjectTreeModel implements TreeModel {
+	
 		/**
 		 * The logger.
 		 */
@@ -927,6 +1144,64 @@ public class MainFrame extends JFrame {
 		public ProjectTreeModel() {
 			this.root = new DefaultMutableTreeNode("Project Root");
 			this.listeners = new ArrayList<>();
+}
+		
+		/**
+		 * Creates a new project the the given name at the specified location
+		 * TODO: empty projects get into bad display state if user tries to expand them
+		 *		fix or disallow attempting to expand empty projects
+		 * @param name
+		 * @param directory
+		 */
+		public void newProject(String name, Path directory) {
+			File xmlFile = new File(appProperties.getConfigProperty("project.template.file"));
+			try {
+				// create document builder
+				DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+				// parse XML
+				Document doc = db.parse(xmlFile);
+				
+				// check if new directory exists
+				File currentLocation = directory.toFile();
+				// create project directory if needed
+				if(!currentLocation.exists()) {
+					Files.createDirectory(directory);
+				}
+				// create modsrc directory
+				if(!directory.resolve("modsrc").toFile().exists()) {
+					Files.createDirectory(directory.resolve("modsrc"));
+				}
+				// set name of new project
+				doc.getElementsByTagName("name").item(0).setTextContent(name);
+				
+				// set directory of new project
+				Path projectRootPath = Paths.get(appProperties.getConfigProperty("project.path")).toAbsolutePath().getParent();
+				// use relative path to maximize portability
+				Path newRelativePath = projectRootPath.relativize(directory.resolve("modsrc"));
+				
+				//set directory of new project
+				doc.getElementsByTagName("source-root").item(0).setTextContent(newRelativePath.toString());
+
+				// save new xml file to new directory
+				Transformer tr = TransformerFactory.newInstance().newTransformer();
+				tr.setOutputProperty(OutputKeys.INDENT, "yes");
+				tr.setOutputProperty(OutputKeys.METHOD, "xml");
+				tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+//				tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, "roles.dtd");
+				tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+
+				// send DOM to file
+				File newFile = directory.resolve(name+".xml").toFile();
+				tr.transform(new DOMSource(doc), new StreamResult(new FileOutputStream(newFile)));
+				addProject(newFile);
+
+			} catch(ParserConfigurationException | SAXException | IOException ex) {
+				logger.log(Level.INFO, "Failed to load project file \'" + xmlFile.getName() + "\'", ex);
+			} catch(TransformerConfigurationException ex) {
+				logger.log(Level.INFO, "Failed to configure new project file", ex);
+			} catch(TransformerException ex) {
+				logger.log(Level.INFO, "Failed to write new project file", ex);
+			}
 		}
 		
 		/**
@@ -940,9 +1215,13 @@ public class MainFrame extends JFrame {
 				this.root.insert(projNode, childCount);
 				this.fireTreeNodesInserted(new int[] { childCount }, new Object[] { projNode });
 				logger.log(Level.INFO, "Project \'" + projNode + "\' successfully loaded");
-			} catch (Exception e) {
+			} catch (ParserConfigurationException | SAXException | IOException e) {
 				logger.log(Level.INFO, "Failed to load project file \'" + xmlFile.getName() + "\'", e);
 			}
+		}
+		
+		public File getProjectFileAt(int index) {
+			return ((ProjectNode) this.root.getChildAt(index)).getProjectFile();
 		}
 		
 		/**
@@ -1026,7 +1305,8 @@ public class MainFrame extends JFrame {
 			File file = this.getFileForNode(parent);
 			if (file != null) {	// sanity check
 				// return file at index
-				return file.listFiles((java.io.FileFilter) Constants.MOD_FILE_FILTER)[index];
+//				return file.listFiles((java.io.FileFilter) Constants.MOD_FILE_FILTER)[index];
+				return file.listFiles()[index];
 			}
 			// fallback value, we should actually never get here
 			System.err.println("ERROR: unknown node type in project tree: " + parent);
@@ -1042,8 +1322,10 @@ public class MainFrame extends JFrame {
 			File file = this.getFileForNode(parent);
 			if (file != null) {	// sanity check
 				// if file is directory return number of files and subdirectories in it
+//				return (file.isFile()) ? 0 :
+//					file.listFiles((java.io.FileFilter) Constants.MOD_FILE_FILTER).length;
 				return (file.isFile()) ? 0 :
-					file.listFiles((java.io.FileFilter) Constants.MOD_FILE_FILTER).length;
+					file.listFiles().length;
 			}
 			// fallback value, we should actually never get here
 			System.err.println("ERROR: unknown node type in project tree: " + parent);
@@ -1058,6 +1340,11 @@ public class MainFrame extends JFrame {
 			}
 			File file = this.getFileForNode(node);
 			if (file != null) {	// sanity check
+				// check if is empty directory
+				// TODO: fix up bad icon for empty directory
+				if(file.isDirectory()) {
+					 return (file.list().length == 0); 
+				}
 				// return whether the file is not a directory
 				return file.isFile();
 			}
@@ -1116,6 +1403,11 @@ public class MainFrame extends JFrame {
 			private String projectName;
 			
 			/**
+			 * Stored link to the project file.
+			 */
+			private File projectFile;
+			
+			/**
 			 * Constructs a new project node by parsing the specified XML file.
 			 * @param xmlFile the project XML file
 			 * @throws IOException if any I/O errors occur
@@ -1127,6 +1419,11 @@ public class MainFrame extends JFrame {
 				this.parse(xmlFile);
 			}
 			
+
+			public File getProjectFile() {
+				return this.projectFile;
+			}
+			
 			/**
 			 * 
 			 * @param xmlFile
@@ -1134,6 +1431,8 @@ public class MainFrame extends JFrame {
 			 * @throws SAXException if any parse errors occur
 			 */
 			private void parse(File xmlFile) throws ParserConfigurationException, SAXException, IOException {
+				// store copy of project file for later referencing
+				this.projectFile = xmlFile;
 				// create document builder
 				DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 				// parse XML
@@ -1155,9 +1454,7 @@ public class MainFrame extends JFrame {
 			public String toString() {
 				return this.projectName;
 			}
-			
 		}
-		
 	}
 	
 }

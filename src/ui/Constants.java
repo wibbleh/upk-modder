@@ -39,6 +39,17 @@ public class Constants {
 			"Released under the <a href=\"http://www.gnu.org/licenses/gpl.html\">GNU GPL v3</a> license<br>" +
 			"Source code is available under <a href=\"https://code.google.com/p/upk-modder/\"https://code.google.com/p/upk-modder/</a>";
 	
+	public static final FileFilter DIRECTORY_FILTER =  new FileFilter() {
+		@Override
+		public boolean accept(File file) {
+			return file.isDirectory();
+		}
+		@Override
+		public String getDescription() {
+			return "Accepts only directories"; 
+		}
+	};
+
 	/**
 	 * File filter for *.mod files.
 	 */

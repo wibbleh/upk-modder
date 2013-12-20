@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://code.google.com/p/upk-modder/project/1">
+    <type>com.google.code.upk-modder</type>
+    <configuration>
+        <data xmlns="http://code.google.com/p/upk-modder/project/3">
+            <name>None</name>
+            <source-root>None</source-root>
+        </data>
+    </configuration>
+</project>

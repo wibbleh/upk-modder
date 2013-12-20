@@ -42,6 +42,7 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 	/**
 	 * Constructs a browse action listener for showing a file selection dialog
 	 * atop the specified parent component using the specified file filter. 
+	 * @param name
 	 * @param parent the parent component
 	 * @param filter the file filter to use
 	 */
@@ -54,6 +55,7 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 	 * file selection dialog atop the specified parent component using the
 	 * specified file filter.
 	 * 
+	 * @param name
 	 * @param parent the parent component
 	 * @param filter the file filter to use
 	 * @param save <code>true</code> if a save dialog shall be shown,
@@ -95,9 +97,12 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 		if (res == JFileChooser.APPROVE_OPTION) {
 			File selectedFile = chooser.getSelectedFile();
 			if (!this.filter.accept(selectedFile)) {
-				selectedFile = new File(selectedFile.getPath() + ((ExtensionFileFilter) this.filter).getExtension());
-				if (!this.filter.accept(selectedFile)) {
-					throw new IllegalArgumentException("Unusable filename was provided: " + selectedFile.getName());
+				// added condition to make directory filter work for creating new projects
+				if(this.filter instanceof ExtensionFileFilter) {
+					selectedFile = new File(selectedFile.getPath() + ((ExtensionFileFilter) this.filter).getExtension());
+					if (!this.filter.accept(selectedFile)) {
+						throw new IllegalArgumentException("Unusable filename was provided: " + selectedFile.getName());
+					}
 				}
 			}
 			// execute operation

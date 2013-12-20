@@ -336,7 +336,6 @@ public class ModTreeNode implements TreeNode {
 					|| (token.startsWith("<|") && token.endsWith("|>"))
 					|| (token.startsWith("{|") && token.endsWith("|}"))
 					) {
-				continue;
 			} else {
 				return false;
 			}
@@ -810,23 +809,21 @@ public class ModTreeNode implements TreeNode {
 
     /**
      * Returns the child nodes closest to offset (measured in characters from start of file).
-     * IMPLEMENTED
+     * rewrote 20/12/2013 to try and fix glitches when added line-feeds at end of document
      * @param offset
      * @return
      */
     public int getNodeIndex(int offset)
     {
-        if(children.get(0).getStartOffset() > offset) {
-            return 0;
-        } else if(children.get(children.size()-1).getEndOffset() < offset) {
-            return children.size()-1;
-        } else {
-            int index = 0;
-            while(children.get(index).getEndOffset() <= offset) {
-                index++;
-            }
-            return index;
-        }
+		if(getEndOffset() - getStartOffset() == 0) {
+			return 0;
+		}
+		for (int i = 0 ; i < children.size() ; i++) {
+			if (children.get(i).getEndOffset() < offset) {
+				return i;
+			}
+		}
+		return children.size();
     }
     
     /**

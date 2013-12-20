@@ -1,10 +1,8 @@
 package model.modproject;
 
-import io.modproject.FileTreeModel;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Arrays;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -17,11 +15,11 @@ import org.xml.sax.SAXException;
  */
 
 
-public class ProjectTreeMdl extends FileTreeModel {
+public class ProjectTreeMdl extends FileTreeMdl {
 
 	private String projectName;
 	
-//	private FileTreeModel root;
+//	private FileTreeMdl root;
 		
 	public ProjectTreeMdl() {
 		super();
@@ -58,45 +56,26 @@ public class ProjectTreeMdl extends FileTreeModel {
 
     @Override
     public Object getChild(Object parent, int index) {
-		File f;
 		if(parent instanceof ProjectTreeMdl) {
-			f = ((ProjectTreeMdl) parent).root;
-		} else {
-			f = (File) parent;
-		}
-        return f.listFiles()[index];
+			parent = ((ProjectTreeMdl) parent).root;
+		} 
+		return super.getChild(parent, index);
     }
 
     @Override
     public int getChildCount(Object parent) {
-		File f;
 		if(parent instanceof ProjectTreeMdl) {
-			f = ((ProjectTreeMdl) parent).root;
-		} else {
-			f = (File) parent;
-		}
-        if (!f.isDirectory()) {
-            return 0;
-        } else {
-            return f.list().length;
-        }
+			parent = ((ProjectTreeMdl) parent).root;
+		} 
+		return super.getChildCount(parent);
     }
 
     @Override
     public int getIndexOfChild(Object parent, Object child) {
-		File par;
 		if(parent instanceof ProjectTreeMdl) {
-			par = ((ProjectTreeMdl) parent).root;
-		} else {
-			par = (File) parent;
+			parent = ((ProjectTreeMdl) parent).root;
 		}
-        File ch = (File) child;
-        return Arrays.asList(par.listFiles()).indexOf(ch);
-    }
-
-    @Override
-    public Object getRoot() {
-        return root;
+		return super.getIndexOfChild(parent, child);
     }
 
     @Override
@@ -105,14 +84,12 @@ public class ProjectTreeMdl extends FileTreeModel {
 			return true;
 		}
 		if (node instanceof ProjectTreeMdl) {
-			File f = ((ProjectTreeMdl) node).root;
-			if(f == null) {
+			node = ((ProjectTreeMdl) node).root;
+			if(node == null) {
 				return true;
 			}
-			return !f.isDirectory();
-		} else {
-			return super.isLeaf(node);
 		}
+		return super.isLeaf(node);
     }
 
 }
