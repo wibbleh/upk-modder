@@ -1,7 +1,7 @@
 MODFILEVERSION=3
 UPKFILE=XComStrategyGame.upk 
 GUID=31 9C 3B 3F 9C 5D E4 40 AB AF 92 8E 25 65 74 F2 // XComStrategyGame_EW_patch1.upk
-FUNCTION=AssignRandomPerks@XGStrategySoldier.upk_mod
+FUNCTION=AssignRandomPerks@XGStrategySoldier
 
 //fix up random perk assignment to work with more perks
 
@@ -85,8 +85,74 @@ B8 01 00 00 38 01 00 00
 
 [AFTER_HEX]
 [HEADER]
+B0 01 00 00 38 01 00 00 
 [/HEADER]
 [CODE]
+//kPerkMan = PERKS()
+0F 00 DD 52 00 00 1B DA 27 00 00 00 00 00 00 16 
+
+//m_arrRandomPerks.Length = 0
+0F 36 01 9F 52 00 00 25 
+
+//I = 1
+0F 00 DC 52 00 00 26 
+
+//if(I < 8)
+07 91 01 96 00 DC 52 00 00 2C 08 16 
+
+	//J = 0
+	0F 00 DB 52 00 00 25 
+
+	//if(J < 3)
+	07 83 01 96 00 DB 52 00 00 2C 03 16 
+
+		//ePerk = kPerkMan.GetPerkInTree(m_kChar.eClass, I, J)
+		0F 00 DE 52 00 00 19 00 DD 52 00 00 39 00 1C FF FF FF 00 1B DD 12 00 00 00 00 00 00 35 02 FF FF FF CB F9 FF FF 00 00 01 B3 52 00 00 00 DC 52 00 00 00 DB 52 00 00 4A 16 
+
+		//if(kPerkMan.IsFixedPerk(ePerk))
+		07 F2 00 19 00 DD 52 00 00 13 00 61 FF FF FF 00 1B C9 17 00 00 00 00 00 00 00 DE 52 00 00 16 
+
+			//m_arrRandomPerks.AddItem(ePerk)
+			55 01 9F 52 00 00 0A 00 00 DE 52 00 00 16 
+
+		//else
+		06 75 01 
+
+			//ePerk = kPerkMan.GetRandomPerk()
+			0F 00 DE 52 00 00 19 00 DD 52 00 00 0A 00 1A FF FF FF 00 1B FE 12 00 00 00 00 00 00 16 
+
+			//if(!IsRandomPerkValidToAdd(ePerk))
+			07 5F 01 81 1B 3A 18 00 00 00 00 00 00 00 DE 52 00 00 16 16 
+
+				//ePerk = kPerkMan.GetRandomPerk()
+				0F 00 DE 52 00 00 19 00 DD 52 00 00 0A 00 1A FF FF FF 00 1B FE 12 00 00 00 00 00 00 16 
+
+				//while loop
+				06 1B 01 
+
+			//m_arrRandomPerks.AddItem(ePerk)
+			55 01 9F 52 00 00 0A 00 00 DE 52 00 00 16 
+
+		//++ J
+		A3 00 DB 52 00 00 16 
+
+		//while loop (J)
+		06 46 00 
+
+	//++ I
+	A3 00 DC 52 00 00 16 
+
+	//while loop (I)
+	06 2B 00 
+
+//return
+04 0B 
+
+//null ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+//EOS
+53 
 
 [/CODE]
 [/AFTER_HEX]

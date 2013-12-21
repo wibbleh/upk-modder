@@ -828,15 +828,15 @@ public class ModTreeTest
 	/**
 	 * Test of setDocument method, of class ModTree.
 	 */
-	@Test
-	public void testSetDocument() throws BadLocationException {
-		System.out.println("setDocument");
-		StyledDocument d = new DefaultStyledDocument();
-		ModTree r = new ModTree();
-		r.setDocument(d);
-		assertEquals(d, r.getDocument());
-		assertEquals(d, r.doc);
-	}
+//	@Test
+//	public void testSetDocument() throws BadLocationException {
+//		System.out.println("setDocument");
+//		StyledDocument d = new DefaultStyledDocument();
+//		ModTree r = new ModTree();
+//		r.setDocument(d);
+//		assertEquals(d, r.getDocument());
+//		assertEquals(d, r.doc);
+//	}
 
 	/**
 	 * Test of getDocument method, of class ModTree.

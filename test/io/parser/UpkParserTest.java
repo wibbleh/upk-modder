@@ -37,6 +37,7 @@ public class UpkParserTest extends TestCase {
 		assertEquals("Core:OnlineEventManager@GameEngine@Engine", header.importListStrings.get(1583));
 		
 		assertEquals("m_kWeapon@XGAbility_Targeted", header.objectListStrings.get(48104));
+		assertEquals(4220694, header.getObjectList().get(48104).getObjectEntryPos());
 
 		/*
 		 * Tests for XComGame.upk ENEMY WITHIN RELEASE
@@ -53,6 +54,7 @@ public class UpkParserTest extends TestCase {
 		assertEquals("ZUp", nameList.get(nameList.size() - 1).getName());
 		
 		assertEquals(56229, header.getObjectListSize());
+		
 		
 	}
 	

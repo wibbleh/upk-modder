@@ -8,6 +8,11 @@ package io.model.upk;
 public class ObjectEntry {
 
 	/**
+	 * The position of this ObjectEntry element within the upk.
+	 */
+	private int iObjectEntryPos;
+	
+	/**
 	 * The object type of this entry. Reference to an ImportEntry.
 	 */
 	private int iType;
@@ -40,9 +45,11 @@ public class ObjectEntry {
 	/**
 	 * Constructs an objectlist entry from the specified property identifier array.
 	 * @param data the array of objectlist entry property identifiers
+	 * @param filePosition the file position of the entry within the upkfile
 	 */
-	public ObjectEntry(int[] data) {
+	public ObjectEntry(int[] data, int filePosition) {
 		this.parseData(data);
+		this.iObjectEntryPos = filePosition;
 	}
 
 	/**
@@ -114,6 +121,13 @@ public class ObjectEntry {
 		return this.iType;
 	}
 	
+	/**
+	 * Sets the position of the ObjectEntry object within the upk.
+	 * @return the file position of the object entry itself
+	 */
+	public int getObjectEntryPos() {
+		return this.iObjectEntryPos;
+	}
 //	word 0 - 0 for class objects, negative value defining type for variables and functions -- value is index in import table
 //	word 1 - 0 for variables, reference to parent class for classes
 //	word 2 - reference (objectlist index) to owner -- 0 if no owner

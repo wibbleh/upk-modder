@@ -28,6 +28,8 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import static model.modtree.ModTree.logger;
 
 /**
  * Model class for an UPK file header.
@@ -106,16 +108,15 @@ public class UpkHeader {
 		this.importList = importList;
 		this.importListPos = importListPos;
 		this.aGUID = aGUID;
-		System.out.print("Constructing import names... ");
 		long startTime = System.currentTimeMillis();
 		constructImportNames(importList);
-		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nConstructing object names...");
+		logger.log(Level.INFO, "Constructed import list names, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		constructObjectNames(objectList);
-		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nConstructing searchable basic names...");
+		logger.log(Level.INFO, "Constructed object list names, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		constructNames(nameList);
-		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\n");
+		logger.log(Level.INFO, "Constructed searchable names, took " + (System.currentTimeMillis() - startTime) + "ms");
 	}
 
         private void constructNames(List<NameEntry> list){

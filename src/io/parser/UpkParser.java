@@ -12,6 +12,8 @@ import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import static model.modtree.ModTree.logger;
 
 import model.upk.UpkHeader;
 
@@ -47,7 +49,6 @@ public class UpkParser {
 
 	/**
 	 * Parses the specified *.upk file's header.
-	 * @param upkFile the *.upk file to parse
 	 * @return the parsed header
 	 * @throws IOException if an I/O error occurs
 	 */
@@ -67,15 +68,14 @@ public class UpkParser {
 		buf.asIntBuffer().get(ints);
 		
 		long startTime = System.currentTimeMillis();
-		System.out.print("Parsing name list... ");
 		List<NameEntry> nameList = this.parseNameList(ints[1], ints[0]);
-		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nParsing object list...");
+		logger.log(Level.INFO, "Parsed name list, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		List<ObjectEntry> objectList = this.parseObjectList(ints[3], ints[2]);
-		System.out.print(" done, took " + (System.currentTimeMillis() - startTime) + "ms\nParsing import list...");
+		logger.log(Level.INFO, "Parsed object list, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		List<ImportEntry> importList = this.parseImportList(ints[5], ints[4]);
-		System.out.println(" done, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.INFO, "Parsed import list, took " + (System.currentTimeMillis() - startTime) + "ms");
         
         this.raf.seek(0x45L);
         byte[] aGUID = new byte[16];
@@ -95,7 +95,7 @@ public class UpkParser {
 	 */
 	private List<NameEntry> parseNameList(int nameListPos, int nameListSize) throws IOException {
 		// init namelist
-		List<NameEntry> entryList = new ArrayList<NameEntry>(nameListSize);
+		List<NameEntry> entryList = new ArrayList<>(nameListSize);
 		
 		// init double buffer
 		byte[] buf = new byte[this.bufSize * 2];
@@ -151,7 +151,7 @@ public class UpkParser {
 	 */
 	private List<ObjectEntry> parseObjectList(int objectListPos, int objectListSize) throws IOException {
 		// init objectlist
-		List<ObjectEntry> objectList = new ArrayList<ObjectEntry>(objectListSize);
+		List<ObjectEntry> objectList = new ArrayList<>(objectListSize);
 		objectList.add(null);   // add dummy element so count starts at 1
 		
 		// init double buffer
@@ -163,7 +163,7 @@ public class UpkParser {
 		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
 		for (int i = 0; i < objectListSize; i++) {
 			// extract object entry from buffer
-			objectList.add(this.readObjectEntry(byteBuf));
+			objectList.add(this.readObjectEntry(byteBuf, (int) raf.getFilePointer()));
 
 			// check whether we reached into back buffer range
 			int position = byteBuf.position();
@@ -185,9 +185,11 @@ public class UpkParser {
 	 * @param byteBuf the byte buffer to extract the objectlist entry from
 	 * @return the objectlist entry
 	 */
-	private ObjectEntry readObjectEntry(ByteBuffer byteBuf) {
+	private ObjectEntry readObjectEntry(ByteBuffer byteBuf, int rafPosition) {
 		// create int buffer view of byte buffer
 		IntBuffer intBuf = byteBuf.asIntBuffer();
+		
+		int filePosition = rafPosition + byteBuf.position() - byteBuf.capacity();
 		
 		// number of ints of objectlist entry is 17 plus whatever is encoded in the eleventh int
 		int numInts = 17 + intBuf.get(11);
@@ -199,7 +201,7 @@ public class UpkParser {
 		// manually move byte buffer position
 		byteBuf.position(byteBuf.position() + numInts * 4);
 		
-		return new ObjectEntry(ints);
+		return new ObjectEntry(ints, filePosition);
 	}
 
 	/**
@@ -211,7 +213,7 @@ public class UpkParser {
 	 */
 	private List<ImportEntry> parseImportList(int importListPos, int importListSize) throws IOException {
 		// init importlist
-		List<ImportEntry> importList = new ArrayList<ImportEntry>(importListSize);
+		List<ImportEntry> importList = new ArrayList<>(importListSize);
 		importList.add(null);  // add dummy element so count starts at 1
 		
 		// init double buffer

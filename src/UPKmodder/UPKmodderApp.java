@@ -17,20 +17,8 @@
 
 package UPKmodder;
 
-import io.parser.OperandTableParser;
 import parser.unrealhex.ReferenceParser;
 import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Scanner;
-//import model.modfile.ModFile;
-import model.upk.UpkFile;
-
-import model.modfile2.*;
-import parser.unrealhex.MemorySizeCalculator;
-import parser.unrealhex.OperandTable;
-import ui.MainFrame;
 
 /**
  *

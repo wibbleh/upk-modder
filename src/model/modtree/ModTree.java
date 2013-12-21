@@ -8,6 +8,7 @@ import static model.modtree.ModContext.ModContextType.HEX_HEADER;
 import static model.modtree.ModContext.ModContextType.VALID_CODE;
 
 import java.awt.Color;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -17,6 +18,8 @@ import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
@@ -25,6 +28,8 @@ import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreePath;
 
 import model.upk.UpkFile;
 
@@ -32,7 +37,7 @@ import model.upk.UpkFile;
  *
  * @author Amineri
  */
-public class ModTree {
+public class ModTree implements TreeModel {
 	
 	/**
 	 * The logger.
@@ -42,7 +47,7 @@ public class ModTree {
 	/**
 	 * The tree's DocumentListener implementation.
 	 */
-	protected ModTreeListener mtListener = new ModTreeListener();
+	protected ModTreeDocumentListener mtListener = new ModTreeDocumentListener();
 	
 	/**
 	 * The tree's list (queue) of pending Document Events to be processed.
@@ -96,19 +101,31 @@ public class ModTree {
 	private boolean updatingEnabled = true;
 	
 	/**
+	 * tracking counter used for debugging performance issues with document styling
+	 */
+	private static int restylingEvents;
+	
+	/**
+	 * The tree model listeners.
+	 */
+	private List<TreeModelListener> listeners;
+	
+	/**
 	 * ModTree constructor.
-	 * Initializes queue of 10 DocumentEvents.
+	 * Initializes queue of DocumentEvents.
+	 * Registers a DocumentListener with the document.
 	 * @param document 
 	 * @throws BadLocationException 
 	 */
 	public ModTree(Document document) throws BadLocationException {
 		docEvents = new ArrayList<>();
+		this.listeners = new ArrayList<>();
 		this.setDocument(document);
 	}
 
 	/**
 	 * Associates a default document with the ModTree.
-	 * Registers a DocumentListener with the document.
+	 * Only used for testing purposes.
 	 * @throws BadLocationException
 	 */
 	public ModTree() throws BadLocationException {
@@ -123,6 +140,18 @@ public class ModTree {
 	// TODO : turn on the listener
 	public void enableUpdating() {
 		this.updatingEnabled = true;
+	}
+	
+	/**
+	 * Notifies all registered listeners that tree nodes have been removed.
+	 */
+	private void fireTreeStructureChanged() {
+		TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.currRootNode));
+		for (TreeModelListener listener : this.listeners) {
+			if(listener != null) {
+				listener.treeStructureChanged(evt);
+			}
+		}
 	}
 	
 	/**
@@ -163,7 +192,7 @@ public class ModTree {
 	 * @param doc StyledDocument to be registered.
 	 * @throws javax.swing.text.BadLocationException
 	 */
-	public void setDocument(Document doc) throws BadLocationException {
+	private void setDocument(Document doc) throws BadLocationException {
 		this.doc = doc;
 		if (doc.getLength() > 0) {
 			String s = doc.getText(0, doc.getLength());
@@ -196,44 +225,54 @@ public class ModTree {
 		if (this.getDocument() == null) {
 			return;
 		}
+		restylingEvents = 0;
 		int count = 0;
 		int total = 0;
-		List<Integer> updates = new ArrayList<>();
+		int oldLineIndex;
 		if((this.prevRootNode == null) || (this.currRootNode.getChildCount() <= 1) || (this.prevRootNode.getChildCount() <= 1)) {
 			this.updateNodeStyles(this.currRootNode);
 		} else if (this.currRootNode.getChildNodeCount() != this.prevRootNode.getChildCount()) {
-			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
-				int j;
-				if(i < lineInsertPoint) {
-					j = i;
-				} else {
-					j = i - deltaLines;
-				}
-				if((i == lineInsertPoint) && (deltaLines > 0)) {
-					for(int k = i ; k < deltaLines + i ; k++) {
-						this.updateNodeStyles(this.currRootNode.getChildNodeAt(k));
+			for (int newLineIndex = 0; newLineIndex < this.currRootNode.getChildNodeCount(); newLineIndex++) {
+				// map newLineIndex to oldLineIndex
+				if(deltaLines > 0) { // text added
+					if(newLineIndex < lineInsertPoint) { // before the insertion point
+						oldLineIndex = newLineIndex;
+					} else if (newLineIndex > (lineInsertPoint + deltaLines)) { // after the insertion point
+						oldLineIndex = newLineIndex - deltaLines;
+					} else { // in the newly inserted text area -- no old lines
+						oldLineIndex = -1;
+					}
+				} else { // text removed
+					if (newLineIndex < lineInsertPoint) { // before the deletion area
+						oldLineIndex = newLineIndex;
+					} else { // above the deletion point
+						oldLineIndex = newLineIndex + deltaLines; // skip ahead this number of lines
 					}
 				}
-				if(lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(j))) {
-						this.updateNodeStyles(this.currRootNode.getChildNodeAt(i));
-						count ++;
-						updates.add(i+1);
+				if((oldLineIndex >= 0) && (oldLineIndex < this.prevRootNode.getChildCount())) {
+					if(lineHasChanged(this.currRootNode.getChildNodeAt(newLineIndex), this.prevRootNode.getChildNodeAt(oldLineIndex))) {
+							this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
+							count++;
+					} 
+				} else {
+					this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
+					count++;
 				}
+				total++;
 			}
-//			this.updateNodeStyles(this.currRootNode);
-//			System.out.println("ChildCount mismatch");
 		} else {
 			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
 				if (lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(i))
 						|| (i == lineInsertPoint)) {
 						this.updateNodeStyles(this.currRootNode.getChildNodeAt(i));
 						count ++;
-						updates.add(i+1);
 				}
 				total ++;
 			}
-//			System.out.println(count + " lines out of " + total + " re-styled: " + updates);
 		}
+		this.fireTreeStructureChanged();
+
+		logger.log(Level.INFO, count + " lines out of " + total + " re-styled: " + restylingEvents + " total restyling events");
 	}
 	
 	protected boolean lineHasChanged(ModTreeNode newLine, ModTreeNode oldLine) {
@@ -241,27 +280,14 @@ public class ModTree {
 						&& newLine.getContextFlag(FILE_HEADER) != oldLine.getContextFlag(FILE_HEADER)) {
 							return true;
 		}
-		if(true
-						&& (newLine.isPlainText() == oldLine.isPlainText()) 
-						&& newLine.getFullText().equals(oldLine.getFullText()) 
-						&& newLine.getContextFlag(HEX_CODE) == oldLine.getContextFlag(HEX_CODE) 
-						&& newLine.getContextFlag(VALID_CODE) == oldLine.getContextFlag(VALID_CODE) 
-						&& newLine.getContextFlag(FILE_HEADER) == oldLine.getContextFlag(FILE_HEADER) 
-						&& newLine.getContextFlag(AFTER_HEX) == oldLine.getContextFlag(AFTER_HEX) 
-						&& newLine.getContextFlag(BEFORE_HEX) == oldLine.getContextFlag(BEFORE_HEX) 
-						&& newLine.getContextFlag(HEX_HEADER) == oldLine.getContextFlag(HEX_HEADER)
-				) {
-							return false;
-		}
-//		System.out.println("Plaintext " + (newLine.isPlainText() == oldLine.isPlainText()) );
-//		System.out.println("FullText " + (newLine.getFullText().equals(oldLine.getFullText())) );
-//		System.out.println("HEX_CODE " + (newLine.getContextFlag(HEX_CODE) == newLine.getContextFlag(HEX_CODE)) );
-//		System.out.println("VALID_CODE " + (newLine.getContextFlag(VALID_CODE) == newLine.getContextFlag(VALID_CODE)) );
-//		System.out.println("FILE_HEADER " + (newLine.getContextFlag(FILE_HEADER) == newLine.getContextFlag(FILE_HEADER) ));
-//		System.out.println("AFTER_HEX " + (newLine.getContextFlag(AFTER_HEX) == newLine.getContextFlag(AFTER_HEX)) );
-//		System.out.println("BEFORE_HEX " + (newLine.getContextFlag(BEFORE_HEX) == newLine.getContextFlag(BEFORE_HEX)) );
-//		System.out.println("HEX_HEADER " + (newLine.getContextFlag(HEX_HEADER) == newLine.getContextFlag(HEX_HEADER)));
-		return true;
+		return (newLine.isPlainText() != oldLine.isPlainText()) 
+				|| ! newLine.getFullText().equals(oldLine.getFullText()) 
+				|| newLine.getContextFlag(HEX_CODE) != oldLine.getContextFlag(HEX_CODE) 
+				|| newLine.getContextFlag(VALID_CODE) != oldLine.getContextFlag(VALID_CODE) 
+				|| newLine.getContextFlag(FILE_HEADER) != oldLine.getContextFlag(FILE_HEADER) 
+				|| newLine.getContextFlag(AFTER_HEX) != oldLine.getContextFlag(AFTER_HEX) 
+				|| newLine.getContextFlag(BEFORE_HEX) != oldLine.getContextFlag(BEFORE_HEX) 
+				|| newLine.getContextFlag(HEX_HEADER) != oldLine.getContextFlag(HEX_HEADER);
 	}
 	
 	/**
@@ -342,6 +368,7 @@ public class ModTree {
 			}end--;
 		}
 		((StyledDocument) this.getDocument()).setCharacterAttributes(start, end-start, as, replace);
+		restylingEvents ++;
 	}
 	
 	/**
@@ -413,6 +440,7 @@ public class ModTree {
 	 * Returns the root node of the document.
 	 * @return the root node
 	 */
+	@Override
 	public ModTreeRootNode getRoot() {
 		if (this.currRootNode == null) {
 			// lazily instantiate root node
@@ -485,12 +513,67 @@ public class ModTree {
 		this.functionName = functionName;
 	}
 
+	@Override
+	public Object getChild(Object node, int i) {
+		if(node == this.getRoot()) {
+			return this.getRoot().getChildAt(i); 
+		} else {
+			return ((ModTreeNode) node).getChildAt(i);
+		}
+	}
+
+	@Override
+	public int getChildCount(Object node) {
+		if(node == this.getRoot()) {
+			return this.getRoot().getChildNodeCount();
+		} else {
+			return ((ModTreeNode) node).getChildNodeCount();
+		}
+	}
+
+	@Override
+	public boolean isLeaf(Object node) {
+		if(node == this.getRoot()) {
+			return false;
+		} else {
+			if(((ModTreeNode) node).isPlainText()) {
+				return true;
+			} else {
+				return ((ModTreeNode) node).isLeaf();
+			}
+		}
+	}
+
+	@Override
+	public void valueForPathChanged(TreePath tp, Object o) {
+		// not needed as ModTree is not editable within a Tree Pane
+	}
+
+	@Override
+	public int getIndexOfChild(Object parent, Object child) {
+		if(parent == this.getRoot()) {
+			return this.getRoot().getIndex((ModTreeNode) child);
+		} else {
+			return ((ModTreeNode) parent).getIndex((ModTreeNode) child);
+		}
+	}
+
+	@Override
+	public void addTreeModelListener(TreeModelListener tl) {
+			this.listeners.add(tl);
+	}
+
+	@Override
+	public void removeTreeModelListener(TreeModelListener tl) {
+			this.listeners.remove(tl);
+	}
+
 	/**
 	 * Implements the Listener to be registered with a StyledDocument
 	 * // TODO: stop spawning more threads if the first is already running
 	 * //		if new insert/remove update comes in could conceivably halt current styling
 	 */
-	protected class ModTreeListener implements DocumentListener {
+	protected class ModTreeDocumentListener implements DocumentListener {
 
 		private Thread deHandler;
 	
@@ -563,6 +646,7 @@ public class ModTree {
 			
 			
 			new Thread() {
+				   @Override
 				   public void run() {
 					   try {
 						   SwingUtilities.invokeAndWait(new Runnable() {
@@ -572,13 +656,13 @@ public class ModTree {
 									   try {
 										   ModTree.this.processNextEvent();
 									   } catch (BadLocationException e) {
-										   e.printStackTrace();
+											logger.log(Level.SEVERE, "Failure in ModTree event processing: " + e);
 									   }
 								   }
 							   }
 						   });
-					   } catch (Exception e) {
-						   e.printStackTrace();
+					   } catch (InterruptedException | InvocationTargetException e) {
+							logger.log(Level.SEVERE, "Failure in ModTree event processing threading: " + e);
 					   }
 				   };
 				}.start();
