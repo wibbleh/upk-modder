@@ -3,6 +3,8 @@ package ui;
 import java.io.File;
 import java.util.Arrays;
 
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.filechooser.FileFilter;
 
 /**
@@ -29,6 +31,11 @@ public class Constants {
 		"Amineri",
 		"XMarksTheSpot"
 	};
+
+	/** <img src="../ui/resources/icons/hex16.png"/> */
+	public static final Icon HEX_SMALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex16.png"));
+	/** <img src="../ui/resources/icons/hex32.png"/> */
+	public static final Icon HEX_LARGE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex32.png"));
 
 	/**
 	 * The application's 'About' text.
@@ -73,7 +80,7 @@ public class Constants {
 	 * Convenience implementation of FileFilter for filtering files with specific file extensions.
 	 * @author XMS
 	 */
-	public static class ExtensionFileFilter extends FileFilter {
+	public static class ExtensionFileFilter extends FileFilter implements java.io.FileFilter {
 		
 		/**
 		 * The extension to filter upon.

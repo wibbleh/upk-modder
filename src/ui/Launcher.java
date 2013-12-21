@@ -20,8 +20,11 @@ public class Launcher {
 	public static void main(String[] args) {
 		// configure LAF and locale
 		configureLookAndFeel();
-		// init main frame instance
-		MainFrame.getInstance();
+		// init and show main frame instance
+		MainFrame.getInstance().setVisible(true);
+		
+		
+		new PrototypeEditorFrame().setVisible(true);
 	}
 
 	/**
