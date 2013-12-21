@@ -96,6 +96,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import static model.modtree.ModTree.logger;
 import static ui.Constants.DIRECTORY_FILTER;
 
 /**
@@ -176,7 +177,7 @@ public class MainFrame extends JFrame {
 		try {
 			new OperandTableParser(Paths.get("config/operand_data.ini")).parseFile();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "Failure to initialize Operand Table: " + e);
 		}
 
 		appProperties = new UpkModderProperties();
@@ -239,7 +240,7 @@ public class MainFrame extends JFrame {
 				try {
 					projectMdl.newProject(file.getName(), file.toPath());
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.log(Level.SEVERE, "Failure to create new project file: " + e);
 				}
 			}
 		};
@@ -275,7 +276,7 @@ public class MainFrame extends JFrame {
 
 					setFileActionsEnabled(true);
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.log(Level.SEVERE, "Failure to open modfile: " + e);
 				}
 			}
 		};
@@ -294,7 +295,7 @@ public class MainFrame extends JFrame {
 					appProperties.saveOpenState(tabPane, projectMdl);
 					setFileActionsEnabled(true);
 				} catch (Exception e) {
-					e.printStackTrace();
+					logger.log(Level.SEVERE, "Failure to open project file: " + e);
 				}
 			}
 		};
@@ -668,7 +669,7 @@ public class MainFrame extends JFrame {
 
 									setFileActionsEnabled(true);
 								} catch (Exception ex) {
-									ex.printStackTrace();
+									logger.log(Level.SEVERE, "Failure to open modfile from Project: " + ex);
 								}
 							}
 						}
@@ -941,7 +942,6 @@ public class MainFrame extends JFrame {
 						setEditActionsEnabled(true);
 						// persistently store file-to-upk association
 						appProperties.setUpkProperty(tab.getModFile().getName(), file.getAbsolutePath());
-						appProperties.saveUpkState();;
 					} else {
 						// TODO: show error/warning message
 					}
@@ -968,7 +968,7 @@ public class MainFrame extends JFrame {
 					boolean hasUpk = (upkFile != null);
 					
 					// show file name in status bar (or missing file hint)
-					upkTtf.setText(hasUpk ? upkFile.getFile().getPath() : "no UPK file selected");
+					upkTtf.setText((upkFile != null) ? ((upkFile.getFile() != null) ? upkFile.getFile().getPath() : null ) : "no UPK file selected");
 					// enable/disable 'update', 'apply' and 'revert' actions
 					setEditActionsEnabled(hasUpk);
 					// enable UPK selection button

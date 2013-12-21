@@ -17,8 +17,6 @@ import javax.swing.JEditorPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTree;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
 import javax.swing.text.ComponentView;
@@ -33,7 +31,6 @@ import javax.swing.text.StyledEditorKit;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.DefaultTreeModel;
 
 import model.modtree.ModGenericLeaf;
 import model.modtree.ModOffsetLeaf;
@@ -139,7 +136,7 @@ public class ModTab extends JSplitPane {
 		try {
 			this.initComponents();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "Failure in ModTab component initiation: " + e);
 		}
 		if(isTemplate) {
 			this.modFile = null;  // remove link to file
@@ -211,7 +208,8 @@ public class ModTab extends JSplitPane {
 
 		// create tree view of right-hand mod editor
 		modTree = new ModTree(modDocument);
-		final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
+//		final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
+		final JTree modElemTree = new JTree(modTree); // draw from ModTree
 		JScrollPane modElemTreeScpn = new JScrollPane(modElemTree,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
@@ -247,38 +245,6 @@ public class ModTab extends JSplitPane {
 		renderer.setOpenIcon(null);
 		modElemTree.setCellRenderer(renderer);
 			
-		// install document listener to refresh tree on changes to the document
-		modDocument.addDocumentListener(new DocumentListener() {
-			@Override
-			public void removeUpdate(DocumentEvent evt) {
-				this.updateTree(evt);
-			}
-			@Override
-			public void insertUpdate(DocumentEvent evt) {
-				this.updateTree(evt);
-			}
-			@Override
-			public void changedUpdate(DocumentEvent evt) {
-				this.updateTree(evt);
-			}
-			/** Updates the tree views on document changes */
-			private void updateTree(DocumentEvent evt) {
-				// reset mod tree
-				((DefaultTreeModel) modElemTree.getModel()).setRoot(
-						modTree.getRoot());
-
-//				// expand tree
-//				for (int i = 0; i < modElemTree.getRowCount(); i++) {
-//					modElemTree.expandRow(i);
-//				}
-			}
-		});
-
-//		// expand tree
-//		for (int i = 0; i < modElemTree.getRowCount(); i++) {
-//			modElemTree.expandRow(i);
-//		}
-		
 		// wrap tree and editor in split pane
 		this.setLeftComponent(modEditorScpn);
 		this.setRightComponent(modElemTreeScpn);
@@ -297,7 +263,7 @@ public class ModTab extends JSplitPane {
 		try {
 			this.getEditor().write(new OutputStreamWriter(new FileOutputStream(this.modFile)));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "Failure in modfile save: " + e);
 		}
 	}
 
