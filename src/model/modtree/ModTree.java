@@ -72,23 +72,39 @@ public class ModTree implements TreeModel {
 	
 	/**
 	 * The version number of the document.
+	 * Added in MODFILEVERSION=3
 	 */
 	private int fileVersion = -1;
 
 	/**
 	 * The filename of the UPK file associated with this document.
+	 * Added in MODFILEVERSION=3
 	 */
 	private String upkName = "";
 
 	/**
 	 * The GUID of the UPK file associated with this document.
+	 * Added in MODFILEVERSION=3
 	 */
 	private String guid = "";
 
 	/**
 	 * The name of the targeted UnrealScript function.
+	 * Added in MODFILEVERSION=3
 	 */
 	private String functionName = "";
+
+	/**
+	 * The amount to resize the function (optional).
+	 * Added in MODFILEVERSION=4
+	 */
+	private int resizeAmount = 0;
+
+	/**
+	 * List of searchable keywords (optional).
+	 * Added in MODFILEVERSION=4
+	 */
+	private List<String> keywords;
 
 	/**
 	 * The source UpkFile to use to generate reference mouse-over tips and name references
@@ -513,6 +529,43 @@ public class ModTree implements TreeModel {
 		this.functionName = functionName;
 	}
 
+	/**
+	 * Returns the amount to resize this function.
+	 * @return the function name
+	 */
+	public int getResizeAmount() {
+		return this.resizeAmount;
+	}
+
+	/**
+	 * Sets the amount to resize this function.
+	 * @param amt the resize amount
+	 */
+	public void setResizeAmount(int amt) {
+		this.resizeAmount = amt;
+	}
+
+	/**
+	 * Returns the amount to resize this function.
+	 * @return the function name
+	 */
+	public List<String> getKeywords() {
+		return this.keywords;
+	}
+
+	/**
+	 * Adds a keyword to the list of searchable keywords for this function.
+	 * @param s the keyword
+	 */
+	public void addKeyword(String s) {
+		// lazily instantiate keywords only if any are present
+		if(this.keywords.isEmpty()) {
+			this.keywords = new ArrayList<>();
+		}
+		this.keywords.add(s);
+	}
+
+	
 	@Override
 	public Object getChild(Object node, int i) {
 		if(node == this.getRoot()) {

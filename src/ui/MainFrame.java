@@ -76,6 +76,7 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import java.awt.Image;
 import util.properties.UpkModderProperties;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -167,10 +168,10 @@ public class MainFrame extends JFrame {
 		super(title);
 		
 		// set icon images
-//		List<Image> images = new ArrayList<>();
-//		images.add(((ImageIcon) Constants.HEX_SMALL_ICON).getImage());
-//		images.add(((ImageIcon) Constants.HEX_LARGE_ICON).getImage());
-//		this.setIconImages(images);
+		List<Image> images = new ArrayList<>();
+		images.add(((ImageIcon) Constants.HEX_SMALL_ICON).getImage());
+		images.add(((ImageIcon) Constants.HEX_LARGE_ICON).getImage());
+		this.setIconImages(images);
 
 
 		// TODO: move this elsewhere
@@ -231,7 +232,7 @@ public class MainFrame extends JFrame {
 		this.actionCache = new HashMap<>();
 		
 		// added this because later Constant-derived ones were missing
-		Icon hexIcon = new ImageIcon(this.getClass().getResource("/ui/resources/icons/hex16.png"));
+//		Icon hexIcon = new ImageIcon(this.getClass().getResource("/ui/resources/icons/hex16.png"));
 
 		// new project
 		Action newProjectAction = new BrowseAbstractAction("New Project", this, DIRECTORY_FILTER) {
@@ -272,7 +273,38 @@ public class MainFrame extends JFrame {
 			@Override
 			protected void execute(File file) {
 				try {
-					projectMdl.addProject(file);
+					ModTab tab = new ModTab(file);
+					tabPane.addTab(file.getName(), tab);
+					tabPane.setSelectedComponent(tab);
+					appProperties.saveOpenState(tabPane, projectMdl);
+
+					// TODO: create function for upk re-association
+					//re-associate upk if possible
+					if(appProperties.getUpkProperty(file.getName()) != null) {
+						File ufile = new File(appProperties.getUpkProperty(file.getName()));
+						// grab UPK file from cache
+						UpkFile upkFile = upkCache.get(ufile);
+						if (upkFile == null) {
+							// if cache doesn't contain UPK file instantiate a new one
+							upkFile = new UpkFile(ufile);
+						}
+
+						// check whether UPK file is valid (i.e. header parsing worked properly)
+						if (upkFile.getHeader() != null) {
+							// store UPK file in cache
+							upkCache.put(ufile, upkFile);
+							// link UPK file to tab
+							tab.setUpkFile(upkFile);
+							// show file name in status bar
+							upkTtf.setText(ufile.getPath());
+							// enable 'update', 'apply' and 'revert' actions
+							setEditActionsEnabled(true);
+						} else {
+							// TODO: show error/warning message
+						}
+					}
+
+					setFileActionsEnabled(true);
 
 					setFileActionsEnabled(true);
 				} catch (Exception e) {
@@ -462,8 +494,8 @@ public class MainFrame extends JFrame {
 				}
 			}
 		}; 
-		hexApplyAction.putValue(Action.SMALL_ICON, hexIcon);
-//		hexApplyAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+//		hexApplyAction.putValue(Action.SMALL_ICON, hexIcon);
+		hexApplyAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
 		hexApplyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
 		hexApplyAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
 		hexApplyAction.putValue(Action.SHORT_DESCRIPTION, "Apply Hex Changes");
@@ -487,8 +519,8 @@ public class MainFrame extends JFrame {
 				}
 			}
 		};
-//		hexRevertAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
-		hexRevertAction.putValue(Action.SMALL_ICON, hexIcon);
+		hexRevertAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+//		hexRevertAction.putValue(Action.SMALL_ICON, hexIcon);
 		hexRevertAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
 		hexRevertAction.putValue(Action.MNEMONIC_KEY, (int) 'r');
 		hexRevertAction.putValue(Action.SHORT_DESCRIPTION, "Revert Hex Changes");

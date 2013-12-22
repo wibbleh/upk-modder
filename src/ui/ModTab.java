@@ -277,12 +277,21 @@ public class ModTab extends JSplitPane {
 	 */
 	public boolean applyChanges() {
 		try {
-			if(this.searchAndReplace(
-					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
-					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
-					) {
-				ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
-				return true;
+			if(this.getTree().getResizeAmount() == 0) {
+				// basic search and replace without file backup
+				if(this.searchAndReplace(
+						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
+						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
+						) {
+					ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
+					return true;
+				}
+			} else {
+				// advanced search and replace resizing function (many changes to upk)
+				if(HexSearchAndReplace.resizeAndReplace(true, this.modTree, this.getUpkFile())) {
+					ModTab.logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
+					return true;
+				}
 			}
 		} catch(IOException ex) {
 			ModTab.logger.log(Level.SEVERE, "File error", ex);
@@ -297,12 +306,21 @@ public class ModTab extends JSplitPane {
 	 */
 	public boolean revertChanges() {
 		try {
-			if(this.searchAndReplace(
-					HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
-					HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
-					) {
-				ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
-				return true;
+			if(this.getTree().getResizeAmount() == 0) {
+				// basic search and replace without file backup
+				if(this.searchAndReplace(
+						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
+						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
+						) {
+					ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
+					return true;
+				}
+			} else {
+				// advanced search and replace resizing function (many changes to upk)
+				if(HexSearchAndReplace.resizeAndReplace(false, this.modTree, this.getUpkFile())) {
+					ModTab.logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
+					return true;
+				}
 			}
 		} catch(IOException ex) {
 			ModTab.logger.log(Level.SEVERE, "File error", ex);

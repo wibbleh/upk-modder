@@ -2,22 +2,15 @@ package util.unrealhex;
 
 import io.parser.OperandTableParser;
 import io.upk.UpkFileLoader;
-import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
 import model.modtree.ModTree;
 import model.modtree.ModTreeTest;
 import model.upk.UpkFile;
@@ -27,6 +20,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import ui.ModTab;
 
 /**
  * Test suite for HexSearchAndReplace utilities
@@ -54,10 +48,10 @@ public class HexSearchAndReplaceTest {
 
 	@BeforeClass
 	public static void setUpClass() {
-		// initialize upks for all classes
-		System.out.println("Reading upks.");
-		upks = new UpkFileLoader();
-
+//		// initialize upks for all classes
+//		System.out.println("Reading upks.");
+//		upks = new UpkFileLoader();
+//
 		// initialize Operand Table for all tests that use it
 		System.out.println("Reading operand data.");
 		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
@@ -75,24 +69,24 @@ public class HexSearchAndReplaceTest {
 	
 	@Before
 	public void setUp() throws BadLocationException {
-		// initialize document from test file
-		System.out.println("Read test_mod_HexSearchAndReplace.upk_mod");
-		document = new DefaultStyledDocument();
-		// arbitrary default AttributeSet
-		AttributeSet as = new SimpleAttributeSet();
-		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
-		StyleConstants.setItalic((MutableAttributeSet) as, false);
-		String encoding = System.getProperty("file.encoding");
-		try(Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_HexSearchAndReplace.upk_mod"), Charset.forName(encoding)))) {
-			while(s.hasNext()) {
-				document.insertString(document.getLength(), s.nextLine() + "\n", as);
-			}
-		} catch(IOException x) {
-			System.out.println("caught exception: " + x);
-		}
-
-		// initialize tree from document
-		tree = new ModTree(document);
+//		// initialize document from test file
+//		System.out.println("Read test_mod_HexSearchAndReplace.upk_mod");
+//		document = new DefaultStyledDocument();
+//		// arbitrary default AttributeSet
+//		AttributeSet as = new SimpleAttributeSet();
+//		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+//		StyleConstants.setItalic((MutableAttributeSet) as, false);
+//		String encoding = System.getProperty("file.encoding");
+//		try(Scanner s = new Scanner(Files.newBufferedReader(Paths.get("test/resources/test_mod_HexSearchAndReplace.upk_mod"), Charset.forName(encoding)))) {
+//			while(s.hasNext()) {
+//				document.insertString(document.getLength(), s.nextLine() + "\n", as);
+//			}
+//		} catch(IOException x) {
+//			System.out.println("caught exception: " + x);
+//		}
+//
+//		// initialize tree from document
+//		tree = new ModTree(document);
 	}
 	
 	@After
@@ -206,6 +200,23 @@ public class HexSearchAndReplaceTest {
 
 		long result2 = HexSearchAndReplace.findFilePosition(hex.get(1), upk, tree);
 		assertEquals(0x7913BB, result2);
+	}
+
+	/**
+	 * Test of resizeAndReplace method, of class HexSearchAndReplace.
+	 * This is a potentially destructive test. Test upk should manually be replaced after each test.
+	 * It applies and then reverts with a resize, which should leave a backup and upk identical to the originals.
+	 */
+	@Test
+	public void testResizeAndReplace() {
+		System.out.println("resizeAndReplace");
+		ModTab tab = new ModTab(new File("test/resources/testResize.upk_mod"));
+		UpkFile upk = new UpkFile(new File("test/resources/XComGame_EW_patch1_test_resize.upk"));
+		boolean expResult = true;
+		boolean result = HexSearchAndReplace.resizeAndReplace(true, tab.getTree(), upk);
+		assertEquals(expResult, result);
+		boolean result2 = HexSearchAndReplace.resizeAndReplace(false, tab.getTree(), upk);
+		assertEquals(expResult, result2);
 	}
 	
 }

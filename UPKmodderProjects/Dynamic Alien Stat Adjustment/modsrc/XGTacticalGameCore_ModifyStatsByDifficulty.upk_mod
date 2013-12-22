@@ -1,0 +1,172 @@
+MODFILEVERSION=4
+UPKFILE=XComGame.upk 
+GUID=5B 06 B8 18 67 22 12 44 85 9B A8 5B 9D 57 1D 4B  // XComGame_EW_patch1.upk
+FUNCTION=ModifyStatsByDifficulty@XGTacticalGameCore
+RESIZE=293 // size increase in hex -- function will be significantly resized up
+
+//complete rewrite of ModifyStats by difficulty to provide both initial upgrades and dynamic upgrades
+
+// initial upgrades vary by difficulty (coded into iCritHit) -- all other variables are as described
+//    initial upgrades are drawn from BalanceMods_Easy
+
+// dynamic upgrades vary only based on dayCount. Any difficulty-related changes are not stored in the CharacterBalance struct
+//    may use MaxActiveAIUnits to store difficulty variation for dynamic upgrade appearance and hard-code this to max.
+//    dynamic upgrades are drawn from BalanceMods_Normal
+//    dynamic upgrade encoding:
+//       	iDamage	(damage)
+// 	iCritHit	(day count)
+// 	Aim	(low 2 digits Aim, high 2 digits CritHit)
+// 	iDefense	(low 2 digits Defense, high 2 digits damage reduction )
+// 	iHP	(low 2 digits HP, high 2 digits ShieldHP)
+// 	iMobility	(Mobility)
+//	iWill	(low 2 digits Will, high 2 digits regeneration )
+
+[BEFORE_HEX]
+[HEADER]
+1C 02 00 00 4C 01 00 00 
+[/HEADER]
+[CODE]
+//GetCharacterBalanceMods(byte(kCharacter.iType), Mods)
+1B 90 37 00 00 00 00 00 00 38 3D 35 56 0F 00 00 58 0F 00 00 00 00 48 AE 84 00 00 00 AD 84 00 00 16 
+
+//if(Mods.eType == kCharacter.iType)
+07 19 02 9A 38 3A 35 D4 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 35 56 0F 00 00 58 0F 00 00 00 00 48 AE 84 00 00 16 
+
+	//kCharacter.aStats[1] += Mods.iAim
+	A1 1A 26 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D1 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+	//kCharacter.aStats[2] += Mods.iDefense
+	A1 1A 2C 02 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D0 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+	//kCharacter.aStats[3] += Mods.iMobility
+	A1 1A 2C 03 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 CE 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+	//kCharacter.aStats[7] += Mods.iWill
+	A1 1A 2C 07 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 CD 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+	//kCharacter.aStats[13] += Mods.iCritHit
+	A1 1A 2C 0D 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D2 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+	//kCharacter.aStats[0] += Mods.iHP
+	A1 1A 25 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 CF 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+	//kCharacter.aStats[12] += Mods.iDamage
+	A1 1A 2C 0C 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D3 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+//return
+04 0B 
+
+//EOS
+53 
+[/CODE]
+[/BEFORE_HEX]
+
+// uses local variable iWeapon@CalcHitChange_NonTargetUnit@XGTacticalGameCore
+[AFTER_HEX]
+[HEADER]
+23 06 00 00 DF 03 00 00 
+[/HEADER]
+[CODE]
+// foreach BalanceMods_Easy(Mods,) // apply base stat deltas based on difficulty
+58 01 0E 12 00 00 00 AD 84 00 00 00 4A ED 01 
+
+	//if(Mods.iCritHit == m_iDifficulty) // check for difficulty match
+	07 EC 01 9A 35 D2 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 01 87 83 00 00 16 
+	
+		//if(Mods.eType == kCharacter.iType) // check for character type match
+		07 EC 02 9A 38 3A 35 D4 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 35 56 0F 00 00 58 0F 00 00 00 00 48 AE 84 00 00 16 
+
+			//kCharacter.aStats[1] += Mods.iAim
+			A1 1A 26 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D1 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+			//kCharacter.aStats[2] += Mods.iDefense
+			A1 1A 2C 02 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D0 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+			//kCharacter.aStats[3] += Mods.iMobility
+			A1 1A 2C 03 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 CE 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+			//kCharacter.aStats[7] += Mods.iWill
+			A1 1A 2C 07 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 CD 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+			//kCharacter.aStats[0] += Mods.iHP
+			A1 1A 25 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 CF 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+			//kCharacter.aStats[12] += Mods.iDamage
+			A1 1A 2C 0C 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D3 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+	//Iterator Next
+	31 
+
+	//Iterator Pop
+	30 
+
+// iWeapon = 16777215;
+0F 00 FD 83 00 00 1D FF FF FF 00 
+
+//if(XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle != none) 
+07 18 03 77 19 2E BD 32 00 00 19 12 20 36 FE FF FF 0A 00 9E F9 FF FF 00 1C DE FB FF FF 16 09 00 5C F9 FF FF 00 01 5C F9 FF FF 09 00 C9 32 00 00 00 01 C9 32 00 00 2A 16 
+
+	//iWeapon = XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.STAT_GetStat(1) 
+	0F 00 FD 83 00 00 19 19 2E BD 32 00 00 19 12 20 36 FE FF FF 0A 00 9E F9 FF FF 00 1C DE FB FF FF 16 09 00 5C F9 FF FF 00 01 5C F9 FF FF 09 00 C9 32 00 00 00 01 C9 32 00 00 0C 00 06 B0 00 00 00 1B 0F 73 00 00 00 00 00 00 2C 01 16 
+
+	//if(IsOptionEnabled(7)) 
+	07 EC 02 1B 3B 45 00 00 00 00 00 00 2C 07 16 
+
+		//iWeapon *= SW_MARATHON; 
+		9F 00 FD 83 00 00 02 1B 11 00 00 16 
+
+	// iWeapon = (iWeapon * MaxActiveAIUnits[m_iDifficulty]) / 100; // scale effective time based on difficulty
+	0F 00 FD 83 00 00 91 90 00 FD 83 00 00 10 01 87 83 00 00 02 E3 11 00 00 16 2C 64 16 
+
+// foreach BalanceMods_Normal(Mods,) // apply dynamic stat deltas based on STAT_GetStat(1) (eRecap_Days)
+58 01 0D 12 00 00 00 AD 84 00 00 00 4A 1F 06 
+
+	//if(Mods.iCritHit > iWeapon) // check if enough days have elapsed
+	07 1E 06 97 35 D2 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 01 87 83 00 00 16 
+	
+		//if(Mods.eType == kCharacter.iType) // check for character type match
+		07 1E 06 9A 38 3A 35 D4 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 35 56 0F 00 00 58 0F 00 00 00 00 48 AE 84 00 00 16 
+
+			//kCharacter.aStats[12] += Mods.iDamage // straight assignment
+			A1 1A 2C 0C 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 D3 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+			//kCharacter.aStats[3] += Mods.iMobility // straight assignment
+			A1 1A 2C 03 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 35 CE 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 16 
+
+			//kCharacter.aStats[1] += Mods.iAim % 100   // only low 2 digits
+			A1 1A 2C 01 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 FD 35 D1 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 
+
+			//kCharacter.aStats[13] += Mods.iAim / 100 // only upper 2 digits // Crit Assignment
+			A1 1A 2C 0D 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 91 35 D1 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 
+
+			//kCharacter.aStats[2] += Mods.iDefense % 100   // only low 2 digits
+			A1 1A 2C 02 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 FD 35 D0 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 
+
+			//kCharacter.aStats[4] += Mods.iDefense / 100   // only high 2 digits // store regeneration in low 2 digits of Strength stat
+			A1 1A 2C 04 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 91 35 D0 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 
+
+			//kCharacter.aStats[4] += 100*(Mods.iWill / 100)   // only high 2 digits // store damage reduction in high 2 digits of Strength stat
+			A1 1A 2C 04 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 90 2C 64 91 35 CD 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 16 
+
+			//kCharacter.aStats[7] += Mods.iWill % 100   // only low 2 digits
+			A1 1A 2C 07 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 FD 35 CD 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 
+
+			//kCharacter.aStats[0] += Mods.iHP % 100 // only low 2 digits
+			A1 1A 2C 00 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 FD 35 CF 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 
+
+			//kCharacter.aStats[5] += Mods.iHP / 100 // only upper 2 digits  // Shield HP assignment
+			A1 1A 2C 05 35 51 0F 00 00 58 0F 00 00 00 01 48 AE 84 00 00 91 35 CF 0F 00 00 D5 0F 00 00 00 00 00 AD 84 00 00 2C 64 16 16 
+
+	//Iterator Next
+	31 
+
+	//Iterator Pop
+	30 
+
+//return
+04 0B 
+
+//EOS
+53 
+[/CODE]
+[/AFTER_HEX]

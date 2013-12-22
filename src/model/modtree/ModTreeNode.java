@@ -423,6 +423,20 @@ public class ModTreeNode implements TreeNode {
 				catch (NumberFormatException x) {
 					System.out.println("Invalid FileVersion: " +x);
 				}
+			} else if (content.startsWith("RESIZE=")) {
+				try {
+					getTree().setResizeAmount(Integer.parseInt(this.getTagValue(this.getFullText()), 16));
+				}
+				catch (NumberFormatException x) {
+					System.out.println("Invalid Resize amount: " +x);
+				}
+			} else if (content.startsWith("KEYWORD=")) {
+				try {
+					getTree().addKeyword(this.getTagValue(this.getFullText()));
+				}
+				catch (NumberFormatException x) {
+					System.out.println("Invalid Resize amount: " +x);
+				}
 			}
 		}
 		// update global contexts
