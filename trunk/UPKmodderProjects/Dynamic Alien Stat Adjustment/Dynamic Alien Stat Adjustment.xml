@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://code.google.com/p/upk-modder/project/1">
+    <type>com.google.code.upk-modder</type>
+    <configuration>
+        <data xmlns="http://code.google.com/p/upk-modder/project/3">
+            <name>Dynamic Alien Stat Adjustment</name>
+            <source-root>UPKmodderProjects\Dynamic Alien Stat Adjustment\modsrc</source-root>
+        </data>
+    </configuration>
+</project>

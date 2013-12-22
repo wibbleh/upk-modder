@@ -1,18 +1,31 @@
 package util.unrealhex;
 
 import io.model.upk.ObjectEntry;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import model.modtree.ModContext.ModContextType;
 import model.modtree.ModTree;
+import static model.modtree.ModTree.logger;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
@@ -134,6 +147,7 @@ public class HexSearchAndReplace {
 		long functLength = functionEntry.getUpkSize();
 		
 		//testing method that uses fewer file reads
+		// method below occasionally fails, incorrectly reporting the wrong position, but not indicating failure
 //		ByteBuffer fileBuf = ByteBuffer.allocate((int) functLength); // read entire target
 //		
 //		//open channel to upk for read-only
@@ -152,32 +166,28 @@ public class HexSearchAndReplace {
 		
 		//allocate buffer as large as we need
 		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
-		SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.READ);
-		
-		// replaced with above -- remove after some more testing done : 19/12/2013 - amineri
-		// above code seems to fail on occasion but not report failure
-		// in one case it ended up reporting a position 2 bytes too early, causing corruption of the upk
-		// reverting back to this code as it appears more stable and functions adequately fast: 20/12/2013 - amineri
-		long endSearch = functPos + functLength - hex.length;
-		for (long currPos = functPos; currPos < endSearch; currPos++) {
-			
-			// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
-			// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?
-			// TODO: @Amineri we could also implement Knuth-Morris-Pratt or Boyer-Moore algorithm for maximum pattern matching performance
-			boolean bMatch = true;
-			sbc.position(currPos); // set file position
-			sbc.read(fileBuf);
-			for (int jCount = 0; jCount < hex.length; jCount++) {
-				if (fileBuf.get(jCount) != hex[jCount]) {
-					bMatch = false;
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.READ)) {
+			long endSearch = functPos + functLength - hex.length;
+			for (long currPos = functPos; currPos < endSearch; currPos++) {
+				
+				// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
+				// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?
+				// TODO: @Amineri we could also implement Knuth-Morris-Pratt or Boyer-Moore algorithm for maximum pattern matching performance
+				boolean bMatch = true;
+				sbc.position(currPos); // set file position
+				sbc.read(fileBuf);
+				for (int jCount = 0; jCount < hex.length; jCount++) {
+					if (fileBuf.get(jCount) != hex[jCount]) {
+						bMatch = false;
+						break;
+					}
+				}
+				if (bMatch) {
+					replaceOffset = currPos;
 					break;
 				}
+				fileBuf.clear();
 			}
-			if (bMatch) {
-				replaceOffset = currPos;
-				break;
-			}
-			fileBuf.clear();
 		}
 		return replaceOffset;
 	}
@@ -209,11 +219,371 @@ public class HexSearchAndReplace {
 		//allocate buffer as large as we need and wrap the hex to write
 //		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
 		ByteBuffer fileBuf = ByteBuffer.wrap(hex);
-		
-		//open channel to upk for read-only
-		SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE);
-		sbc.position(filePos);
-		sbc.write(fileBuf);
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE)) {
+			sbc.position(filePos);
+			sbc.write(fileBuf);
+		}
 	}
 	
+	/**
+	 * Resizes and replaces the function defined in tree.
+	 * Creates find/replace blocks
+	 * Verifies that tree has only one replacement block
+	 * Verifies size change
+	 * Find file position for change
+	 * Invokes copyAndReplace function
+	 * If size altered, adjusts object list positions in new upk file
+	 * @param apply flag indicating apply or revert. true if apply, false if revert
+	 * @param tree model of the function to be replaced/resized
+	 * @param upk the target upkfile
+	 * @return
+	 */
+	public static boolean resizeAndReplace(boolean apply, ModTree tree, UpkFile upk) {
+		boolean success = true;
+		
+		if(tree.getFileVersion() < 4) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Modfile version does not support resize operations");
+			return false;
+		}
+		
+		int currentObjectIndex = upk.findRefByName(tree.getFunctionName());
+		if(currentObjectIndex < 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Cannot resize import objects");
+			return false;
+		} else if(currentObjectIndex == 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Function not found in upk");
+			return false;
+		}
+
+		int resizeAmount;
+		if(apply) {
+			resizeAmount = tree.getResizeAmount();
+		} else {
+			resizeAmount = - tree.getResizeAmount();
+		}
+		
+		//Create find/replace blocks
+		List<byte[]> findHexList;
+		List<byte[]> replaceHexList;
+		if(apply) {
+			findHexList = consolidateHex(tree, upk, ModContextType.BEFORE_HEX);
+			replaceHexList = consolidateHex(tree, upk, ModContextType.AFTER_HEX);
+		} else {
+			findHexList = consolidateHex(tree, upk, ModContextType.AFTER_HEX);
+			replaceHexList = consolidateHex(tree, upk, ModContextType.BEFORE_HEX);
+		}
+		
+		// Verify that tree has only one replacement block
+		if(findHexList.size()!= 1 || replaceHexList.size() != 1) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Resize operation requires exactly 1 BEFORE and 1 AFTER block");
+			return false;
+		}
+		
+		byte[] findHex = findHexList.get(0);
+		byte[] replaceHex = replaceHexList.get(0);
+		
+		// Verify size change
+		if(findHex.length + resizeAmount != replaceHex.length) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Mismatch in expected size difference between FIND/REPLACE blocks\n"
+					+ "    FIND size: " + findHex.length + "\n"
+					+ "    Request resize: " + resizeAmount + "\n"
+					+ "    REPLACE size: " + replaceHex.length + "\n");
+			return false;
+		}
+		
+		// Find file position for change
+		long filePosition;
+		try {
+			filePosition = findFilePosition(findHex, upk,  tree);
+		} catch(IOException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "IO Error finding file position", ex);
+			return false;
+		}
+		// Invoke copyAndReplace function
+		File newFile = copyAndReplaceUpk((int) filePosition, findHex, replaceHex , upk);
+		if(newFile == null) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Failure during copyAndReplace");
+			return false;
+		}
+
+
+		ByteBuffer intBuf = ByteBuffer.allocate(4);
+		intBuf.order(ByteOrder.LITTLE_ENDIAN);
+		int objectListPos;
+		// update changed objects ObjectEntry size
+		ObjectEntry currObjectEntry = upk.getHeader().getObjectList().get(currentObjectIndex);
+		objectListPos = currObjectEntry.getObjectEntryPos();
+		int objectSize = currObjectEntry.getUpkSize();
+		intBuf.putInt(objectSize + resizeAmount);
+		intBuf.rewind();
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE)) {
+			sbc.position(objectListPos + 32); // set file position -- 32 writes to the 8th word in the ObjectEntry, object size
+			sbc.write(intBuf);		// write buffer
+			currObjectEntry.setUpkSize(objectSize + resizeAmount);
+		
+			// If size altered, adjusts object list positions in new upk file
+			if(resizeAmount != 0) {
+				for(int i = 1 ; i < upk.getHeader().getObjectListSize() ; i++) { // for every object in the object list
+
+					currObjectEntry = upk.getHeader().getObjectList().get(i);
+					// check if object is after the inserted file position 
+					if(currObjectEntry.getUpkPos() > filePosition) {
+						// update Object Entry's position
+						intBuf.clear();
+						intBuf.putInt(currObjectEntry.getUpkPos() + resizeAmount);
+						intBuf.rewind();
+						objectListPos = currObjectEntry.getObjectEntryPos();
+							sbc.position(objectListPos + 36); // set file position -- 36 writes to the 9th word in the ObjectEntry, object position
+							sbc.write(intBuf);		// write buffer
+					}
+				}
+			}
+		} catch(IOException ex) {
+			logger.log(Level.SEVERE, "IO Failure when attempting to update Object Entries", ex);
+			return false;
+		}
+		
+		return success;
+	}
+	
+	/**
+	 * Primitive file copy operation with replacement.
+	 * Resizing is allowed (oldHex can be a different size than newHex)
+	 * Verifies that oldHex is at filePosition.
+	 * Renames UpkFile upk to .bak version
+	 * Creates new File to copy into
+	 * Copies all hex from start of file to filePosition from old File to new File
+	 * Writes newHex to newFile
+	 * Copies all hex from end of oldHex from old File to newFile
+	 * @param filePosition
+	 * @param findHex
+	 * @param replaceHex
+	 * @param upk the upk file to make the modification to
+	 * @return The newly created File, or null if the operation failed
+	 */
+	public static File copyAndReplaceUpk(int filePosition, byte[] findHex, byte[] replaceHex , UpkFile upk) {
+		
+		File origFile = upk.getFile();
+		
+		// verify that oldHex is at FilePosition 
+		ByteBuffer fileBuf = ByteBuffer.allocate(findHex.length);
+		try (SeekableByteChannel sbc = Files.newByteChannel(origFile.toPath(), StandardOpenOption.READ)) {
+			sbc.position(filePosition);
+			sbc.read(fileBuf);
+		} catch(IOException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Failed to read upk file", ex);
+			return null;
+		}
+		if(!Arrays.equals(findHex, fileBuf.array())) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Find hex not found");
+			return null;
+		}
+		long endFindHexPosition = filePosition + findHex.length;
+		
+		// Rename upk to .bak version
+		// verify that filename ends with ".upk"
+		String origFilename = origFile.toPath().toAbsolutePath().toString();
+		if(!origFilename.endsWith(".upk")) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Target file not valid upk");
+			return null;
+		}
+		String backupFileName = origFilename.replace(".upk", ".bak");
+		Path backupFilePath = Paths.get(backupFileName);
+//		File backupFile = new File(backupFileName);
+		// delete old backup if it exists
+//		try {
+//			Files.deleteIfExists(backupFilePath); 
+//		} catch(IOException ex) {
+//			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Unable to delete old backup file", ex);
+//		}
+		
+		// wait until file is delete so can rename .upk to .bak
+//		if(new File(backupFileName).exists()) {
+//			try {
+//				TimeUnit.MILLISECONDS.sleep(50);
+//			} catch(InterruptedException ex) {
+//				Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Error while sleeping", ex);
+//			}
+//		}
+		
+//		File backupFile = new File(backupFileName);
+		Path newPath;
+		try {
+			newPath = Files.move(origFile.toPath(), backupFilePath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+		} catch(IOException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Failed to create backup file", ex);
+			return null;
+		}
+		File backupFile = newPath.toFile();
+		
+		// create new file with same name as original upk
+		File newFile = new File(origFilename);
+		if(!newFile.exists()) {
+			try {
+				newFile.createNewFile();
+			} catch(IOException ex) {
+				Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Could not create new upk file", ex);
+				return null;
+			}
+		}
+		
+		// benchmark comparisons : http://java.dzone.com/articles/file-copy-java-%E2%80%93-benchmark
+		// NIO copy method
+		try (FileChannel source = new FileInputStream(backupFile).getChannel();
+			 FileChannel destination = new FileOutputStream(newFile).getChannel()) {
+				
+				// copy all hex from start of file to filePosition from oldFile to newFile
+				destination.transferFrom(source, 0, filePosition);
+				
+				ByteBuffer replaceHexBuf = ByteBuffer.wrap(replaceHex);
+				//Write newHex to newFile
+				destination.position(destination.size());
+				destination.write(replaceHexBuf);
+				
+				//Copy all hex from end of oldHex from old File to newFile
+				source.position(source.position()+findHex.length);
+				destination.position(destination.size());
+				destination.transferFrom(source, destination.size(), source.size()-endFindHexPosition);
+				
+		} catch(FileNotFoundException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "File not found during copy", ex);
+			return null;
+		} catch(IOException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "IO Error during file copy", ex);
+			return null;
+		}
+
+		return newFile;
+	}
+
+
+	/**
+	 * Copies and appends a given function block to the end of the supplied upk
+	 * @param bytesToAdd the number of bytes to add to the function
+	 * @param targetFunction the name of the function to relocate
+	 * @param upk the upk file to make the modification to
+	 * @return true if the operation was successful, false otherwise. detailed information about failure modes written to the logger.
+	 */
+	public static boolean moveAndResizeFunction(int bytesToAdd, String targetFunction, UpkFile upk) {
+		
+		// check that user is attempting to add size
+		if(bytesToAdd < 0) {
+			logger.log(Level.INFO, "Attempted to size function smaller.");
+			return false;
+		}
+		
+		int objectIndex = upk.findRefByName(targetFunction);
+		if (objectIndex == 0) {
+			logger.log(Level.INFO, "Function name " + targetFunction + " not found.");
+			return false;
+		}
+		if (objectIndex < 0) {
+			logger.log(Level.INFO, "Supplied Import Function. Only Export functions can be relocated.");
+			return false;
+		}
+
+		// retrieve object entry
+		ObjectEntry functionEntry = upk.getHeader().getObjectList().get(objectIndex);
+		
+		// retrieve file position/length of function hex in upk
+		int functPos = functionEntry.getUpkPos();
+		int functLength = functionEntry.getUpkSize();
+
+		//allocate buffer to read original function hex into
+		ByteBuffer originalFunctBuf = ByteBuffer.allocate(functLength);
+		originalFunctBuf.order(ByteOrder.LITTLE_ENDIAN);
+		
+		// read original function
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.READ)) {
+			sbc.position(functPos); // set file position
+			sbc.read(originalFunctBuf);		// retrieve original function code (including 48 byte header + 15 byte footer
+		} catch(IOException ex) {
+			logger.log(Level.SEVERE, "IO Failure when attempting to read original function", ex);
+			return false;
+		}
+		
+		// test that EOS token is in expected location
+		if(originalFunctBuf.get(functLength-16) != (byte) 0x53) { // did not find EOS token at expected position
+			logger.log(Level.INFO, "Did not find EOS token at expected position");
+			return false;
+		}
+	
+		originalFunctBuf.rewind();
+		// allocate new function buffer
+		ByteBuffer newFunctionBuf = ByteBuffer.allocate(functLength + bytesToAdd + 24);
+		newFunctionBuf.order(ByteOrder.LITTLE_ENDIAN);
+		
+		// copy function header, updating memory and virtual sizes
+		for (int i = 0; i < 10;  i ++) { // first 10 integers are straight transfer
+			newFunctionBuf.putInt(originalFunctBuf.getInt());
+		}
+		// memory size increased
+		newFunctionBuf.putInt(originalFunctBuf.getInt()+ bytesToAdd);
+		
+		// file size increased
+		newFunctionBuf.putInt(originalFunctBuf.getInt()+ bytesToAdd);
+		
+		// copy header + function body (up to but not including 0x53 token)
+		byte[] front = new byte[functLength - (16 + 48)];
+		originalFunctBuf.get(front, 0, functLength - (16 + 48));
+		newFunctionBuf.put(front);
+		
+		//create new filler array with null ops (0x0B) of required size
+		byte[] filler = new byte[bytesToAdd];
+		Arrays.fill(filler, (byte) 0x0B);
+		
+		// fill in null-ops for remainder of function
+		newFunctionBuf.put(filler);
+		
+		// add EOS token
+		newFunctionBuf.put(originalFunctBuf.get());
+		
+		// fill in remainder footer (last 15 bytes)
+		byte[] footer = new byte[15];
+		originalFunctBuf.get(footer, 0, 15);
+		newFunctionBuf.put(footer);
+		
+		// add uninstall info
+		byte[] id = new byte[] { (byte) 0x7A, (byte) 0xA0, (byte) 0x56, (byte) 0xC9, (byte) 0x60, (byte) 0x5F, (byte) 0x7B, 
+				(byte) 0x31, (byte) 0x72, (byte) 0x5D, (byte) 0x4B, (byte) 0xC4, (byte) 0x7C, (byte) 0xD2, (byte) 0x4D, (byte) 0xD9};
+		
+		// add unique hashId
+		newFunctionBuf.put(id);
+		
+		newFunctionBuf.putInt(functLength);
+		newFunctionBuf.putInt(functPos);
+		
+		newFunctionBuf.rewind();
+		
+		int newFunctPos;
+		// append new function
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.APPEND)) {
+			newFunctPos = (int) sbc.position();
+//			sbc.write(newFunctionBuf);		// write buffer
+		} catch(IOException ex) {
+			logger.log(Level.SEVERE, "IO Failure when attempting to append enlarged function function", ex);
+			return false;
+		}
+		
+		// fix up object list entry to point to new location
+		int objectListPos = functionEntry.getObjectEntryPos();
+		ByteBuffer intBuf = ByteBuffer.allocate(8);
+		intBuf.order(ByteOrder.LITTLE_ENDIAN);
+		intBuf.putInt(functLength + bytesToAdd + 24);
+		intBuf.putInt(newFunctPos);
+		intBuf.rewind();
+		
+		// append new function
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE)) {
+			sbc.position(objectListPos +32); // set file position
+//			sbc.write(intBuf);		// write buffer
+		} catch(IOException ex) {
+			logger.log(Level.SEVERE, "IO Failure when attempting to update Object Entry", ex);
+			return false;
+		}
+		
+		
+		return true;
+	}
+
 }

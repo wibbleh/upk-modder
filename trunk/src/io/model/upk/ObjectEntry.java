@@ -106,11 +106,29 @@ public class ObjectEntry {
 	}
 
 	/**
+	 * Sets the local cached copy of the upk file position the object entry describes 
+	 * WARNING -- this does not update the file itself
+	 * @param pos the new position
+	 */
+	public void setUpkPos(int pos) {
+		this.iUpkPos = pos;
+	}
+	
+	/**
 	 * Returns upk file size of object entry describes
 	 * @return int
 	 */
 	public int getUpkSize() {
 		return this.iUpkSize;
+	}
+	
+	/**
+	 * Sets the local cached copy of the upk file size the object entry describes
+	 * WARNING -- this does not update the file itself
+	 * @param size the new size
+	 */
+	public void setUpkSize(int size) {
+		this.iUpkSize = size;
 	}
 	
 	/**
