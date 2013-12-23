@@ -1,7 +1,8 @@
 package util.unrealhex;
 
-import io.parser.OperandTableParser;
+import static org.junit.Assert.assertEquals;
 import io.upk.UpkFileLoader;
+
 import java.awt.Color;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -10,22 +11,21 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
+
 import model.modtree.ModTree;
-import model.modtree.ModTreeTest;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 
 /**
@@ -58,14 +58,14 @@ public class ReferenceUpdateTest {
 		System.out.println("Reading upks.");
 		upks = new UpkFileLoader();
 
-		// initialize Operand Table for all tests that use it
-		System.out.println("Reading operand data.");
-		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
-		try {
-			parser.parseFile();
-		} catch(IOException ex) {
-			Logger.getLogger(ModTreeTest.class.getName()).log(Level.SEVERE, null, ex);
-		}
+//		// initialize Operand Table for all tests that use it
+//		System.out.println("Reading operand data.");
+//		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
+//		try {
+//			parser.parseFile();
+//		} catch(IOException ex) {
+//			Logger.getLogger(ModTreeTest.class.getName()).log(Level.SEVERE, null, ex);
+//		}
 
 	}
 	

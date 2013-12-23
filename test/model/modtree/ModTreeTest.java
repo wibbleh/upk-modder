@@ -10,12 +10,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import io.parser.OperandTableParser;
 
 import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.AttributeSet;
@@ -58,13 +54,13 @@ public class ModTreeTest
     @BeforeClass
     public static void setUpClass()
     {
-		// initialize Operand Table for all tests that use it
-		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
-		try {
-			parser.parseFile();
-		} catch(IOException ex) {
-			Logger.getLogger(ModTreeTest.class.getName()).log(Level.SEVERE, null, ex);
-		}
+//		// initialize Operand Table for all tests that use it
+//		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
+//		try {
+//			parser.parseFile();
+//		} catch(IOException ex) {
+//			Logger.getLogger(ModTreeTest.class.getName()).log(Level.SEVERE, null, ex);
+//		}
    }
     
     @AfterClass

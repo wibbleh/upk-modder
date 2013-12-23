@@ -2,10 +2,12 @@ package ui;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Properties;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.filechooser.FileFilter;
+import javax.xml.transform.OutputKeys;
 
 /**
  * Container class for UI-related constants and helper methods.
@@ -31,6 +33,31 @@ public class Constants {
 		"Amineri",
 		"XMarksTheSpot"
 	};
+	
+	/**
+	 * The operand data file.
+	 */
+	public static final File OPERAND_DATA_FILE = new File("config/operand_data.ini");
+	
+	/**
+	 * The default mod file template file.
+	 */
+	public static final File TEMPLATE_PROJECT_FILE = new File("defaultProjectTemplate.xml");
+	
+	/**
+	 * The default mod file template file.
+	 */
+	public static final File TEMPLATE_MOD_FILE = new File("defaultModfileTemplate.upk_mod");
+	
+	public static final Properties PROJECT_XML_OUTPUT_PROPERTIES;
+	static {
+		Properties props = new Properties();
+		props.setProperty(OutputKeys.INDENT, "yes");
+		props.setProperty(OutputKeys.METHOD, "xml");
+		props.setProperty(OutputKeys.ENCODING, "UTF-8");
+		props.setProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+		PROJECT_XML_OUTPUT_PROPERTIES = props;
+	}
 
 	/** <img src="../ui/resources/icons/hex16.png"/> */
 	public static final Icon HEX_SMALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex16.png"));
@@ -46,17 +73,6 @@ public class Constants {
 			"Released under the <a href=\"http://www.gnu.org/licenses/gpl.html\">GNU GPL v3</a> license<br>" +
 			"Source code is available under <a href=\"https://code.google.com/p/upk-modder/\"https://code.google.com/p/upk-modder/</a>";
 	
-	public static final FileFilter DIRECTORY_FILTER =  new FileFilter() {
-		@Override
-		public boolean accept(File file) {
-			return file.isDirectory();
-		}
-		@Override
-		public String getDescription() {
-			return "Accepts only directories"; 
-		}
-	};
-
 	/**
 	 * File filter for *.mod files.
 	 */
