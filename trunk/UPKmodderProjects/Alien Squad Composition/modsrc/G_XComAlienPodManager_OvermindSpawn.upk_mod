@@ -1,0 +1,328 @@
+MODFILEVERSION=4
+UPKFILE=XComGame.upk 
+GUID=5B 06 B8 18 67 22 12 44 85 9B A8 5B 9D 57 1D 4B // XComGame_EW_patch1.upk
+FUNCTION=OvermindSpawn@XComAlienPodManager
+
+
+[BEFORE_HEX]
+[HEADER]
+13 08 00 00 5F 05 00 00  
+[/HEADER]
+[CODE]
+// if((iSpawn >= m_arrSpawnList.Length) || iSpawn < 0)
+07 2B 00 84 99 00 29 43 00 00 36 01 3B 42 00 00 16 18 0D 00 96 00 29 43 00 00 25 16 16 
+
+	// return 0;
+	04 25 
+
+// kSpawn = m_arrSpawnList[iSpawn];
+0F 00 1F 43 00 00 10 00 29 43 00 00 01 3B 42 00 00 
+
+// nSpawned = 0;
+0F 00 26 43 00 00 25 
+
+// kPod = kSpawn.kSpawnLoc; 
+0F 00 20 43 00 00 35 15 43 00 00 16 43 00 00 00 00 00 1F 43 00 00 
+
+// if(kPod != none)
+07 FE 07 77 00 20 43 00 00 2A 16 
+
+	// arrPodMembers = GetPodCharArray(kSpawn.kPod, arrAltWeapon);
+	0F 00 1E 43 00 00 1B 70 3A 00 00 00 00 00 00 35 14 43 00 00 16 43 00 00 00 01 00 1F 43 00 00 00 1C 43 00 00 16 
+
+	// kPod.NumAliens = arrPodMembers.Length;
+	0F 19 00 20 43 00 00 09 00 CE 3F 00 00 00 01 CE 3F 00 00 36 00 1E 43 00 00 
+
+	// if(kSpawn.ePodDevice != 0)
+	07 4C 01 9B 38 3A 35 12 43 00 00 16 43 00 00 00 00 00 1F 43 00 00 38 3A 24 00 16 
+
+		// kPod.SetItemType(kSpawn.ePodDevice);
+		19 00 20 43 00 00 26 00 00 00 00 00 00 1B 6A 6D 00 00 00 00 00 00 35 12 43 00 00 16 43 00 00 00 00 00 1F 43 00 00 16 
+
+	// if(XComGameReplicationInfo(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kGameCore.false)
+	07 45 03 19 19 2E 2D 32 00 00 19 12 20 36 FE FF FF 0A 00 9E F9 FF FF 00 1C DE FB FF FF 16 09 00 5C F9 FF FF 00 01 5C F9 FF FF 09 00 1F 32 00 00 00 01 1F 32 00 00 01 00 1F 32 00 00 00 28 
+
+		// if(class'XGGameData'.static.MapCharacterToPawn(arrPodMembers[1]) == 43)
+		07 45 03 9A 38 3A 12 20 C6 00 00 00 15 00 89 00 00 00 00 1B CD 5B 00 00 00 00 00 00 10 26 00 1E 43 00 00 16 38 3A 24 2B 16 
+
+			// eAlienType = class'XGGameData'.static.MapCharacterToPawn(arrPodMembers[0]);
+			0F 00 21 43 00 00 12 20 C6 00 00 00 15 00 89 00 00 00 00 1B CD 5B 00 00 00 00 00 00 10 25 00 1E 43 00 00 16 
+
+			// if(eAlienType == 39)
+			07 AF 02 9A 38 3A 00 21 43 00 00 38 3A 24 27 16 
+
+				// kPod.NumAliens = 1 + XComGameReplicationInfo(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kGameCore.1;
+				0F 19 00 20 43 00 00 09 00 CE 3F 00 00 00 01 CE 3F 00 00 92 26 19 19 2E 2D 32 00 00 19 12 20 36 FE FF FF 0A 00 9E F9 FF FF 00 1C DE FB FF FF 16 09 00 5C F9 FF FF 00 01 5C F9 FF FF 09 00 1F 32 00 00 00 01 1F 32 00 00 01 00 1F 32 00 00 00 26 16 
+
+			// else
+			06 45 03 
+
+				// if(eAlienType == 42)
+				07 45 03 9A 38 3A 00 21 43 00 00 38 3A 24 2A 16 
+
+					// kPod.NumAliens = 1 + XComGameReplicationInfo(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kGameCore.3; 03
+					0F 19 00 20 43 00 00 09 00 CE 3F 00 00 00 01 CE 3F 00 00 92 26 19 19 2E 2D 32 00 00 19 12 20 36 FE FF FF 0A 00 9E F9 FF FF 00 1C DE FB FF FF 16 09 00 5C F9 FF FF 00 01 5C F9 FF FF 09 00 1F 32 00 00 00 01 1F 32 00 00 02 00 1F 32 00 00 00 2C 03 16 
+
+	// kPod.PreSpawnInit(true);
+	19 00 20 43 00 00 0B 00 00 00 00 00 00 1B 40 65 00 00 00 00 00 00 27 16 
+
+	// iPod = m_arrPod.Length;
+	0F 00 25 43 00 00 36 01 54 42 00 00 
+
+	// m_arrPod.AddItem(kPod);
+	55 01 54 42 00 00 0A 00 00 20 43 00 00 16 
+
+	// XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.m_kLevel.AddPod(kPod);
+	19 19 19 2E BD 32 00 00 19 12 20 36 FE FF FF 0A 00 9E F9 FF FF 00 1C DE FB FF FF 16 09 00 5C F9 FF FF 00 01 5C F9 FF FF 09 00 C9 32 00 00 00 01 C9 32 00 00 09 00 AD AE 00 00 00 01 AD AE 00 00 13 00 00 00 00 00 00 1B 7B 02 00 00 00 00 00 00 00 20 43 00 00 16 
+
+	// iNum = 0;
+	0F 00 27 43 00 00 25 
+
+	// if(iNum < kPod.NumAliens)
+	07 AD 07 96 00 27 43 00 00 19 00 20 43 00 00 09 00 CE 3F 00 00 00 01 CE 3F 00 00 16 
+
+		// kSpawnPt = kPod.GetSpawnPoint(iNum, vLoc, true);
+		0F 00 22 43 00 00 19 00 20 43 00 00 1D 00 ED 40 00 00 00 1B 2A 3B 00 00 00 00 00 00 00 27 43 00 00 00 23 43 00 00 27 16 
+
+		// if(kSpawnPt != none)
+		07 74 07 77 00 22 43 00 00 2A 16 
+
+			// kSpawnPt.SnapToGround(32.0);
+			19 00 22 43 00 00 0F 00 8E 78 00 00 00 1B F5 70 00 00 00 00 00 00 1E 00 00 00 42 16 
+
+			// eAlienType = class'XGGameData'.static.MapCharacterToPawn(arrPodMembers[iNum]);
+			0F 00 21 43 00 00 12 20 C6 00 00 00 1D 00 89 00 00 00 00 1B CD 5B 00 00 00 00 00 00 10 00 27 43 00 00 00 1E 43 00 00 16 
+
+			// bUseAltWeapon = arrAltWeapon[iNum] != 0;
+			14 2D 00 1B 43 00 00 9B 38 3A 10 00 27 43 00 00 00 1C 43 00 00 38 3A 24 00 16 
+
+			// kAlien = m_kPlayer.SpawnAlien(eAlienType, kSpawnPt, bUseAltWeapon);
+		 	0F 00 24 43 00 00 19 01 46 42 00 00 2A 00 E6 A7 00 00 00 1B 2D 72 00 00 00 00 00 00 00 21 43 00 00 00 22 43 00 00 4A 4A 4A 2D 00 1B 43 00 00 4A 16 
+
+			// if(kAlien != none)
+			07 46 07 77 00 24 43 00 00 2A 16 
+
+				// kAlien.m_kBehavior.InitPod(iPod, kPod.m_bEnabled);
+				19 19 00 24 43 00 00 09 00 EB 39 00 00 00 01 EB 39 00 00 32 00 00 00 00 00 00 1B D8 41 00 00 00 00 00 00 00 25 43 00 00 19 00 20 43 00 00 0A 00 C9 3F 00 00 00 2D 01 C9 3F 00 00 16 
+
+				// if(kPod.m_bEnabled)
+				07 1E 06 19 00 20 43 00 00 0A 00 C9 3F 00 00 00 2D 01 C9 3F 00 00 
+
+					// kPod.AddAlien(kAlien);
+					19 00 20 43 00 00 13 00 00 00 00 00 00 1B D2 01 00 00 00 00 00 00 00 24 43 00 00 16 
+
+				// else
+				06 A6 06 
+
+					// if(kPod.bUse == false)
+					07 A6 06 F2 19 00 20 43 00 00 0A 00 CB 3F 00 00 00 2D 01 CB 3F 00 00 28 16 
+
+						// strUser = XComEngine(class'Engine'.static.GetEngine()).GetEnvironmentVariable("usr");
+						0F 00 1A 43 00 00 19 2E CC 55 00 00 12 20 36 FE FF FF 0A 00 9D F9 FF FF 00 1C DD FB FF FF 16 0F 00 DA F8 FF FF 00 1C DB FB FF FF 1F 75 73 72 00 16 
+
+							// if(strUser == "acheng")
+							07 A6 06 7A 00 1A 43 00 00 1F 61 63 68 65 6E 67 00 16 
+
+				// arrAlienList.AddItem(kAlien);
+				55 00 1D 43 00 00 0A 00 00 24 43 00 00 16 
+
+				// ++ nSpawned;
+				A5 00 26 43 00 00 16 
+
+				// if(m_bHasTerrorPods)
+				07 F0 06 2D 01 53 42 00 00 
+
+					// InitTerroristAlien(kAlien, iNum);
+					1B F7 41 00 00 00 00 00 00 00 24 43 00 00 00 27 43 00 00 16 
+
+				// kAlien.m_kPod = kPod;
+				0F 19 00 24 43 00 00 09 00 DC C2 00 00 00 01 DC C2 00 00 00 20 43 00 00 
+
+				// kPod.m_arrAlienSpawnPts.AddItem(kSpawnPt);
+				55 19 00 20 43 00 00 09 00 97 3F 00 00 00 01 97 3F 00 00 0A 00 00 22 43 00 00 16 
+
+			// else
+			06 71 07 
+
+				// kPod.m_aBadSpawnLoc.AddItem(vLoc);
+				55 19 00 20 43 00 00 09 00 80 3F 00 00 00 01 80 3F 00 00 0A 00 00 23 43 00 00 16 
+
+		// else
+		06 9F 07 
+
+			// kPod.m_aBadSpawnLoc.AddItem(vLoc);
+			55 19 00 20 43 00 00 09 00 80 3F 00 00 00 01 80 3F 00 00 0A 00 00 23 43 00 00 16 
+
+		// ++ iNum;
+		A5 00 27 43 00 00 16 
+
+		// goto J0x420; // [while Loop Continue]
+		06 20 04 
+
+	// kPod.PostSpawnInit();
+	19 00 20 43 00 00 0B 00 00 00 00 00 00 1B FB 64 00 00 00 00 00 00 4A 16 
+
+	// m_kPlayer.OnSpawn(iSpawn, arrAlienList);
+	19 01 46 42 00 00 1C 00 00 00 00 00 00 1B 61 61 00 00 00 00 00 00 00 29 43 00 00 00 1D 43 00 00 16 
+
+// return nSpawned;
+04 00 26 43 00 00 
+
+//return ReturnValue
+04 3A 28 43 00 00 
+
+// endofscript
+53 
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+73 07 00 00 5F 05 00 00 
+[/HEADER]
+[CODE]
+// if((iSpawn >= m_arrSpawnList.Length) || iSpawn < 0)
+07 2B 00 84 99 00 29 43 00 00 36 01 3B 42 00 00 16 18 0D 00 96 00 29 43 00 00 25 16 16 
+
+	// return 0;
+	04 25 
+
+// kSpawn = m_arrSpawnList[iSpawn];
+0F 00 1F 43 00 00 10 00 29 43 00 00 01 3B 42 00 00 
+
+// nSpawned = 0;
+0F 00 26 43 00 00 25 
+
+// kPod = kSpawn.kSpawnLoc; 
+0F 00 20 43 00 00 35 15 43 00 00 16 43 00 00 00 00 00 1F 43 00 00 
+
+// if(kPod != none)
+07 1E 06 77 00 20 43 00 00 2A 16 
+
+	// arrPodMembers = GetPodCharArray(kSpawn.kPod, arrAltWeapon);
+	0F 00 1E 43 00 00 1B 70 3A 00 00 00 00 00 00 35 14 43 00 00 16 43 00 00 00 01 00 1F 43 00 00 00 1C 43 00 00 16 
+
+	// kPod.NumAliens = arrPodMembers.Length;
+	0F 19 00 20 43 00 00 09 00 CE 3F 00 00 00 01 CE 3F 00 00 36 00 1E 43 00 00 
+
+	// if(kSpawn.ePodDevice != 0)
+	07 4C 01 9B 38 3A 35 12 43 00 00 16 43 00 00 00 00 00 1F 43 00 00 38 3A 24 00 16 
+
+		// kPod.SetItemType(kSpawn.ePodDevice);
+		19 00 20 43 00 00 26 00 00 00 00 00 00 1B 6A 6D 00 00 00 00 00 00 35 12 43 00 00 16 43 00 00 00 00 00 1F 43 00 00 16 
+
+	// kPod.PreSpawnInit(true);
+	19 00 20 43 00 00 0B 00 00 00 00 00 00 1B 40 65 00 00 00 00 00 00 27 16 
+
+	// iPod = m_arrPod.Length;
+	0F 00 25 43 00 00 36 01 54 42 00 00 
+
+	// m_arrPod.AddItem(kPod);
+	55 01 54 42 00 00 0A 00 00 20 43 00 00 16 
+
+	// XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.m_kLevel.AddPod(kPod);
+	19 19 19 2E BD 32 00 00 19 12 20 36 FE FF FF 0A 00 9E F9 FF FF 00 1C DE FB FF FF 16 09 00 5C F9 FF FF 00 01 5C F9 FF FF 09 00 C9 32 00 00 00 01 C9 32 00 00 09 00 AD AE 00 00 00 01 AD AE 00 00 13 00 00 00 00 00 00 1B 7B 02 00 00 00 00 00 00 00 20 43 00 00 16 
+
+	// iNum = 0;
+	0F 00 27 43 00 00 25 
+
+	// if(iNum < kPod.NumAliens)
+	07 CD 05 96 00 27 43 00 00 19 00 20 43 00 00 09 00 CE 3F 00 00 00 01 CE 3F 00 00 16 
+
+		// kSpawnPt = kPod.GetSpawnPoint(iNum, vLoc, true);
+		0F 00 22 43 00 00 19 00 20 43 00 00 1D 00 ED 40 00 00 00 1B 2A 3B 00 00 00 00 00 00 00 27 43 00 00 00 23 43 00 00 27 16 
+
+		// if(kSpawnPt != none)
+		07 94 05 77 00 22 43 00 00 2A 16 
+
+			// kSpawnPt.SnapToGround(32.0);
+			19 00 22 43 00 00 0F 00 8E 78 00 00 00 1B F5 70 00 00 00 00 00 00 1E 00 00 00 42 16 
+
+			// eAlienType = class'XGGameData'.static.MapCharacterToPawn(arrPodMembers[iNum]);
+			0F 00 21 43 00 00 12 20 C6 00 00 00 1D 00 89 00 00 00 00 1B CD 5B 00 00 00 00 00 00 10 00 27 43 00 00 00 1E 43 00 00 16 
+
+			// bUseAltWeapon = (0x128 & int(kSpawn.kPod.eMainAltWeapon)) != 0;
+			14 2D 00 1B 43 00 00 9B 9C 2C 80 38 3A 35 3A 00 00 00 3F 00 00 00 00 00 35 14 43 00 00 16 43 00 00 00 01 00 1F 43 00 00 16 2C 00 16 
+
+			// kAlien = m_kPlayer.SpawnAlien(eAlienType, kSpawnPt, bUseAltWeapon);
+			0F 00 24 43 00 00 19 01 46 42 00 00 2A 00 E6 A7 00 00 00 1B 2D 72 00 00 00 00 00 00 00 21 43 00 00 00 22 43 00 00 4A 4A 4A 2D 00 1B 43 00 00 4A 16 
+
+			// if(kAlien != none)
+			07 66 05 77 00 24 43 00 00 2A 16 
+
+				// if (iNum == 0) // only apply level to leader
+				07 FE 03 9A 00 27 43 00 00 25 16 
+				
+					// kAlien.DebugAnims(0x7 & int(kSpawn.kPod.eMainAltWeapon, none) // pass the leaders level to the helper function
+					19 00 24 43 00 00 40 00 00 00 00 00 00 1B FA 16 00 00 00 00 00 00 9C 2C 07 38 3A 35 3A 00 00 00 3F 00 00 00 00 00 35 14 43 00 00 16 43 00 00 00 01 00 1F 43 00 00 16 2A 16 
+
+				// kAlien.DebugAnims(0, none); // call the helper function to "level up" potentially any unit, e.g. navigators
+				19 00 24 43 00 00 0C 00 00 00 00 00 00 1B FA 16 00 00 00 00 00 00 25 2A 16 0B 
+				
+				// kAlien.m_kBehavior.InitPod(iPod, kPod.m_bEnabled);
+				19 19 00 24 43 00 00 09 00 EB 39 00 00 00 01 EB 39 00 00 32 00 00 00 00 00 00 1B D8 41 00 00 00 00 00 00 00 25 43 00 00 19 00 20 43 00 00 0A 00 C9 3F 00 00 00 2D 01 C9 3F 00 00 16 
+
+				// if(kPod.m_bEnabled)
+				07 C6 04 19 00 20 43 00 00 0A 00 C9 3F 00 00 00 2D 01 C9 3F 00 00 
+
+					// kPod.AddAlien(kAlien);
+					19 00 20 43 00 00 13 00 00 00 00 00 00 1B D2 01 00 00 00 00 00 00 00 24 43 00 00 16 
+
+				// arrAlienList.AddItem(kAlien);
+				55 00 1D 43 00 00 0A 00 00 24 43 00 00 16 
+
+				// ++ nSpawned;
+				A5 00 26 43 00 00 16 
+
+				// if(m_bHasTerrorPods)
+				07 10 05 2D 01 53 42 00 00 
+
+					// InitTerroristAlien(kAlien, iNum);
+					1B F7 41 00 00 00 00 00 00 00 24 43 00 00 00 27 43 00 00 16 
+
+				// kAlien.m_kPod = kPod;
+				0F 19 00 24 43 00 00 09 00 DC C2 00 00 00 01 DC C2 00 00 00 20 43 00 00 
+
+				// kPod.m_arrAlienSpawnPts.AddItem(kSpawnPt);
+				55 19 00 20 43 00 00 09 00 97 3F 00 00 00 01 97 3F 00 00 0A 00 00 22 43 00 00 16 
+
+			// else
+			06 91 05 
+
+				// kPod.m_aBadSpawnLoc.AddItem(vLoc);
+				55 19 00 20 43 00 00 09 00 80 3F 00 00 00 01 80 3F 00 00 0A 00 00 23 43 00 00 16 
+
+		// else
+		06 BF 05 
+
+			// kPod.m_aBadSpawnLoc.AddItem(vLoc);
+			55 19 00 20 43 00 00 09 00 80 3F 00 00 00 01 80 3F 00 00 0A 00 00 23 43 00 00 16 
+
+		// ++ iNum;
+		A5 00 27 43 00 00 16 
+
+		// while loop continue
+		06 27 02 
+
+	// kPod.PostSpawnInit();
+	19 00 20 43 00 00 0B 00 00 00 00 00 00 1B FB 64 00 00 00 00 00 00 4A 16 
+
+	// m_kPlayer.OnSpawn(iSpawn, arrAlienList);
+	19 01 46 42 00 00 1C 00 00 00 00 00 00 1B 61 61 00 00 00 00 00 00 00 29 43 00 00 00 1D 43 00 00 16 
+
+// return nSpawned;
+04 00 26 43 00 00 
+
+// null-ops 
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+//return ReturnValue
+04 3A 28 43 00 00 
+
+// EOS
+53 
+
+
+[/CODE]
+[/AFTER_HEX]

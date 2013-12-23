@@ -1,0 +1,219 @@
+MODFILEVERSION=4
+UPKFILE=XComGame.upk 
+GUID=5B 06 B8 18 67 22 12 44 85 9B A8 5B 9D 57 1D 4B // XComGame_EW_patch1.upk
+FUNCTION=InitAlienLoadoutInfos@XGBattleDesc
+
+
+[BEFORE_HEX]
+[HEADER]
+CC 04 00 00 18 03 00 00 
+[/HEADER]
+[CODE]
+// PlayerIndex = 0;
+0F 00 FF B2 00 00 25 
+
+// if(PlayerIndex < 4)
+07 C9 04 96 00 FF B2 00 00 2C 04 16 
+
+	// if(m_arrTeamLoadoutInfos[PlayerIndex].m_eTeam == 16)
+	07 51 00 9A 38 3A 35 7A B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 38 3A 24 10 16 
+
+		// return nothing
+		04 0B 
+
+	// else
+	06 BB 04 
+
+		// if(m_arrTeamLoadoutInfos[PlayerIndex].m_eTeam == 0)
+		07 BB 04 9A 38 3A 35 7A B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 38 3A 24 00 16 
+
+			// m_arrTeamLoadoutInfos[PlayerIndex].m_eTeam = 16;
+			0F 35 7A B2 00 00 7C B2 00 00 00 01 1A 00 FF B2 00 00 01 A6 B2 00 00 24 10 
+
+			// if(!m_bUseAlienInfo)
+			07 BF 03 81 2D 01 88 B2 00 00 16 
+
+				// iAlienPods = 0;
+				0F 00 FE B2 00 00 25 
+
+				// if(iAlienPods < m_kAlienSquad.arrPods.Length)
+				07 BC 03 96 00 FE B2 00 00 36 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 16 
+
+					// if(m_kAlienSquad.arrPods[iAlienPods].eMain != 0)
+					07 DA 01 9B 38 3A 35 3D 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 38 3A 24 00 16 
+
+						// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(m_kAlienSquad.arrPods[iAlienPods].eMain, m_kAlienSquad.arrPods[iAlienPods].eMainAltWeapon));
+						55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 7D 00 1B 54 0F 00 00 00 00 00 00 35 3D 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 35 3A 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 16 16 
+
+					// if(m_kAlienSquad.arrPods[iAlienPods].eSupport1 != 0)
+					07 C4 02 9B 38 3A 35 3C 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 38 3A 24 00 16 
+
+						// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(m_kAlienSquad.arrPods[iAlienPods].eSupport1, m_kAlienSquad.arrPods[iAlienPods].eSupport1AltWeapon));
+						55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 7D 00 1B 54 0F 00 00 00 00 00 00 35 3C 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 35 39 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 16 16 
+
+					// if(m_kAlienSquad.arrPods[iAlienPods].eSupport2 != 0)
+					07 AE 03 9B 38 3A 35 3B 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 38 3A 24 00 16 
+
+						// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(m_kAlienSquad.arrPods[iAlienPods].eSupport2, m_kAlienSquad.arrPods[iAlienPods].eSupport2AltWeapon));
+						55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 7D 00 1B 54 0F 00 00 00 00 00 00 35 3B 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 35 38 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 16 16 
+
+					// ++ iAlienPods;
+					A5 00 FE B2 00 00 16 
+
+					// goto J0xC5;  // [Loop Continue]
+					06 C5 00 
+
+			// else
+			06 B8 04 
+
+				// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(byte(m_kAlienInfo.iPodLeaderType)));
+				55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 2A 00 1B 54 0F 00 00 00 00 00 00 38 3D 35 6A B2 00 00 71 B2 00 00 00 00 01 82 B2 00 00 4A 16 16 
+
+				// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(byte(m_kAlienInfo.iPodSupporterType)));
+				55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 2A 00 1B 54 0F 00 00 00 00 00 00 38 3D 35 69 B2 00 00 71 B2 00 00 00 00 01 82 B2 00 00 4A 16 16 
+
+				// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(byte(m_kAlienInfo.iRoamingType)));
+				55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 2A 00 1B 54 0F 00 00 00 00 00 00 38 3D 35 66 B2 00 00 71 B2 00 00 00 00 01 82 B2 00 00 4A 16 16 
+
+			// goto J0x4C9;  // [Explicit Break]
+			06 C9 04 
+
+	// ++ PlayerIndex;
+	A3 00 FF B2 00 00 16 
+
+	// goto J0x0B; // [Loop Continue]
+	06 0B 00 
+
+// return nothing  
+04 0B 
+
+// endofscript
+53 
+
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+CC 04 00 00 18 03 00 00 
+[/HEADER]
+[CODE]
+// PlayerIndex = 0;
+0F 00 FF B2 00 00 25 
+
+// if(PlayerIndex < 4)
+07 2E 04 96 00 FF B2 00 00 2C 04 16 
+
+	// if(m_arrTeamLoadoutInfos[PlayerIndex].m_eTeam == 16)
+	07 51 00 9A 38 3A 35 7A B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 38 3A 24 10 16 
+
+		// return nothing
+		04 0B 
+
+	// else
+	06 20 04 
+
+		// if(m_arrTeamLoadoutInfos[PlayerIndex].m_eTeam == 0)
+		07 20 04 9A 38 3A 35 7A B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 38 3A 24 00 16 
+
+			// m_arrTeamLoadoutInfos[PlayerIndex].m_eTeam = 16;
+			0F 35 7A B2 00 00 7C B2 00 00 00 01 1A 00 FF B2 00 00 01 A6 B2 00 00 24 10 
+
+			// if(!m_bUseAlienInfo)
+			07 24 03 81 2D 01 88 B2 00 00 16 
+
+				// iAlienPods = 0;
+				0F 00 FE B2 00 00 25 
+
+				// if(iAlienPods < m_kAlienSquad.arrPods.Length)
+				07 21 03 96 00 FE B2 00 00 36 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 16 
+
+					// local variable Index, stolen from another function: 00 68 A0 00 00
+					// Index = 0;
+					0F 00 57 B3 00 00 25 
+					
+					// if (Index < 5)
+					07 13 03 96 00 57 B3 00 00 2C 05 16 
+					
+						// if(Index == 0)
+						07 60 01 9A 00 57 B3 00 00 2C 00 16 
+						
+							// m_iLowestDifficulty = m_kAlienSquad.arrPods[iAlienPods].eMain;  m_iLowestDifficulty : 01 B1 9F 00 00    int-to-byte : 38 3D
+							0F 01 98 B2 00 00 38 3A 35 3D 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 
+
+						// if(Index == 1)
+						07 B5 01 9A 00 57 B3 00 00 2C 01 16 
+
+							// m_iLowestDifficulty = m_kAlienSquad.arrPods[iAlienPods].eSupport1;
+							0F 01 98 B2 00 00 38 3A 35 3C 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 
+								
+						// if(Index == 2)
+						07 0A 02 9A 00 57 B3 00 00 2C 02 16 
+						
+							// m_iLowestDifficulty = m_kAlienSquad.arrPods[iAlienPods].eSupport2;
+							0F 01 98 B2 00 00 38 3A 35 3B 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 
+
+						// if(Index == 3)
+						07 5F 02 9A 00 57 B3 00 00 2C 03 16 
+
+							// m_iLowestDifficulty = m_kAlienSquad.arrPods[iAlienPods].eMainAltWeapon;
+							0F 01 98 B2 00 00 38 3A 35 3A 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 
+								
+						// if(Index == 4)
+						07 B4 02 9A 00 57 B3 00 00 2C 04 16 
+						
+							// m_iLowestDifficulty = m_kAlienSquad.arrPods[iAlienPods].eSupport1AltWeapon;
+							0F 01 98 B2 00 00 38 3A 35 39 00 00 00 3F 00 00 00 00 00 10 00 FE B2 00 00 35 42 00 00 00 43 00 00 00 00 00 01 95 B2 00 00 
+
+						// if(m_iLowestDifficulty != 0)
+						07 05 03 9B 01 98 B2 00 00 24 00 16 
+
+							// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(m_iLowestDifficulty, 0));
+							55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 7D 00 1B 54 0F 00 00 00 00 00 00 38 3D 01 98 B2 00 00 24 00 16 16 
+
+						// ++ Index;
+						A5 00 57 B3 00 00 16 
+						
+						// goto J0xF5 // [Loop Continue]
+						06 FB 00 
+							
+
+					// ++ iAlienPods;
+					A5 00 FE B2 00 00 16 
+
+					// goto J0xC5;  // [Loop Continue]
+					06 C5 00 
+
+			// else
+			06 1D 04 
+
+				// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(byte(m_kAlienInfo.iPodLeaderType)));
+				55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 2A 00 1B 54 0F 00 00 00 00 00 00 38 3D 35 6A B2 00 00 71 B2 00 00 00 00 01 82 B2 00 00 4A 16 16 
+
+				// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(byte(m_kAlienInfo.iPodSupporterType)));
+				55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 2A 00 1B 54 0F 00 00 00 00 00 00 38 3D 35 69 B2 00 00 71 B2 00 00 00 00 01 82 B2 00 00 4A 16 16 
+
+				// m_arrTeamLoadoutInfos[PlayerIndex].m_arrUnits.AddItem(BuildAlienContent(byte(m_kAlienInfo.iRoamingType)));
+				55 35 7B B2 00 00 7C B2 00 00 00 00 1A 00 FF B2 00 00 01 A6 B2 00 00 2A 00 1B 54 0F 00 00 00 00 00 00 38 3D 35 66 B2 00 00 71 B2 00 00 00 00 01 82 B2 00 00 4A 16 16 
+
+			// goto J0x4C9;  // [Explicit Break]
+			06 2E 04 
+
+	// ++ PlayerIndex;
+	A3 00 FF B2 00 00 16 
+
+	// goto J0x0B; // [Loop Continue]
+	06 0B 00 
+
+// return nothing  
+04 0B 
+
+// null-ops (87 bytes)
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+// endofscript
+53 
+
+[/CODE]
+[/AFTER_HEX]

@@ -277,20 +277,30 @@ public class ModTab extends JSplitPane {
 	 */
 	public boolean applyChanges() {
 		try {
-			if(this.getTree().getResizeAmount() == 0) {
-				// basic search and replace without file backup
-				if(this.searchAndReplace(
-						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
-						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
-						) {
-					ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
-					return true;
+			if(this.getTree().getAction().equals("")) { // default action of making changes to object
+				if(this.getTree().getResizeAmount() == 0) {
+					// basic search and replace without file backup
+					if(this.searchAndReplace(
+							HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
+							HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
+							) {
+						ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
+						return true;
+					}
+				} else {
+					// advanced search and replace resizing function (many changes to upk)
+					if(HexSearchAndReplace.resizeAndReplace(true, this.modTree, this.getUpkFile())) {
+						ModTab.logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
+						return true;
+					}
 				}
-			} else {
-				// advanced search and replace resizing function (many changes to upk)
-				if(HexSearchAndReplace.resizeAndReplace(true, this.modTree, this.getUpkFile())) {
-					ModTab.logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
-					return true;
+			} else { // perform special action
+				// TODO: replace within enumeration?
+				if(this.getTree().getAction().equalsIgnoreCase("typechange")) {
+					if(	HexSearchAndReplace.changeObjectType(true, modTree)) {
+						ModTab.logger.log(Level.INFO, "Variable type changed to AFTER");
+						return true;
+					}
 				}
 			}
 		} catch(IOException ex) {
@@ -306,20 +316,30 @@ public class ModTab extends JSplitPane {
 	 */
 	public boolean revertChanges() {
 		try {
-			if(this.getTree().getResizeAmount() == 0) {
-				// basic search and replace without file backup
-				if(this.searchAndReplace(
-						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
-						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
-						) {
-					ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
-					return true;
+			if(this.getTree().getAction().equals("")) { // default action of making changes to object
+				if(this.getTree().getResizeAmount() == 0) {
+					// basic search and replace without file backup
+					if(this.searchAndReplace(
+							HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
+							HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
+							) {
+						ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
+						return true;
+					}
+				} else {
+					// advanced search and replace resizing function (many changes to upk)
+					if(HexSearchAndReplace.resizeAndReplace(false, this.modTree, this.getUpkFile())) {
+						ModTab.logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
+						return true;
+					}
 				}
-			} else {
-				// advanced search and replace resizing function (many changes to upk)
-				if(HexSearchAndReplace.resizeAndReplace(false, this.modTree, this.getUpkFile())) {
-					ModTab.logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
-					return true;
+			} else { // perform special action
+				// TODO: replace within enumeration?
+				if(this.getTree().getAction().equalsIgnoreCase("typechange")) {
+					if (HexSearchAndReplace.changeObjectType(false, modTree)) {
+						ModTab.logger.log(Level.INFO, "Variable type reverted to BEFORE");
+						return true;
+					}
 				}
 			}
 		} catch(IOException ex) {

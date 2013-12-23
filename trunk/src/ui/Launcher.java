@@ -24,7 +24,7 @@ public class Launcher {
 		MainFrame.getInstance().setVisible(true);
 		
 		
-		new PrototypeEditorFrame().setVisible(true);
+		//new PrototypeEditorFrame().setVisible(true);
 	}
 
 	/**

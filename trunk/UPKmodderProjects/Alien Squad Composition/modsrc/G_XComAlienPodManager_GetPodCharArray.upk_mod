@@ -1,0 +1,93 @@
+MODFILEVERSION=4
+UPKFILE=XComGame.upk 
+GUID=5B 06 B8 18 67 22 12 44 85 9B A8 5B 9D 57 1D 4B // XComGame_EW_patch1.upk
+FUNCTION=GetPodCharArray@XComAlienPodManager
+
+
+[BEFORE_HEX]
+[HEADER]
+80 01 00 00 F4 00 00 00 
+[/HEADER]
+[CODE]
+// if(kPod.eMain != 0)
+07 50 00 9B 38 3A 35 3D 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 38 3A 24 00 16 
+
+	// arrEnemies.AddItem(kPod.eMain);
+	55 00 08 43 00 00 1D 00 35 3D 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// if(kPod.eSupport1 != 0)
+07 A0 00 9B 38 3A 35 3C 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 38 3A 24 00 16 
+
+	// arrEnemies.AddItem(kPod.eSupport1);
+	55 00 08 43 00 00 1D 00 35 3C 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// if(kPod.eSupport2 != 0)
+07 F0 00 9B 38 3A 35 3B 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 38 3A 24 00 16 
+
+	// arrEnemies.AddItem(kPod.eSupport2);
+	55 00 08 43 00 00 1D 00 35 3B 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// arrAltWeapon.AddItem(kPod.eMainAltWeapon);
+55 48 0A 43 00 00 1D 00 35 3A 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// arrAltWeapon.AddItem(kPod.eSupport1AltWeapon);
+55 48 0A 43 00 00 1D 00 35 39 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// arrAltWeapon.AddItem(kPod.eSupport2AltWeapon);
+55 48 0A 43 00 00 1D 00 35 38 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// return arrEnemies;
+04 00 08 43 00 00 
+
+//return ReturnValue;   
+04 3A 09 43 00 00 
+
+// endofscript
+53 
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+80 01 00 00 F4 00 00 00 
+[/HEADER]
+[CODE]
+// arrEnemies.AddItem(kPod.eMain); (25 bytes)  // assume that every pod has a main alien -- can move this check outside to calling function (OvermindSpawn) if necessary
+55 00 08 43 00 00 1D 00 35 3D 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// if(kPod.eSupport1 != 0) (27 bytes)
+07 79 00 9B 38 3A 35 3C 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 38 3A 24 00 16 
+
+	// arrEnemies.AddItem(kPod.eSupport1); (25 bytes)
+	55 00 08 43 00 00 1D 00 35 3C 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// if(kPod.eSupport2 != 0) (27 bytes)
+07 C9 00 9B 38 3A 35 3B 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 38 3A 24 00 16 
+
+	// arrEnemies.AddItem(kPod.eSupport2); (25 bytes)
+	55 00 08 43 00 00 1D 00 35 3B 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// if(kPod.eMainAltWeapon != 0) (27 bytes)
+07 19 01 9B 38 3A 35 3A 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 38 3A 24 00 16 
+
+	// arrEnemies.AddItem(kPod.eMainAltWeapon); (25 bytes)
+	55 00 08 43 00 00 1D 00 35 3A 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// if(kPod.eSupport1AltWeapon != 0) (27 bytes)
+07 69 01 9B 38 3A 35 39 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 38 3A 24 00 16 
+
+	// arrEnemies.AddItem(kPod.eSupport1AltWeapon); (25 bytes)
+	55 00 08 43 00 00 1D 00 35 39 00 00 00 3F 00 00 00 00 00 48 0B 43 00 00 16 
+
+// return arrEnemies;
+04 00 08 43 00 00 
+
+// null-ops: (4 bytes)
+0B 0B 0B 0B 
+
+// endofscript
+53 
+
+[/CODE]
+[/AFTER_HEX]
