@@ -107,6 +107,12 @@ public class ModTree implements TreeModel {
 	private List<String> keywords;
 
 	/**
+	 * Specific action to take (optional -- defaults to replacing object contents)
+	 * Added in MODFILEVERSION=4
+	 */
+	private String action = "";
+	
+	/**
 	 * The source UpkFile to use to generate reference mouse-over tips and name references
 	 */
 	private UpkFile sourceUpk = null;
@@ -148,14 +154,16 @@ public class ModTree implements TreeModel {
 		this(new DefaultStyledDocument());
 	}
 
-	// TODO : turn off the listener
+	// TODO : turning off the listener
 	public void disableUpdating() {
 		this.updatingEnabled = false;
+//		doc.removeDocumentListener(this.mtListener);
 	}
 	
-	// TODO : turn on the listener
+	// TODO : test turning on the listener
 	public void enableUpdating() {
 		this.updatingEnabled = true;
+//		doc.addDocumentListener(this.mtListener);
 	}
 	
 	/**
@@ -325,64 +333,68 @@ public class ModTree implements TreeModel {
 	 * @param node The ModTreeNode originating the style. 
 	 */
 	protected void applyStyles(ModTreeNode node) {
-		if(!node.isLeaf()) {
-			return;
-		}
-
+		AttributeSet as = new SimpleAttributeSet(); 
 		int start = node.getStartOffset();
 		int end = node.getEndOffset();
 		boolean replace = true;
+
+		if(!node.isLeaf()) {
+			//reset entire line to basic font before restyling
+			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+			
+		} else {
+
+			// perform attribute updates
+			// TODO perform node-to-style mapping in more customizable way
+			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+			StyleConstants.setItalic((MutableAttributeSet) as, false);
+			// attempt to style comments separately. 
+			if(node.isPlainText()) {
+				// find comment marker
+				String s = node.getFullText();
+				if(s.contains("//")) {
+					int startComment = s.indexOf("//");
+					start = node.getStartOffset() + startComment;
+					end = node.getEndOffset();
+					StyleConstants.setForeground((MutableAttributeSet) as, new Color( 128, 128, 128));  // grey
+					StyleConstants.setItalic((MutableAttributeSet) as, replace);
+				}
+			}
+			if (node instanceof ModReferenceLeaf) {
+				if (node.isVirtualFunctionRef()) {
+					StyleConstants.setForeground((MutableAttributeSet) as, new Color(160, 140, 100)); //Color.MAGENTA);
+					StyleConstants.setUnderline((MutableAttributeSet) as, true);
+				} else {
+					StyleConstants.setForeground((MutableAttributeSet) as, new Color(220, 180, 50)); //Color.ORANGE);
+					StyleConstants.setUnderline((MutableAttributeSet) as, true);
+				}
+				end--;
+			}
+			// invalid code
+			if ((node.getContextFlag(HEX_CODE) &&  ! node.getContextFlag(VALID_CODE))) {
+				StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
+				StyleConstants.setStrikeThrough((MutableAttributeSet) as, replace);
+				end--;
+			}
+			if(node.getName().equals("OperandToken")) {
+				if(node.getFullText().startsWith("0B")) {
+					StyleConstants.setForeground((MutableAttributeSet) as, Color.DARK_GRAY);
+					StyleConstants.setBold((MutableAttributeSet) as, false);
+				} else {
+					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
+					StyleConstants.setBold((MutableAttributeSet) as, true);
+				}
+				end--;
+			}
+			if (node instanceof ModOffsetLeaf) {
+				if(((ModOffsetLeaf)node).getOperand() == null) { // is absolute jump offset
+					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
+				} else { // is relative jump offset
+					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 255, 180));  // yellow
+				}end--;
+			}
+		}
 		
-		// perform attribute updates
-		// TODO perform node-to-style mapping in more customizable way
-		AttributeSet as = new SimpleAttributeSet(); 
-		StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
-		StyleConstants.setItalic((MutableAttributeSet) as, false);
-		// attempt to style comments separately. 
-		if(node.isPlainText()) {
-			// find comment marker
-			String s = node.getFullText();
-			if(s.contains("//")) {
-				int startComment = s.indexOf("//");
-				start = node.getStartOffset() + startComment;
-				end = node.getEndOffset();
-				StyleConstants.setForeground((MutableAttributeSet) as, new Color( 128, 128, 128));  // grey
-				StyleConstants.setItalic((MutableAttributeSet) as, replace);
-			}
-		}
-		if (node instanceof ModReferenceLeaf) {
-			if (node.isVirtualFunctionRef()) {
-				StyleConstants.setForeground((MutableAttributeSet) as, new Color(160, 140, 100)); //Color.MAGENTA);
-				StyleConstants.setUnderline((MutableAttributeSet) as, true);
-			} else {
-				StyleConstants.setForeground((MutableAttributeSet) as, new Color(220, 180, 50)); //Color.ORANGE);
-				StyleConstants.setUnderline((MutableAttributeSet) as, true);
-			}
-			end--;
-		}
-		// invalid code
-		if ((node.getContextFlag(HEX_CODE) &&  ! node.getContextFlag(VALID_CODE))) {
-			StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
-			StyleConstants.setStrikeThrough((MutableAttributeSet) as, replace);
-			end--;
-		}
-		if(node.getName().equals("OperandToken")) {
-			if(node.getFullText().startsWith("0B")) {
-				StyleConstants.setForeground((MutableAttributeSet) as, Color.DARK_GRAY);
-				StyleConstants.setBold((MutableAttributeSet) as, false);
-			} else {
-				StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
-				StyleConstants.setBold((MutableAttributeSet) as, true);
-			}
-			end--;
-		}
-		if (node instanceof ModOffsetLeaf) {
-			if(((ModOffsetLeaf)node).getOperand() == null) { // is absolute jump offset
-				StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
-			} else { // is relative jump offset
-				StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 255, 180));  // yellow
-			}end--;
-		}
 		((StyledDocument) this.getDocument()).setCharacterAttributes(start, end-start, as, replace);
 		restylingEvents ++;
 	}
@@ -433,15 +445,13 @@ public class ModTree implements TreeModel {
 				int nLines = s.length() - s.replace("\n", "").length();
 				int oLines = o.length() - o.replace("\n", "").length();
 				int deltaLines = nLines - oLines;
-				// TODO: fix out of bounds error when adding to end of document
+
 				int lineInsertPoint = this.currRootNode.getNodeIndex(de.getOffset());
 				
 				this.prevRootNode = currRootNode;
 				this.currRootNode = new ModTreeRootNode(this);
 				long startTime = System.currentTimeMillis();
 				this.currRootNode.insertString(0, s, null);
-				logger.log(Level.INFO, "Inserted text, took " + (System.currentTimeMillis() - startTime) + "ms");
-				startTime = System.currentTimeMillis();
 				this.currRootNode.reorganizeAfterInsertion();
 				logger.log(Level.INFO, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 
@@ -566,6 +576,22 @@ public class ModTree implements TreeModel {
 	}
 
 	
+	/**
+	 * Returns the action for this modfile.
+	 * @return the function name
+	 */
+	public String getAction() {
+		return this.action;
+	}
+
+	/**
+	 * Sets the action for this modfile.
+	 * @param s the action
+	 */
+	public void setAction(String s) {
+		this.action = s;
+	}
+
 	@Override
 	public Object getChild(Object node, int i) {
 		if(node == this.getRoot()) {

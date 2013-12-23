@@ -412,7 +412,7 @@ public class ModTreeNode implements TreeNode {
 		if (this.plainText) {
 			if (content.startsWith("UPKFILE=")) {
 				getTree().setUpkName(this.getTagValue(this.getFullText()));
-			} else if (content.startsWith("FUNCTION=")) {
+			} else if (content.startsWith("FUNCTION=") || content.startsWith("OBJECT_ENTRY=")) { // allow alternative usage of OBJECT_ENTRY as keyword
 				getTree().setFunctionName(this.getTagValue(this.getFullText()));
 			} else if (content.startsWith("GUID=")) {
 				getTree().setGuid(this.getTagValue(this.getFullText()));
@@ -433,6 +433,13 @@ public class ModTreeNode implements TreeNode {
 			} else if (content.startsWith("KEYWORD=")) {
 				try {
 					getTree().addKeyword(this.getTagValue(this.getFullText()));
+				}
+				catch (NumberFormatException x) {
+					System.out.println("Invalid Resize amount: " +x);
+				}
+			} else if (content.startsWith("ACTION=")) {
+				try {
+					getTree().setAction(this.getTagValue(this.getFullText()));
 				}
 				catch (NumberFormatException x) {
 					System.out.println("Invalid Resize amount: " +x);

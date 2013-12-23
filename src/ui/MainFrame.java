@@ -231,9 +231,6 @@ public class MainFrame extends JFrame {
 	private void initActions() {
 		this.actionCache = new HashMap<>();
 		
-		// added this because later Constant-derived ones were missing
-//		Icon hexIcon = new ImageIcon(this.getClass().getResource("/ui/resources/icons/hex16.png"));
-
 		// new project
 		Action newProjectAction = new BrowseAbstractAction("New Project", this, DIRECTORY_FILTER) {
 			@Override
@@ -248,7 +245,7 @@ public class MainFrame extends JFrame {
 		newProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.fileIcon"));
 //		newProjectAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
 //		newProjectAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
-		newProjectAction.putValue(Action.SHORT_DESCRIPTION, "New Proj");
+		newProjectAction.putValue(Action.SHORT_DESCRIPTION, "New Project");
 
 		// new file
 		Action newFileAction = new AbstractAction("New File") {
@@ -334,7 +331,7 @@ public class MainFrame extends JFrame {
 		openProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
 		openProjectAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
 		openProjectAction.putValue(Action.MNEMONIC_KEY, (int) 'o');
-		openProjectAction.putValue(Action.SHORT_DESCRIPTION, "Open Proj");
+		openProjectAction.putValue(Action.SHORT_DESCRIPTION, "Open Project");
 		
 		// close project
 		Action closeProjectAction = new AbstractAction("Close Project") {
@@ -494,7 +491,6 @@ public class MainFrame extends JFrame {
 				}
 			}
 		}; 
-//		hexApplyAction.putValue(Action.SMALL_ICON, hexIcon);
 		hexApplyAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
 		hexApplyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
 		hexApplyAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
@@ -520,7 +516,6 @@ public class MainFrame extends JFrame {
 			}
 		};
 		hexRevertAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
-//		hexRevertAction.putValue(Action.SMALL_ICON, hexIcon);
 		hexRevertAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
 		hexRevertAction.putValue(Action.MNEMONIC_KEY, (int) 'r');
 		hexRevertAction.putValue(Action.SHORT_DESCRIPTION, "Revert Hex Changes");
@@ -563,11 +558,12 @@ public class MainFrame extends JFrame {
 		};
 		aboutAction.putValue(Action.SMALL_ICON, aboutIcon);
 		aboutAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
-		
-		// file actions
+
+		// project actions
 		actionCache.put("newProj", newProjectAction);
 		actionCache.put("openProj", openProjectAction);
 		actionCache.put("closeProj", closeProjectAction);
+		// file actions
 		actionCache.put("newFile", newFileAction);
 		actionCache.put("openFile", openFileAction);
 		actionCache.put("closeFile", closeFileAction);
@@ -715,6 +711,8 @@ public class MainFrame extends JFrame {
 		projectBar.setFloatable(false);
 		
 		projectBar.add(Box.createHorizontalGlue());
+		projectBar.add(actionCache.get("newProj"));
+		projectBar.add(actionCache.get("openProj"));
 //		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
 //		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
 //		projectBar.add(new JButton(Constants.HEX_SMALL_ICON));
@@ -728,7 +726,7 @@ public class MainFrame extends JFrame {
 		JMenuBar menuBar = this.createMenuBar();
 		
 		// create tool bar
-		JToolBar toolBar = this.createToolBar();
+		JToolBar fileToolBar = this.createFileToolBar();
 		
 		// configure content pane layout
 		Container contentPane = this.getContentPane();
@@ -778,7 +776,7 @@ public class MainFrame extends JFrame {
 		JSplitPane centerPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, projectScpn, tabPane);
 		
 		this.setJMenuBar(menuBar);
-		contentPane.add(toolBar, BorderLayout.NORTH);
+		contentPane.add(fileToolBar, BorderLayout.NORTH);
 		contentPane.add(centerPane, BorderLayout.CENTER);
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
@@ -893,14 +891,14 @@ public class MainFrame extends JFrame {
 	}
 	
 	/**
-	 * Creates and configures the tool bar.
+	 * Creates and configures the file tool bar.
 	 * @return the tool bar
 	 */
-	private JToolBar createToolBar() {
+	private JToolBar createFileToolBar() {
 		
 		JToolBar toolBar = new JToolBar();
-		toolBar.add(actionCache.get("new"));
-		toolBar.add(actionCache.get("open"));
+		toolBar.add(actionCache.get("newFile"));
+		toolBar.add(actionCache.get("openFile"));
 		toolBar.addSeparator();
 		toolBar.add(actionCache.get("save"));
 		toolBar.addSeparator();
@@ -908,7 +906,7 @@ public class MainFrame extends JFrame {
 		toolBar.addSeparator();
 		toolBar.add(actionCache.get("hexApply"));
 		toolBar.add(actionCache.get("hexRevert"));
-		
+
 		return toolBar;
 	}
 
@@ -1108,6 +1106,7 @@ public class MainFrame extends JFrame {
 		actionCache.get("closeAll").setEnabled(enabled);
 		actionCache.get("save").setEnabled(enabled);
 		actionCache.get("saveAs").setEnabled(enabled);
+		actionCache.get("refUpdate").setEnabled(enabled);
 	}
 	
 	/**
@@ -1117,7 +1116,6 @@ public class MainFrame extends JFrame {
 	 * @param enabled the enable state
 	 */
 	protected void setEditActionsEnabled(boolean enabled) {
-		actionCache.get("refUpdate").setEnabled(enabled);
 		actionCache.get("hexApply").setEnabled(enabled);
 		actionCache.get("hexRevert").setEnabled(enabled);
 	}

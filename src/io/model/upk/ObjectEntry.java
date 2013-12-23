@@ -139,6 +139,16 @@ public class ObjectEntry {
 		return this.iType;
 	}
 	
+	
+	/**
+	 * Sets the local cached copy of the object type
+	 * WARNING -- this does not update the file itself
+	 * @param type the new type
+	 */
+	public void setType(int type) {
+		this.iType = type;
+	}
+	
 	/**
 	 * Sets the position of the ObjectEntry object within the upk.
 	 * @return the file position of the object entry itself

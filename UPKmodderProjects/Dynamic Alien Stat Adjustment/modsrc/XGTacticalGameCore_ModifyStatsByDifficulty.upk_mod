@@ -10,7 +10,9 @@ RESIZE=293 // size increase in hex -- function will be significantly resized up
 //    initial upgrades are drawn from BalanceMods_Easy
 
 // dynamic upgrades vary only based on dayCount. Any difficulty-related changes are not stored in the CharacterBalance struct
-//    may use MaxActiveAIUnits to store difficulty variation for dynamic upgrade appearance and hard-code this to max.
+//    MaxActiveAIUnits to store difficulty variation for dynamic upgrade appearance 
+//	MaxActiveUnits = 100 gives default behavior (as defined in BalanceMods_Normal
+//	MaxActiveUnits = 90 reduces appearance time to 90% of default
 //    dynamic upgrades are drawn from BalanceMods_Normal
 //    dynamic upgrade encoding:
 //       	iDamage	(damage)

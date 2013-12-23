@@ -1,0 +1,18 @@
+MODFILEVERSION=4
+UPKFILE=XComGame.upk 
+GUID=5B 06 B8 18 67 22 12 44 85 9B A8 5B 9D 57 1D 4B // XComGame_EW_patch1.upk
+OBJECT_ENTRY=kCanvas@DebugAnims@XGUnit
+ACTION=typechange
+
+[BEFORE_HEX]
+OBJECT_TYPE=Core:ObjectProperty@Core
+SIZE=2C // hexadecimal
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+OBJECT_TYPE=Core:IntProperty@Core
+SIZE=28 // hexadecimal
+[/AFTER_HEX]
+
+
+

@@ -475,7 +475,152 @@ public class HexSearchAndReplace {
 		return newFile;
 	}
 
+	/**
+	 * Alters the object table entry specified in the ModTree to alter the object's type
+	 * @param apply whether the change is being applied or reverted
+	 * @param tree contains the data necessary to make the change
+	 * @return
+	 */
+	public static boolean changeObjectType(boolean apply, ModTree tree) {
 
+		ModContextType findContext;
+		ModContextType replaceContext;
+		if(apply) {
+			findContext = ModContextType.BEFORE_HEX;
+			replaceContext = ModContextType.AFTER_HEX;
+		} else {
+			findContext = ModContextType.AFTER_HEX;
+			replaceContext = ModContextType.BEFORE_HEX;
+		}
+		
+		int findSize, replaceSize;
+		
+		//retrieve type change properties from tree
+		String findType = findByKeyword("OBJECT_TYPE", tree, findContext);
+		if (findType.isEmpty()) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No FIND object type.");
+			return false;
+		}
+		String findSizeString = findByKeyword("SIZE", tree, findContext);
+		if (findSizeString.isEmpty()) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No FIND object size.");
+			return false;
+		}
+		try {
+			findSize = Integer.parseInt(findSizeString, 16);
+		}
+		catch (NumberFormatException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Invalid FIND size.", ex);
+			return false;
+		}
+		
+		String replaceType = findByKeyword("OBJECT_TYPE", tree, replaceContext);
+		if (replaceType.isEmpty()) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No REPLACE object type.");
+			return false;
+		}
+		String replaceSizeString = findByKeyword("SIZE", tree, replaceContext);
+		if (replaceSizeString.isEmpty()) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No REPLACE object size.");
+			return false;
+		}
+		try {
+			replaceSize = Integer.parseInt(replaceSizeString, 16);
+		}
+		catch (NumberFormatException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Invalid REPLACE size.", ex);
+			return false;
+		}
+		
+		// retrieve import table references for types
+		int findTypeIdx = tree.getSourceUpk().findRefByName(findType);
+		if(findTypeIdx == 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No match for FIND type in Import Table");
+			return false;
+		}
+		if(findTypeIdx > 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "ERROR - FIND object type can only be from Import Table");
+			return false;
+		}
+		
+		int replaceTypeIdx = tree.getSourceUpk().findRefByName(replaceType);
+		if(replaceTypeIdx == 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No match for REPLACE type in Import Table");
+			return false;
+		}
+		if(replaceTypeIdx > 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "ERROR - REPLACE object type can only be from Import Table");
+			return false;
+		}
+		
+		// attempt to find object
+		int objectIdx = tree.getSourceUpk().findRefByName(tree.getFunctionName());
+		if(objectIdx == 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Object not found");
+			return false;
+		}
+		if(objectIdx < 0) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Import Objects cannot have type changed");
+			return false;
+		}
+		
+		ObjectEntry currentObjEntry = tree.getSourceUpk().getHeader().getObjectList().get(objectIdx);
+		
+		// verify that old values are there.
+		if(currentObjEntry.getType() != findTypeIdx) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "FIND type mismatch - unexpected type found");
+			return false;
+		}
+		if(currentObjEntry.getUpkSize() != findSize) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "FIND size mismatch - unexpected size found");
+			return false;
+		}
+		
+		// change the file entries
+		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getSourceUpk().getFile().toPath(), StandardOpenOption.WRITE)) {
+			ByteBuffer intBuf = ByteBuffer.allocate(4);
+			intBuf.order(ByteOrder.LITTLE_ENDIAN);
+			int objectListPos = currentObjEntry.getObjectEntryPos();
+			
+			// update changed object/function's ObjectEntry size in file
+			intBuf.putInt(replaceTypeIdx);
+			intBuf.rewind();
+			sbc.position(objectListPos + 0); // set file position -- 0 writes to the 0th word in the ObjectEntry, object type
+			sbc.write(intBuf);		// write buffer
+			intBuf.clear();
+			
+			intBuf.putInt(replaceSize);
+			intBuf.rewind();
+			sbc.position(objectListPos + 32); // set file position -- 32 writes to the 8th word in the ObjectEntry, object size
+			sbc.write(intBuf);		// write buffer
+			
+			//update data in memory model of UPK
+			currentObjEntry.setType(replaceTypeIdx);
+			currentObjEntry.setUpkSize(replaceSize);
+			
+		} catch(IOException ex) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "IO Exception while writing data", ex);
+			return false;
+		}
+		
+		return true;
+	}
+	
+	private static String findByKeyword(String keyword, ModTree tree, ModContextType context) {
+		Enumeration<ModTreeNode> lines = tree.getRoot().children();
+		while (lines.hasMoreElements()) {
+			ModTreeNode line = lines.nextElement();
+			if (line.getContextFlag(context)) {
+				String lineString = line.getFullText().trim();
+				if(lineString.startsWith(keyword)) {
+					if(lineString.contains("=")) {
+						return lineString.split("//")[0].trim().split("=")[1].trim();
+					}
+				}
+			}
+		}
+		return "";
+	}
 	/**
 	 * Copies and appends a given function block to the end of the supplied upk
 	 * @param bytesToAdd the number of bytes to add to the function
