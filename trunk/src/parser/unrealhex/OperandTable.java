@@ -17,6 +17,15 @@
 
 package parser.unrealhex;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import ui.Constants;
+
 /**
  * Class holding global operand code strings.
  * @author Amineri, XMS
@@ -25,55 +34,67 @@ package parser.unrealhex;
 public class OperandTable {
 	
 	/**
-	 * The list of operand codes.
+	 * Empty default constructor to prevent instantiation.
 	 */
-	private static String[] operandDecodes = new String[256];
-	
+	private OperandTable() { }
 	
 	/**
 	 * The list of operand names (for display only).
 	 */
-	private static String[] operandNames = new String[256];
-
-	/**
-	 * Display initialization flag
-	 */
-	private static boolean initialized = false;
+	private static String[] operandNames;
 	
 	/**
-	 * Reinitializes the operand table.
+	 * The list of operand codes.
 	 */
-	public static void reinit() {
-		if (!initialized) {
-			operandDecodes = new String[256];
-			operandNames = new String[256];
+	private static String[] operandDecodes;
+
+	/**
+	 * Method used to lazily initialize the operand data.
+	 */
+	private static void initialize() {
+		try {
+			parseFile(Constants.OPERAND_DATA_FILE);
+		} catch (IOException e) {
+			System.err.println("Failed to read operand data.");
+			e.printStackTrace();
+			// reset variables
+			operandNames = null;
+			operandDecodes = null;
 		}
 	}
 
 	/**
-	 * Sets operand table as initialized.
+	 * Parses the specified operand data file and extract operand token data from it.
+	 * @param file the operand data file
+	 * @throws IOException if an I/O error occurs
 	 */
-	public static void setInitialized() {
-		initialized = true;
+	public static void parseFile(File file) throws IOException {
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		String line;
+		while ((line = br.readLine()) != null) {
+			String[] split = line.split(";");
+			if (!split[0].isEmpty()) {
+				parseLine(line);
+			}
+		}
+		br.close();
 	}
 	
 	/**
 	 * Parses the specified string and stores its contents in the list of operand codes.
-	 * @param data the operand code string to parse
+	 * @param line the operand code string to parse
 	 */
-	public static void parseData(String data) {
-//		if(operandDecodes[0]!= null)  // TODO : handle re-initialization of the operand table -- this doesn't work
-//				return;
-		int iOpIndex = Integer.parseInt(data.split("\\s")[0], 16);
+	public static void parseLine(String line) {
+		int iOpIndex = Integer.parseInt(line.split("\\s")[0], 16);
 		if (operandDecodes[iOpIndex] == null) {
-			operandDecodes[iOpIndex] = data.split(";")[0];
+			operandDecodes[iOpIndex] = line.split(";")[0];
 		} else {
 			System.out.println("Duplicate opcode " + iOpIndex);
 			System.out.println(operandDecodes[iOpIndex]);
-			System.out.println(data);
+			System.out.println(line);
 			System.exit(1);
 		}
-		operandNames[iOpIndex] = data.split(";",3)[1];
+		operandNames[iOpIndex] = line.split(";", 3)[1];
 	}
 	
 	/**
@@ -82,11 +103,13 @@ public class OperandTable {
 	 * @return the operand code string
 	 */
 	public static String getOperandString(String opcode) {
-		try
-		{
+		if (operandNames == null) {
+			initialize();
+		}
+		try {
 			int i = Integer.parseInt(opcode, 16);
-			if(i >= 0 && i < 256) {
-				if(operandDecodes[i] != null) {
+			if (i >= 0 && i < 256) {
+				if (operandDecodes[i] != null) {
 					return operandDecodes[i];
 				} else {
 					return "";
@@ -94,20 +117,24 @@ public class OperandTable {
 			} else {
 				return "";
 			}
-		}
-		catch (NumberFormatException x)
-		{
+		} catch (NumberFormatException x) {
 			return "";
 		}
 	}
 
-	
+	/**
+	 * TODO: API
+	 * @param opcode
+	 * @return
+	 */
 	public static String getOperandName(String opcode) {
-		try
-		{
+		if (operandNames == null) {
+			initialize();
+		}
+		try {
 			int i = Integer.parseInt(opcode, 16);
-			if(i >= 0 && i < 256) {
-				if(operandNames[i] != null) {
+			if (i >= 0 && i < 256) {
+				if (operandNames[i] != null) {
 					return operandNames[i];
 				} else {
 					return "";
@@ -115,9 +142,7 @@ public class OperandTable {
 			} else {
 				return "";
 			}
-		}
-		catch (NumberFormatException x)
-		{
+		} catch (NumberFormatException x) {
 			return "";
 		}
 	}

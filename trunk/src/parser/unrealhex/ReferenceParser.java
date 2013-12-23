@@ -17,12 +17,6 @@
 
 package parser.unrealhex;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import parser.unrealhex.OperandTable;
 
 /**
  *
@@ -49,7 +43,7 @@ public class ReferenceParser
 		m_iInputPosition=0;
 		m_sOutputString="";
 
-		while(m_iInputPosition<m_sTokens.length) {
+		while (m_iInputPosition < m_sTokens.length) {
 			parseGenericObject();
 		}
 		return m_sOutputString;

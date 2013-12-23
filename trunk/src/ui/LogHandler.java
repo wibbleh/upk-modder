@@ -27,14 +27,9 @@ public class LogHandler extends Handler {
 	 * loggers into the specified text component.
 	 * @param txtComp the text component to receive log messages
 	 */
-	public LogHandler(JTextComponent txtComp, Logger... loggers) {
+	public LogHandler(JTextComponent txtComp) {
 		this.document = txtComp.getDocument();
 		this.setLevel(Level.ALL);
-
-		for (Logger logger : loggers) {
-			logger.addHandler(this);
-		}
-		
 		this.setFormatter(new LogFormatter());
 	}
 

@@ -11,10 +11,12 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.JTabbedPane;
 import javax.swing.tree.MutableTreeNode;
-import ui.MainFrame.ProjectTreeModel;
-import ui.ModTab;
+
+import ui.ModFileTabbedPane.ModFileTab;
+import ui.tree.ProjectTreeModel;
 
 /**
  * Saves the application state to disk for reloading when application is next launched.
@@ -77,11 +79,11 @@ public class UpkModderProperties {
 	public void saveConfigState() {
 		// delete old config properties file
 		File file = new File(configPropertiesFilename);
-		if(file.exists()) {
+		if (file.exists()) {
 			// delete old file
 			file.delete();
 		}
-		
+
 		// store properties file
 		try {
     		configProperties.store(new FileOutputStream(file), null);
@@ -132,7 +134,7 @@ public class UpkModderProperties {
 //			List<ProjectTreeMdl> root = (List<ProjectTreeMdl>) projectPaneTree.getRoot();
 			int projectCount = root.getChildCount();
 			for(int i = 0; i < projectCount; i ++) {
-				openProjects.add(projectTree.getProjectFileAt(i).getAbsolutePath());
+//				openProjects.add(projectTree.getProjectFileAt(i).getAbsolutePath());
 			}
 		}
 		// clear prior open files state
@@ -145,7 +147,7 @@ public class UpkModderProperties {
 		if(tabPane != null) {
 			int tabCount = tabPane.getTabCount();
 			for(int i = 0; i < tabCount; i ++) {
-				ModTab tab = (ModTab) tabPane.getComponentAt(i);
+				ModFileTab tab = (ModFileTab) tabPane.getComponentAt(i);
 				File file = tab.getModFile();
 //				if(file.exists()) {
 					String filename = file.getAbsolutePath();

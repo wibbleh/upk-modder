@@ -1,25 +1,25 @@
 package util.unrealhex;
 
-import io.parser.OperandTableParser;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import io.upk.UpkFileLoader;
+
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
+
 import model.modtree.ModTree;
-import model.modtree.ModTreeTest;
 import model.upk.UpkFile;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
 import ui.ModTab;
 
 /**
@@ -52,14 +52,14 @@ public class HexSearchAndReplaceTest {
 //		System.out.println("Reading upks.");
 //		upks = new UpkFileLoader();
 //
-		// initialize Operand Table for all tests that use it
-		System.out.println("Reading operand data.");
-		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
-		try {
-			parser.parseFile();
-		} catch(IOException ex) {
-			Logger.getLogger(ModTreeTest.class.getName()).log(Level.SEVERE, null, ex);
-		}
+//		// initialize Operand Table for all tests that use it
+//		System.out.println("Reading operand data.");
+//		OperandTableParser parser = new OperandTableParser(Paths.get("config/operand_data.ini"));
+//		try {
+//			parser.parseFile();
+//		} catch(IOException ex) {
+//			Logger.getLogger(ModTreeTest.class.getName()).log(Level.SEVERE, null, ex);
+//		}
 
 	}
 	

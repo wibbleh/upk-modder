@@ -40,9 +40,11 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 	private boolean save;
 
 	/**
-	 * Constructs a browse action listener for showing a file selection dialog
-	 * atop the specified parent component using the specified file filter. 
-	 * @param name
+	 * Constructs a browse action for showing a file selection dialog atop the
+	 * specified parent component using the specified file filter.<br>
+	 * Providing <code>null</code> as a filter will make the file selection
+	 * dialog show directories only.
+	 * @param name the name for the action
 	 * @param parent the parent component
 	 * @param filter the file filter to use
 	 */
@@ -53,9 +55,10 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 	/**
 	 * Constructs a browse action listener for showing either an open or save
 	 * file selection dialog atop the specified parent component using the
-	 * specified file filter.
-	 * 
-	 * @param name
+	 * specified file filter.<br>
+	 * Providing <code>null</code> as a filter will make the file selection
+	 * dialog show directories only.
+	 * @param name the name for the action
 	 * @param parent the parent component
 	 * @param filter the file filter to use
 	 * @param save <code>true</code> if a save dialog shall be shown,
@@ -88,7 +91,11 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 		}
 		// create and configure file chooser instance
 		JFileChooser chooser = new JFileChooser(getLastSelectedFile());
-		chooser.setFileFilter(this.filter);
+		if (this.filter != null) {
+			chooser.setFileFilter(this.filter);
+		} else {
+			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		}
 		chooser.setMultiSelectionEnabled(false);
 		chooser.setAcceptAllFileFilterUsed(false);
 		// show file selection dialog
@@ -96,13 +103,12 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 		// TODO: implement prompting for confirmation in save dialog
 		if (res == JFileChooser.APPROVE_OPTION) {
 			File selectedFile = chooser.getSelectedFile();
-			if (!this.filter.accept(selectedFile)) {
-				// added condition to make directory filter work for creating new projects
-				if(this.filter instanceof ExtensionFileFilter) {
-					selectedFile = new File(selectedFile.getPath() + ((ExtensionFileFilter) this.filter).getExtension());
-					if (!this.filter.accept(selectedFile)) {
-						throw new IllegalArgumentException("Unusable filename was provided: " + selectedFile.getName());
-					}
+			if ((this.filter != null) && !this.filter.accept(selectedFile)) {
+				// append extension and try again
+				selectedFile = new File(selectedFile.getPath() + ((ExtensionFileFilter) this.filter).getExtension());
+				if (!this.filter.accept(selectedFile)) {
+					// still not working, throw error
+					throw new IllegalArgumentException("Unusable filename was provided: " + selectedFile.getName());
 				}
 			}
 			// execute operation
@@ -117,7 +123,7 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 	 * implement this to perform operations on the selected file.
 	 * @param file the file to perform operations on
 	 */
-	protected abstract void execute(File file);
+	public abstract void execute(File file);
 	
 	/**
 	 * Returns the reference to the last selected file.
