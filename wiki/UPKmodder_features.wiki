@@ -1,0 +1,66 @@
+#summary Features of the UPKmodder tool
+
+= Introduction =
+
+This page provides a general overview of the features in the UPKmodder tool.
+
+
+= Details =
+
+UPKmodder provides the following :
+  * The project pane, on the left-hand side
+  * Each open modfile has a separate tab and is divided into 2 sub-panes
+    * The main editor on the left hand side, which is open by default
+      * The main editor provides highlighting of parseable unreal bytecode and is otherwise a general-purpose text editor
+    * The tree view on the right-hand side, which is closed by default
+      * Does not provide editing capability
+      * Allows viewing of parsed unreal bytecode in a hierarchical fashion
+      * Shows memory / file positions for each line
+      * Shows memory sizes of each unreal token when line is expanded
+      * Shows operand name and reference names when target upk is selected
+
+File Actions :
+  * Project Actions
+    * New Project
+    * Open Project
+    * Close Project
+  * ModFile Actions
+    * New File
+      * Creates a new modfile using the template file 'defaultModfileTemplate.upk_mod'
+    * Open File
+      * File can also be opened by double-clicking on the file in the Project pane
+    * Close File
+    * Close All
+    * Save
+      * Save the active modfile
+    * Save as
+      * Save a copy of the active modfile 
+    * Export
+      * Not implemented as of v0.65 
+
+Edit Actions :
+  * Update References
+    * Can also be accessed from the toolbar
+    * Opens the Update References dialogue
+    * Provides capability to update a modfile from one game version to another (i.e. fixing after patches)
+  * Apply Hex Changes
+    * Can also be accessed from the toolbar
+    * Attempts to apply changes in the active ModFile to the targeted upk for that ModFile
+      * Searches for BEFORE hex and replaces them with AFTER hex
+    * If successful ModFile name will be displayed in _*Blue*_ italics (this means that the upk is modded)
+    * If unsuccessful the Logger will contain info detailing why the application failed
+  * Revert Hex Changes
+    * Can also be accessed from the toolbar
+    * Similar to apply, but searches for AFTER and replaces it with BEFORE
+    * If successful the ModFile name will be displayed in *Green* non-italics (this means that the upk is restored to original state)
+
+Other actions :
+  * Set target upk
+    * Accessed in lower left status bar by clicking on folder icon
+    * Target upk performs the following roles :
+      * Is the upk that apply and revert actions affect
+      * Is the upk that reference names are drawn from in the Tree View
+
+  * View log
+    * The log is accessed via the button in the lower right corner of the status bar
+    * Provides additional information about actions performed, including errors and timing information
