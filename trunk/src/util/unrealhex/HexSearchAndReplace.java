@@ -299,26 +299,41 @@ public class HexSearchAndReplace {
 			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "IO Error finding file position", ex);
 			return false;
 		}
+		
+		// verify found file position
+		if(filePosition == -1) {
+			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "FIND hex not found");
+			return false;
+		}
+		
+		long startTime = System.currentTimeMillis();
+		
 		// Invoke copyAndReplace function
 		File newFile = copyAndReplaceUpk((int) filePosition, findHex, replaceHex , upk);
 		if(newFile == null) {
 			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Failure during copyAndReplace");
 			return false;
 		}
+		logger.log(Level.INFO, "Resize: inserted new hex, took " + (System.currentTimeMillis() - startTime) + "ms");
 
 
-		ByteBuffer intBuf = ByteBuffer.allocate(4);
-		intBuf.order(ByteOrder.LITTLE_ENDIAN);
-		int objectListPos;
-		// update changed objects ObjectEntry size
-		ObjectEntry currObjectEntry = upk.getHeader().getObjectList().get(currentObjectIndex);
-		objectListPos = currObjectEntry.getObjectEntryPos();
-		int objectSize = currObjectEntry.getUpkSize();
-		intBuf.putInt(objectSize + resizeAmount);
-		intBuf.rewind();
+		startTime = System.currentTimeMillis();
+
+		
 		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE)) {
+			ByteBuffer intBuf = ByteBuffer.allocate(4);
+			intBuf.order(ByteOrder.LITTLE_ENDIAN);
+			
+			// update changed object/function's ObjectEntry size in file
+			ObjectEntry currObjectEntry = upk.getHeader().getObjectList().get(currentObjectIndex);
+			int objectListPos = currObjectEntry.getObjectEntryPos();
+			int objectSize = currObjectEntry.getUpkSize();
+			intBuf.putInt(objectSize + resizeAmount);
+			intBuf.rewind();
 			sbc.position(objectListPos + 32); // set file position -- 32 writes to the 8th word in the ObjectEntry, object size
 			sbc.write(intBuf);		// write buffer
+			
+			// update changes object/function's ObjectEntry size in memory
 			currObjectEntry.setUpkSize(objectSize + resizeAmount);
 		
 			// If size altered, adjusts object list positions in new upk file
@@ -328,13 +343,16 @@ public class HexSearchAndReplace {
 					currObjectEntry = upk.getHeader().getObjectList().get(i);
 					// check if object is after the inserted file position 
 					if(currObjectEntry.getUpkPos() > filePosition) {
-						// update Object Entry's position
+						// update Object Entry's position in file
 						intBuf.clear();
 						intBuf.putInt(currObjectEntry.getUpkPos() + resizeAmount);
 						intBuf.rewind();
 						objectListPos = currObjectEntry.getObjectEntryPos();
-							sbc.position(objectListPos + 36); // set file position -- 36 writes to the 9th word in the ObjectEntry, object position
-							sbc.write(intBuf);		// write buffer
+						sbc.position(objectListPos + 36); // set file position -- 36 writes to the 9th word in the ObjectEntry, object position
+						sbc.write(intBuf);		// write buffer
+						
+						// update Object Entry's position in memory
+						currObjectEntry.setUpkPos(currObjectEntry.getUpkPos() + resizeAmount);
 					}
 				}
 			}
@@ -343,6 +361,7 @@ public class HexSearchAndReplace {
 			return false;
 		}
 		
+		logger.log(Level.INFO, "Resize: rewrote object table, took " + (System.currentTimeMillis() - startTime) + "ms");
 		return success;
 	}
 	
