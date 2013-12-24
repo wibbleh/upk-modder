@@ -1,5 +1,6 @@
 package ui;
 
+import java.awt.Font;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Properties;
@@ -33,7 +34,62 @@ public class Constants {
 		"Amineri",
 		"XMarksTheSpot"
 	};
+
 	
+	// TODO: Make the font sizes, etc user-configurable
+	/**
+	 * Text Pane Tab fonts
+	 */
+	public static final Font TAB_PANE_FONT_UNKNOWN = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+	public static final Font TAB_PANE_FONT_APPLIED = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+	public static final Font TAB_PANE_FONT_REVERTED = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+	public static final Font TAB_PANE_FONT_ERROR = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+
+	/**
+	 * Text Pane font 
+	 */
+	public static final Font TEXT_PANE_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+
+	/**
+	 * Tree Pane font 
+	 */
+	public static final Font TREE_PANE_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+
+	/**
+	 * Status Message font 
+	 */
+	public static final Font STATUS_MSG_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 11);
+
+	/**
+	 * Logger Frame font 
+	 */
+	public static final Font LOGGER_FRAME_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 11);
+
+	/**
+	 * Project Name font 
+	 */
+	public static final Font PROJECT_NAME_FONT = new Font(Font.DIALOG, Font.BOLD, 12);
+	
+	/**
+	 * Project Entry font 
+	 */
+	public static final Font PROJECT_ENTRY_FONT = new Font(Font.DIALOG, Font.TRUETYPE_FONT, 11);
+	
+	/**
+	 * Reference Update font 
+	 */
+	public static final Font REFERENCE_UPDATE_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+
+	/**
+	 * Target UPK Panel font 
+	 */
+	public static final Font TARGET_UPK_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+
+	/**
+	 * Tab size 
+	 */
+	public static final int TAB_SIZE = 24;
+
 	/**
 	 * The operand data file.
 	 */

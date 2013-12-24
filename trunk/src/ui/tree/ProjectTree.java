@@ -1,7 +1,6 @@
 package ui.tree;
 
 import java.awt.Component;
-import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -21,6 +20,7 @@ import javax.swing.tree.TreeSelectionModel;
 
 import ui.ActionCache;
 import ui.BrowseAbstractAction;
+import static ui.Constants.*;
 import ui.MainFrame;
 import ui.tree.ProjectTreeModel.ProjectNode;
 
@@ -71,7 +71,7 @@ public class ProjectTree extends JTree {
 				
 				// modify renderer component depending on context
 				if (value instanceof ProjectNode) {
-					rendererLbl.setFont(new Font(Font.DIALOG, Font.BOLD, 12));
+					rendererLbl.setFont(PROJECT_NAME_FONT);
 					if (leaf) {
 						// change icon for empty projects
 						rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));
@@ -79,7 +79,7 @@ public class ProjectTree extends JTree {
 				} else if (value instanceof File) {
 					File file = (File) value;
 					rendererLbl.setText(file.getName());
-					rendererLbl.setFont(new Font(Font.DIALOG, Font.TRUETYPE_FONT, 11));
+					rendererLbl.setFont(PROJECT_ENTRY_FONT);
 					if (leaf && file.isDirectory()) {
 						// change icon for empty directories
 						rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));

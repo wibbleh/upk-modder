@@ -3,7 +3,6 @@ package ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -20,19 +19,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTree;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.BoxView;
-import javax.swing.text.ComponentView;
 import javax.swing.text.Document;
-import javax.swing.text.Element;
-import javax.swing.text.IconView;
-import javax.swing.text.LabelView;
-import javax.swing.text.ParagraphView;
-import javax.swing.text.PlainDocument;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.View;
-import javax.swing.text.ViewFactory;
 import javax.swing.tree.DefaultTreeCellRenderer;
 
 import model.modtree.ModGenericLeaf;
@@ -45,6 +32,7 @@ import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
 import org.bounce.text.LineNumberMargin;
+import static ui.Constants.*;
 
 import ui.dialogs.ReferenceUpdateDialog;
 import util.properties.UpkModderProperties;
@@ -66,7 +54,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * Set of mappings from ModFile File to ModFileTab
 	 * Used to prevent opening of duplicate tabs and to lookup tabs based on filename
 	 */
-	private Map<File, ModFileTab> filenameToTabMap = new HashMap<>();
+	private Map<String, ModFileTab> filenameToTabMap = new HashMap<>();
 	
 	public ModFileTabbedPane() {
 		super(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
@@ -78,7 +66,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * @return the tab, or null if not found
 	 */
 	public ModFileTab getTab(File file) {
-		return filenameToTabMap.get(file);
+		return filenameToTabMap.get(file.getAbsolutePath());
 	}
 	
 	@Override
@@ -103,7 +91,9 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			}
 		}
 		UpkModderProperties.removeOpenModFile(thisTab.getModFile());
-		filenameToTabMap.remove(thisTab.getModFile());
+		if(thisTab.getModFile() != null) {
+			filenameToTabMap.remove(thisTab.getModFile().getAbsolutePath());
+		}
 		super.removeTabAt(index);
 	}
 
@@ -131,13 +121,13 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 */
 	public boolean openModFile(File file) {
 		try {
-			if(filenameToTabMap.get(file) != null) { // file already open, switch to its tab
-				this.setSelectedComponent(filenameToTabMap.get(file));
+			if(filenameToTabMap.get(file.getAbsolutePath()) != null) { // file already open, switch to its tab
+				this.setSelectedComponent(filenameToTabMap.get(file.getAbsolutePath()));
 			} else {
 				ModFileTab tab = new ModFileTab(file);
 				this.addTab(file.getName(), tab);
 				this.setSelectedComponent(tab);
-				filenameToTabMap.put(file, tab);
+				filenameToTabMap.put(file.getAbsolutePath(), tab);
 				UpkModderProperties.addOpenModFile(file);
 			}
 		} catch (Exception e) {
@@ -151,7 +141,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * Closes the currently opened mod file tab.
 	 */
 	public void closeModFile() {
-		filenameToTabMap.put(this.getActiveModFile(), (ModFileTab) this.getSelectedComponent());
+		filenameToTabMap.put(this.getActiveModFile().getAbsolutePath(), (ModFileTab) this.getSelectedComponent());
 		UpkModderProperties.removeOpenModFile(this.getActiveModFile());
 		this.remove(this.getSelectedComponent());
 	}
@@ -212,10 +202,10 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			this.setTitleAt(this.getSelectedIndex(), file.getName());
 			this.updateUI(); // needed to update tab with
 			ModFileTab tab = (ModFileTab) selComp;
-			filenameToTabMap.remove(this.getActiveModFile());
+			filenameToTabMap.remove(this.getActiveModFile().getAbsolutePath());
 			UpkModderProperties.removeOpenModFile(this.getActiveModFile());
 			tab.setModFile(file);
-			filenameToTabMap.put(file, tab);
+			filenameToTabMap.put(file.getAbsolutePath(), tab);
 			UpkModderProperties.addOpenModFile(file);
 			try {
 				tab.saveFile();
@@ -262,7 +252,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				if (tab.applyChanges()) {
 					// set Tab color/font/tooltip style to indicate apply/revert status
 					this.setForegroundAt(selectedIndex,  new Color(0, 0, 230)); // blue indicates AFTER
-					this.setFontAt(selectedIndex, new Font(Font.MONOSPACED, Font.ITALIC, 12));
+					this.setFontAt(selectedIndex, TAB_PANE_FONT_APPLIED);
 					this.setToolTipTextAt(selectedIndex, "Hex Applied");
 					this.updateUI(); // needed to update tab with
 				}
@@ -270,7 +260,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				if (tab.revertChanges()) {
 					// set Tab color/font/tooltip style to indicate apply/revert status
 					this.setForegroundAt(selectedIndex,  new Color(0, 128, 0)); // green indicates BEFORE
-					this.setFontAt(selectedIndex, new Font(Font.MONOSPACED, Font.PLAIN, 12));
+					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
 					this.setToolTipTextAt(selectedIndex, "Original Hex");
 					this.updateUI(); // needed to update tab 
 				}
@@ -334,45 +324,57 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		private void initComponents() throws Exception {
 			// create right-hand editor pane
 			modEditor = new JEditorPane();
-			modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+			modEditor.setFont(TEXT_PANE_FONT);
 
 			// install editor kit
-			modEditor.setEditorKit(new StyledEditorKit() {
-				@Override
-				public ViewFactory getViewFactory() {
-					return new ViewFactory() {
-						@Override
-				        public View create(Element elem) {
-				            String kind = elem.getName();
-				            if (kind != null) {
-				                if (kind.equals(AbstractDocument.ContentElementName)) {
-				                    return new LabelView(elem);
-				                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-				                	return new ParagraphView(elem) {
-				                    	/* hack to prevent line wrapping */
-				                    	@Override
-										public void layout(int width, int height) {
-											super.layout(Short.MAX_VALUE, height);
-										}
-				                    	@Override
-										public float getMinimumSpan(int axis) {
-											return super.getPreferredSpan(axis);
-										}
-				                    };
-				                } else if (kind.equals(AbstractDocument.SectionElementName)) {
-				                    return new BoxView(elem, View.Y_AXIS);
-				                } else if (kind.equals(StyleConstants.ComponentElementName)) {
-				                    return new ComponentView(elem);
-				                } else if (kind.equals(StyleConstants.IconElementName)) {
-				                    return new IconView(elem);
-				                }
-				            }
-				            // default to text display
-				            return new LabelView(elem);
-				        }
-				    };
-				}
-			});
+			modEditor.setEditorKit(new ModStyledEditorKit()); // relocated to new class
+//			modEditor.setEditorKit(new StyledEditorKit() {
+//				@Override
+//				public ViewFactory getViewFactory() {
+//					return new ViewFactory() {
+//						@Override
+//				        public View create(Element elem) {
+//				            String kind = elem.getName();
+//				            if (kind != null) {
+//				                if (kind.equals(AbstractDocument.ContentElementName)) {
+//				                    return new LabelView(elem);
+//				                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
+//				                	return new ParagraphView(elem) {
+//				                    	/* hack to prevent line wrapping */
+////				                    	@Override
+////										public void layout(int width, int height) {
+////											super.layout(Short.MAX_VALUE, height);
+////										}
+////				                    	@Override
+////										public float getMinimumSpan(int axis) {
+////											return super.getPreferredSpan(axis);
+////										}
+//										// tab-stop code from http://java-sl.com/tip_default_tabstop_size.html
+//										@Override
+//										public float nextTabStop(float x, int tabOffset) {
+//											TabSet tabs = getTabSet();
+//											if(tabs == null) {
+//												// a tab every 72 pixels.
+//												return (float)(getTabBase() + (((int)x / TAB_SIZE + 1) * TAB_SIZE));
+//											}
+//
+//											return super.nextTabStop(x, tabOffset);
+//										 }
+//				                    };
+//				                } else if (kind.equals(AbstractDocument.SectionElementName)) {
+//				                    return new BoxView(elem, View.Y_AXIS);
+//				                } else if (kind.equals(StyleConstants.ComponentElementName)) {
+//				                    return new ComponentView(elem);
+//				                } else if (kind.equals(StyleConstants.IconElementName)) {
+//				                    return new IconView(elem);
+//				                }
+//				            }
+//				            // default to text display
+//				            return new LabelView(elem);
+//				        }
+//				    };
+//				}
+//			});
 			
 			// read provided file, if possible
 			if (modFile != null) {
@@ -387,7 +389,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			modEditorScpn.setPreferredSize(new Dimension(650, 600));
 			
 			Document modDocument = modEditor.getDocument();
-			modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
+//			modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
 
 			// create tree view of right-hand mod editor
 			modTree = new ModTree(modDocument);
@@ -419,7 +421,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					}
 					Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded,
 							leaf, row, hasFocus);
-					comp.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+					comp.setFont(TREE_PANE_FONT);
 					return comp;
 				}
 			};

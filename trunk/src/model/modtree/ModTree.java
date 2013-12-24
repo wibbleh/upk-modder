@@ -340,14 +340,34 @@ public class ModTree implements TreeModel {
 		AttributeSet as = new SimpleAttributeSet(); 
 		int start = node.getStartOffset();
 		int end = node.getEndOffset();
-		boolean replace = true;
+		boolean replace = false;
 
+		if(node.getParentNode() == null) {
+			return;
+		}
+		
 		if(!node.isLeaf()) {
 			if(this.prevRootNode == null) { // skip this processing on startup, as it isn't needed
 				return;
 			}
 			//reset entire line to basic font before restyling
 			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+			//handle indentation of full line
+//			if(true) { // check for line-wrapping
+////				StyleContext sc = new StyleContext();
+////				Style defaultStyle = sc.getStyle(StyleContext.DEFAULT_STYLE);
+//				Style paraStyle = ((StyledDocument)this.getDocument()).getLogicalStyle(start);
+////				Style paraStyle = sc.addStyle("paraStyle", defaultStyle);
+//				String s = node.getFullText();
+//				int numTabs = 0;
+//				char[] cArray = s.toCharArray();
+//				while(cArray[numTabs] == '\t') {
+//					numTabs++;
+//				}
+//				StyleConstants.setLeftIndent(paraStyle, 1* numTabs * TAB_SIZE);
+//				StyleConstants.setFirstLineIndent(paraStyle, -5 * numTabs * TAB_SIZE);
+//				((StyledDocument) this.getDocument()).setParagraphAttributes(start, end-1, paraStyle , false);
+//			}
 		} else {
 
 			// perform attribute updates

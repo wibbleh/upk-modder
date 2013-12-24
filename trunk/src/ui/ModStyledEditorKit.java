@@ -6,14 +6,15 @@ import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
 import javax.swing.text.ComponentView;
 import javax.swing.text.Element;
-import javax.swing.text.FlowView;
 import javax.swing.text.IconView;
 import javax.swing.text.LabelView;
 import javax.swing.text.ParagraphView;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledEditorKit;
+import javax.swing.text.TabSet;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
+import static ui.Constants.TAB_SIZE;
 
 /**
  * Current implementation fixes Java 7 bug with word wrapping.
@@ -83,6 +84,28 @@ class MyParagraphView extends ParagraphView {
 			}
 		}
 	}
+	
+	/* hack to prevent line wrapping */
+	@Override
+	public void layout(int width, int height) {
+		super.layout(Short.MAX_VALUE, height);
+	}
+	@Override
+	public float getMinimumSpan(int axis) {
+		return super.getPreferredSpan(axis);
+	}
+
+	// tab-stop code from http://java-sl.com/tip_default_tabstop_size.html
+	@Override
+	public float nextTabStop(float x, int tabOffset) {
+		TabSet tabs = getTabSet();
+		if(tabs == null) {
+			// a tab every 72 pixels.
+			return (float)(getTabBase() + (((int)x / TAB_SIZE + 1) * TAB_SIZE));
+		}
+
+		return super.nextTabStop(x, tabOffset);
+	 }
 
 }
 

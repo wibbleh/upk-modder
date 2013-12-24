@@ -20,14 +20,14 @@ import javax.swing.JTree;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;
 import javax.swing.text.ComponentView;
-import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.IconView;
 import javax.swing.text.LabelView;
 import javax.swing.text.ParagraphView;
-import javax.swing.text.PlainDocument;
 import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import javax.swing.text.StyledEditorKit;
+import javax.swing.text.TabSet;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -42,6 +42,7 @@ import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
 import org.bounce.text.LineNumberMargin;
+import static ui.Constants.TEXT_PANE_FONT;
 
 import util.unrealhex.HexSearchAndReplace;
 
@@ -151,7 +152,7 @@ public class ModTab extends JSplitPane {
 	private void initComponents() throws Exception {
 		// create right-hand editor pane
 		modEditor = new JEditorPane();
-		modEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		modEditor.setFont(TEXT_PANE_FONT);
 
 		// install editor kit
 		modEditor.setEditorKit(new StyledEditorKit() {
@@ -175,6 +176,17 @@ public class ModTab extends JSplitPane {
 									public float getMinimumSpan(int axis) {
 										return super.getPreferredSpan(axis);
 									}
+									@Override
+									public float nextTabStop(float x, int tabOffset) {
+										TabSet tabs = getTabSet();
+										if(tabs == null) {
+											// a tab every 72 pixels.
+											return (float)(getTabBase() + (((int)x / 18 + 1) * 18));
+										}
+ 
+										return super.nextTabStop(x, tabOffset);
+									 }
+
 			                    };
 			                } else if (kind.equals(AbstractDocument.SectionElementName)) {
 			                    return new BoxView(elem, View.Y_AXIS);
@@ -203,8 +215,32 @@ public class ModTab extends JSplitPane {
 		modEditorScpn.setRowHeaderView(new LineNumberMargin(modEditor));
 		modEditorScpn.setPreferredSize(new Dimension(650, 600));
 		
-		Document modDocument = modEditor.getDocument();
-		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
+		StyledDocument modDocument = (StyledDocument) modEditor.getDocument();
+//		modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
+//		 configure look-and-feel of StyledDocument
+//		StyleContext sc = new StyleContext();
+//		Style defaultStyle = sc.getStyle(StyleContext.DEFAULT_STYLE);
+//		final Style mainStyle = sc.addStyle("MainStyle", defaultStyle);
+//		StyleConstants.setLeftIndent(mainStyle, 16);
+//		StyleConstants.setRightIndent(mainStyle, 16);
+//		StyleConstants.setFirstLineIndent(mainStyle, 16);
+//		StyleConstants.setFontFamily(mainStyle, "serif");
+//		StyleConstants.setFontSize(mainStyle, 12);
+//
+//		final Style cwStyle = sc.addStyle("ConstantWidth", null);
+//		StyleConstants.setFontFamily(cwStyle, "monospaced");
+//		StyleConstants.setForeground(cwStyle, Color.green);
+//
+//		final Style heading2Style = sc.addStyle("Heading2", null);
+//		StyleConstants.setForeground(heading2Style, Color.red);
+//		StyleConstants.setFontSize(heading2Style, 16);
+//		StyleConstants.setFontFamily(heading2Style, "serif");
+//		StyleConstants.setBold(heading2Style, true);
+//		StyleConstants.setLeftIndent(heading2Style, 4);
+//		StyleConstants.setFirstLineIndent(heading2Style, 0);
+//
+//		modDocument.setLogicalStyle(0, mainStyle);
+//		modDocument.setParagraphAttributes(0, modDocument.getLength(), heading2Style, false);
 
 		// create tree view of right-hand mod editor
 		modTree = new ModTree(modDocument);
@@ -236,7 +272,7 @@ public class ModTab extends JSplitPane {
 				}
 				Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded,
 						leaf, row, hasFocus);
-				comp.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+				comp.setFont(TEXT_PANE_FONT);
 				return comp;
 			}
 		};
