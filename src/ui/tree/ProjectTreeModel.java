@@ -20,14 +20,17 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.DOMException;
 
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 import ui.Constants;
+import util.properties.UpkModderProperties;
 
 /**
  * A hybrid tree model combining a tree node-based setup with a file tree model.
@@ -60,8 +63,7 @@ public class ProjectTreeModel implements TreeModel {
 
 	/**
 	 * Creates a new project the the given name at the specified location
-	 * @param name
-	 * @param directory
+	 * @param projectDir the directory the project will occupy
 	 */
 	public void createProject(File projectDir) {
 		try {
@@ -94,8 +96,9 @@ public class ProjectTreeModel implements TreeModel {
 			
 			// add new project to tree
 			this.openProject(xmlFile);
+			UpkModderProperties.addOpenProject(xmlFile);
 			
-		} catch (Exception e) {
+		} catch (IOException | ParserConfigurationException | TransformerException | DOMException | SAXException e) {
 			logger.log(Level.INFO, "Failed to create project \'" + projectDir.getName() + "\'", e);
 		}
 	}
@@ -111,6 +114,7 @@ public class ProjectTreeModel implements TreeModel {
 			this.root.insert(projNode, childCount);
 			this.fireTreeNodesInserted(new int[] { childCount }, new Object[] { projNode });
 			logger.log(Level.INFO, "Project \'" + projNode + "\' successfully loaded");
+			UpkModderProperties.addOpenProject(xmlFile);
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			logger.log(Level.INFO, "Failed to load project file \'" + xmlFile.getName() + "\'", e);
 		}
@@ -134,6 +138,7 @@ public class ProjectTreeModel implements TreeModel {
 		if (project != null) {
 			int index = this.root.getIndex(project);
 			if (index != -1) {
+				UpkModderProperties.removeOpenProject(project.getProjectFile());
 				this.root.remove(project);
 				this.fireTreeNodesRemoved(new int[] { index }, new Object[] { project });
 			}
@@ -146,10 +151,11 @@ public class ProjectTreeModel implements TreeModel {
 	 */
 	public void deleteProject(ProjectNode project) {
 		this.removeProject(project);
-		if (project != null) {
-			project.getProjectFile().delete();
-			project.getProjectDirectory().delete();
-		}
+		// FIXME -- this really needs a warning dialogue !!!
+//		if (project != null) {
+//			project.getProjectFile().delete();
+//			project.getProjectDirectory().delete();
+//		}
 	}
 	
 	/**
@@ -312,6 +318,7 @@ public class ProjectTreeModel implements TreeModel {
 		/**
 		 * Constructs a new project node by parsing the specified XML file.
 		 * @param xmlFile the project XML file
+		 * @throws javax.xml.parsers.ParserConfigurationException
 		 * @throws IOException if any I/O errors occur
 		 * @throws SAXException if any parse errors occur
 		 */

@@ -19,10 +19,8 @@ package parser.unrealhex;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 import ui.Constants;
 
@@ -53,6 +51,8 @@ public class OperandTable {
 	 */
 	private static void initialize() {
 		try {
+			operandNames = new String[256];
+			operandDecodes = new String[256];
 			parseFile(Constants.OPERAND_DATA_FILE);
 		} catch (IOException e) {
 			System.err.println("Failed to read operand data.");
@@ -69,15 +69,15 @@ public class OperandTable {
 	 * @throws IOException if an I/O error occurs
 	 */
 	public static void parseFile(File file) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		String line;
-		while ((line = br.readLine()) != null) {
-			String[] split = line.split(";");
-			if (!split[0].isEmpty()) {
-				parseLine(line);
+		try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				String[] split = line.split(";");
+				if (!split[0].isEmpty()) {
+					parseLine(line);
+				}
 			}
 		}
-		br.close();
 	}
 	
 	/**

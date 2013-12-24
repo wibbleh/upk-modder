@@ -36,8 +36,6 @@ public class OperandTableParser {
 	 * Constructor for Operand Table using the configuration file.
 	 * 
 	 * @param file
-	 * @param bVerbose
-	 * @throws IOException
 	 */
 	public OperandTableParser(Path file) {
 		m_kOpTableFile = file;
@@ -56,7 +54,7 @@ public class OperandTableParser {
 				if (currLine.split(";")[0].isEmpty()) {
 					continue;
 				}
-				OperandTable.parseData(currLine);
+				OperandTable.parseLine(currLine);
 			}
 		} catch (IOException x) {
 			System.out.println("caught exception: " + x);

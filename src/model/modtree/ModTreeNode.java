@@ -85,42 +85,6 @@ public class ModTreeNode implements TreeNode {
 	}
 
 	/**
-	 * Indicates whether the node is expanded in the current view.
-	 */
-//	public boolean expanded;
-
-	/**
-	 * Indicates whether the node was updated during the most recent insert/remove operation.
-	 * @return
-	 */
-//	@Deprecated
-//	public boolean hasBeenUpdated() {
-//		return hasBeenUpdated;
-//	}
-	
-	/**
-	 * Inits update flag of current node and all child nodes.
-	 * @param b value to init flags to.
-	 */
-//	public void initUpdateFlags(boolean b) {
-//		this.hasBeenUpdated = b;
-//		if(isLeaf()) {
-//			return;
-//		}
-//		for (int i = 0; i < this.getNodeCount(); i++) {
-//			this.getChildNodeAt(i).initUpdateFlags(b);
-//		}
-//	}
-	
-	/**
-	 * Sets update flag for the current node.
-	 * @param b
-	 */
-//	protected void setUpdateFlag(boolean b) {
-//		this.hasBeenUpdated = b;
-//	}
-	
-	/**
 	 * Constructs a mod node from the specified parent node and a flag
 	 * denoting whether it contains pure textual data (i.e. non-parseable code).
 	 * @param parent the parent node 
@@ -378,8 +342,8 @@ public class ModTreeNode implements TreeNode {
 		}
 		// extract suffix string
 		int last = in.lastIndexOf(tokens[tokens.length - 1]);
-		if ((last + 3) < in.length()) {
-			outString[2] = in.substring(last + 3, in.length());
+		if ((last + tokens[tokens.length - 1].length()+1) < in.length()) {
+			outString[2] = in.substring(last + tokens[tokens.length - 1].length()+1, in.length());
 		}
 		if((outString[0] + outString[1] + outString[2]).equals(in)) {
 			return outString;
@@ -683,20 +647,6 @@ public class ModTreeNode implements TreeNode {
 		} else {
 			return String.format("%04X/", this.getMemoryPosition()) + String.format("%04X: ", this.getFilePosition()) + getFullText();
 		}
-//		if (getParentNode() == null) {
-//			return "ROOT";
-//		} else if (getParentNode().getParentNode() == null) {
-////			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-//			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-//			return newString + getFullText();
-//		} else if(isLeaf()) {
-////			String newString = ""; // "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-//			String newString = "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: ";
-//			return newString + getFullText() + " (" + getName() + ")";
-//		} else {
-//			return "[" + Integer.toString(getStartOffset()) + ":" + Integer.toString(getEndOffset()) + "]: " + " (" + getName() + ")";
-////			return "(" + getName() + ")";
-//		}
 	}
 	
 	/**
@@ -731,6 +681,7 @@ public class ModTreeNode implements TreeNode {
      * @param length - measured in characters
      * @return
      */
+	@Deprecated
     public String getText(int offset, int length)
     {
         boolean retrieveBranches = false;
