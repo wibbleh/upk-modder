@@ -9,7 +9,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,6 +47,7 @@ import model.upk.UpkFile;
 import org.bounce.text.LineNumberMargin;
 
 import ui.dialogs.ReferenceUpdateDialog;
+import util.properties.UpkModderProperties;
 import util.unrealhex.HexSearchAndReplace;
 
 /**
@@ -59,11 +62,25 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 */
 	public static final Logger logger = Logger.getLogger(ModFileTabbedPane.class.getName());
 
+	/**
+	 * Set of mappings from ModFile File to ModFileTab
+	 * Used to prevent opening of duplicate tabs and to lookup tabs based on filename
+	 */
+	private Map<File, ModFileTab> filenameToTabMap = new HashMap<>();
 	
 	public ModFileTabbedPane() {
 		super(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
 	}
 
+	/**
+	 * Retrieves the tab based on file
+	 * @param file the file for the tab to retrieve
+	 * @return the tab, or null if not found
+	 */
+	public ModFileTab getTab(File file) {
+		return filenameToTabMap.get(file);
+	}
+	
 	@Override
 	public void removeTabAt(int index) {
 		ModFileTab thisTab = (ModFileTab) this.getComponentAt(index);
@@ -85,7 +102,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				MainFrame.getInstance().getUPKCache().remove(upkFile.getFile());
 			}
 		}
-		
+		UpkModderProperties.removeOpenModFile(thisTab.getModFile());
+		filenameToTabMap.remove(thisTab.getModFile());
 		super.removeTabAt(index);
 	}
 
@@ -113,9 +131,15 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 */
 	public boolean openModFile(File file) {
 		try {
-			ModFileTab tab = new ModFileTab(file);
-			this.addTab(file.getName(), tab);
-			this.setSelectedComponent(tab);
+			if(filenameToTabMap.get(file) != null) { // file already open, switch to its tab
+				this.setSelectedComponent(filenameToTabMap.get(file));
+			} else {
+				ModFileTab tab = new ModFileTab(file);
+				this.addTab(file.getName(), tab);
+				this.setSelectedComponent(tab);
+				filenameToTabMap.put(file, tab);
+				UpkModderProperties.addOpenModFile(file);
+			}
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Failed to load mod file \'" + file.getName() + "\'", e);
 			return false;
@@ -127,6 +151,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * Closes the currently opened mod file tab.
 	 */
 	public void closeModFile() {
+		filenameToTabMap.put(this.getActiveModFile(), (ModFileTab) this.getSelectedComponent());
+		UpkModderProperties.removeOpenModFile(this.getActiveModFile());
 		this.remove(this.getSelectedComponent());
 	}
 
@@ -134,6 +160,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * Closes all tabs.
 	 */
 	public void closeAllModFiles() {
+		filenameToTabMap.clear();
+		UpkModderProperties.removeAllOpenModFiles();
 		this.removeAll();
 	}
 
@@ -184,7 +212,11 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			this.setTitleAt(this.getSelectedIndex(), file.getName());
 			this.updateUI(); // needed to update tab with
 			ModFileTab tab = (ModFileTab) selComp;
+			filenameToTabMap.remove(this.getActiveModFile());
+			UpkModderProperties.removeOpenModFile(this.getActiveModFile());
 			tab.setModFile(file);
+			filenameToTabMap.put(file, tab);
+			UpkModderProperties.addOpenModFile(file);
 			try {
 				tab.saveFile();
 			} catch (IOException e) {

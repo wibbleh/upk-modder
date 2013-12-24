@@ -46,7 +46,7 @@ public class ActionCache {
 
 	/**
 	 * Creates the cache of shared UI actions.
-	 * @return an unmodifiable view of the action cache
+	 * @param mainFrame
 	 */
 	public static void initActionCache(final MainFrame mainFrame) {
 		Map<String, Action> cache = new HashMap<>();
@@ -97,7 +97,7 @@ public class ActionCache {
 		};
 		deleteProjectAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK + InputEvent.SHIFT_DOWN_MASK));
 		deleteProjectAction.putValue(Action.MNEMONIC_KEY, (int) 'd');
-		deleteProjectAction.putValue(Action.SHORT_DESCRIPTION, "Remove Project");
+		deleteProjectAction.putValue(Action.SHORT_DESCRIPTION, "Delete Project");
 		deleteProjectAction.setEnabled(false);
 
 		/* Mod File actions */

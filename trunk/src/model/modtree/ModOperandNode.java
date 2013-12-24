@@ -65,13 +65,13 @@ public class ModOperandNode extends ModTreeNode {
 	public String parseUnrealHex(String s, int num) {
 		boolean isOperand = true;
 		int lastEnd = this.getStartOffset();
-		String operand = s.split("\\s")[0];
-		if (operand.isEmpty()) {
+		String currOperand = s.split("\\s")[0];
+		if (currOperand.isEmpty()) {
 			return "ERROR";
 		}
-		this.operand = operand;
+		this.operand = currOperand;
 
-		String sOpCodes = OperandTable.getOperandString(operand);
+		String sOpCodes = OperandTable.getOperandString(currOperand);
 //		if (!operand.equalsIgnoreCase(sOpCodes.split("\\s", 2)[0])) {
 //			System.out.println("/* opcode mismatch */");
 //			return "ERROR";
@@ -92,14 +92,12 @@ public class ModOperandNode extends ModTreeNode {
 				addNode(n);
 				s = n.parseUnrealHex(s, Integer.parseInt(sParseItem));
 				lastEnd = n.getEndOffset();
-				continue;
 			} else if (sParseItem.equals("G")) {
 				ModOperandNode n = new ModOperandNode(this);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
 				s = n.parseUnrealHex(s);
 				lastEnd = n.getEndOffset();
-				continue;
 			} else if (sParseItem.equals("P")) {
 				while (!s.split("\\s")[0].equals("16")) {
 					ModOperandNode n = new ModOperandNode(this);
@@ -108,42 +106,36 @@ public class ModOperandNode extends ModTreeNode {
 					s = n.parseUnrealHex(s);
 					lastEnd = n.getEndOffset();
 				}
-				continue;
 			} else if (sParseItem.equals("R")) {
 				ModReferenceLeaf n = new ModReferenceLeaf(this, false);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
 				s = n.parseUnrealHex(s);
 				lastEnd = n.getEndOffset();
-				continue;
 			} else if (sParseItem.equals("NR")) {
 				ModReferenceLeaf n = new ModReferenceLeaf(this, true);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
 				s = n.parseUnrealHex(s);
 				lastEnd = n.getEndOffset();
-				continue;
 			} else if (sParseItem.equals("N")) {
 				ModStringLeaf n = new ModStringLeaf(this);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
 				s = n.parseUnrealHex(s);
 				lastEnd = n.getEndOffset();
-				continue;
 			} else if (sParseItem.startsWith("S")) {
 				ModOffsetLeaf n = new ModOffsetLeaf(this, sParseItem);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
 				s = n.parseUnrealHex(s);
 				lastEnd = n.getEndOffset();
-				continue;
 			} else if (sParseItem.equals("J")) {
 				ModOffsetLeaf n = new ModOffsetLeaf(this);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
 				s = n.parseUnrealHex(s);
 				lastEnd = n.getEndOffset();
-				continue;
 			} else if (sParseItem.equals("C")) {
 				if (s.split("\\s")[0].equalsIgnoreCase("FF") && s.split("\\s")[1].equalsIgnoreCase("FF")) {
 					ModGenericLeaf n = new ModGenericLeaf(this);

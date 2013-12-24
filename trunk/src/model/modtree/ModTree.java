@@ -219,12 +219,16 @@ public class ModTree implements TreeModel {
 	private void setDocument(Document doc) throws BadLocationException {
 		this.doc = doc;
 		if (doc.getLength() > 0) {
+			long startTime = System.currentTimeMillis();
 			String s = doc.getText(0, doc.getLength());
 			ModTreeRootNode root = this.getRoot();
 			root.insertString(0, s, null);
 			root.reorganizeAfterInsertion();
+			logger.log(Level.INFO, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 			if(updatingEnabled) {
+				startTime = System.currentTimeMillis();
 				this.updateDocument(0,0);
+				logger.log(Level.INFO, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
 			}
 		}
 		doc.addDocumentListener(this.mtListener);
@@ -339,9 +343,11 @@ public class ModTree implements TreeModel {
 		boolean replace = true;
 
 		if(!node.isLeaf()) {
+			if(this.prevRootNode == null) { // skip this processing on startup, as it isn't needed
+				return;
+			}
 			//reset entire line to basic font before restyling
 			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
-			
 		} else {
 
 			// perform attribute updates
@@ -569,7 +575,7 @@ public class ModTree implements TreeModel {
 	 */
 	public void addKeyword(String s) {
 		// lazily instantiate keywords only if any are present
-		if(this.keywords.isEmpty()) {
+		if(this.keywords == null) {
 			this.keywords = new ArrayList<>();
 		}
 		this.keywords.add(s);

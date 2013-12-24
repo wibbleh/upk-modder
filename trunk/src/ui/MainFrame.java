@@ -57,6 +57,8 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import java.util.Set;
+import util.properties.UpkModderProperties;
 
 /**
  * The application's primary frame.
@@ -85,6 +87,9 @@ public class MainFrame extends JFrame {
 	 * The cache of shared UPK files.
 	 */
 	private Map<File, UpkFile> upkCache = new HashMap<>();
+
+	// FIXME - remove when "associate upk" changed to action
+	JTextField upkTtf = new JTextField("no modfile loaded");
 	
 	/**
 	 * Constructs the application's main frame.
@@ -100,25 +105,19 @@ public class MainFrame extends JFrame {
 		images.add(((ImageIcon) Constants.HEX_LARGE_ICON).getImage());
 		this.setIconImages(images);
 
-//		appProperties = new UpkModderProperties();
-//		
-//		// TODO: move initial/default configuration elsewhere
-//		// TODO: add configuration dialogue?
-//		if(appProperties.getConfigProperty("project.path") == null) {
-//			appProperties.setConfigProperty("project.path", "UPKmodderProjects");
-//		}
-//		if(appProperties.getConfigProperty("project.template.file") == null) {
-//			appProperties.setConfigProperty("project.template.file", "defaultProjectTemplate.xml");
-//		}
-//		if(appProperties.getConfigProperty("modfile.template.file") == null) {
-//			appProperties.setConfigProperty("modfile.template.file", "defaultModfileTemplate.upk_mod");
-//		}
+		// TODO: move initial/default configuration elsewhere
+		// TODO: add configuration dialogue?
+		if(UpkModderProperties.getConfigProperty("project.path") == null) {
+			UpkModderProperties.setConfigProperty("project.path", "UPKmodderProjects");
+		}
 		
 		// initialize action cache
 		ActionCache.initActionCache(this);
 
 		// create and lay out the frame's components
 		this.initComponents();
+		
+		// TODO: add separate thread here to re-open projects and files
 		
 		// make closing the main frame terminate the application
 		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -128,6 +127,9 @@ public class MainFrame extends JFrame {
 		this.setMinimumSize(this.getSize());
 		// center frame in screen
 		this.setLocationRelativeTo(null);
+		
+		//used for timing tests on opening application
+//		this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
 	}
 	
 	/**
@@ -180,65 +182,33 @@ public class MainFrame extends JFrame {
 		contentPane.add(mainPane, BorderLayout.CENTER);
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
-		// FIXME
-//		// restore mappings from file to target upks
-//		appProperties.restoreUpkState();
-//		
-//		// restore open projects/files from last time app was run
-//		appProperties.restoreOpenState();
-//		
-//		List<String> projectPathList = appProperties.getOpenProjects();
-//		if(projectPathList != null) {
-//			if(!projectPathList.isEmpty()) {
-//				for (String filePath : projectPathList) {
-//					projectMdl.addProject(new File(filePath));
-//				}
-//				setFileActionsEnabled(true);
-//			}
-//		}
-//
-//		// open previously open files
-//		List<String> filePathList = appProperties.getOpenFiles();
-//		if(filePathList != null) {
-//			if(!filePathList.isEmpty()) {
-//				for (String filePath : filePathList) {
-//					File file = new File(filePath);
-//					if(file.exists()) {
-//						//create new tab
-//						ModTab tab = new ModTab(file);
-//						tabPane.addTab(file.getName(), tab);
-//						tabPane.setSelectedComponent(tab);
-//						
-//						// TODO: create function for upk re-association
-//						//re-associate upk if possible
-//						if(appProperties.getUpkProperty(file.getName()) != null) {
-//							File ufile = new File(appProperties.getUpkProperty(file.getName()));
-//							// grab UPK file from cache
-//							UpkFile upkFile = upkCache.get(ufile);
-//							if (upkFile == null) {
-//								// if cache doesn't contain UPK file instantiate a new one
-//								upkFile = new UpkFile(ufile);
-//							}
-//
-//							// check whether UPK file is valid (i.e. header parsing worked properly)
-//							if (upkFile.getHeader() != null) {
-//								// store UPK file in cache
-//								upkCache.put(ufile, upkFile);
-//								// link UPK file to tab
-//								tab.setUpkFile(upkFile);
-//								// show file name in status bar
-//								upkTtf.setText(ufile.getPath());
-//								// enable 'update', 'apply' and 'revert' actions
-//								setEditActionsEnabled(true);
-//							} else {
-//								// TODO: show error/warning message
-//							}
-//						}
-//					}
-//				}
-//				setFileActionsEnabled(true);
-//			}
-//		}
+		// TODO - move to separate method and invoke in background so application launches immediately
+		// open previously open projects
+		Set<String> projectPathSet = UpkModderProperties.getOpenProjects();
+		if(projectPathSet != null) {
+			if(!projectPathSet.isEmpty()) {
+				for (String filePath : projectPathSet) {
+					if(filePath != null) {
+						((BrowseAbstractAction) ActionCache.getAction("openProject")).execute(new File(filePath));
+					}
+				}
+				setFileActionsEnabled(true);
+			}
+		}
+
+		// open previously open files
+		Set<String> filePathSet = UpkModderProperties.getOpenFiles();
+		if(filePathSet != null) {
+			if(!filePathSet.isEmpty()) {
+				for (String filePath : filePathSet) {
+					File modFile = new File(filePath);
+					if(modFile.exists()) {
+						((BrowseAbstractAction) ActionCache.getAction("openModFile")).execute(modFile);
+					}
+				}
+				setFileActionsEnabled(true);
+			}
+		}
 	}
 	
 	/**
@@ -315,6 +285,36 @@ public class MainFrame extends JFrame {
 		return toolBar;
 	}
 
+	public void setTargetUpk(ModFileTab tab, File uFile) {
+
+			// grab UPK file from cache
+			UpkFile upkFile = upkCache.get(uFile);
+			if (upkFile == null) {
+				// if cache doesn't contain UPK file instantiate a new one
+				upkFile = new UpkFile(uFile);
+			}
+
+			// TODO: create function for upk association
+			// check whether UPK file is valid (i.e. header parsing worked properly)
+			if (upkFile.getHeader() != null) {
+				// store UPK file in cache
+				upkCache.put(uFile, upkFile);
+				// link UPK file to tab
+				tab.setUpkFile(upkFile);
+				// show file name in status bar
+				upkTtf.setText(uFile.getPath());
+				// enable 'update', 'apply' and 'revert' actions
+				setEditActionsEnabled(true);
+
+				if(tab.getModFile() != null) {
+					// persistently store file-to-upk association
+					UpkModderProperties.setUpkProperty(tab.getModFile().getName(), uFile.getAbsolutePath());
+				}
+			} else {
+				// TODO: show error/warning message
+			}
+	}
+	
 	/**
 	 * Creates and configures the status bar.
 	 * @return the status bar
@@ -326,7 +326,8 @@ public class MainFrame extends JFrame {
 		
 		JPanel upkPnl = new JPanel(new FormLayout("0px:g, 3px,  r:p", "b:p"));
 		
-		final JTextField upkTtf = new JTextField("no modfile loaded");
+//		final JTextField upkTtf = new JTextField("no modfile loaded");
+		upkTtf = new JTextField("no modfile loaded");
 		upkTtf.setEditable(false);
 		upkTtf.setBackground(bgCol);
 		
@@ -356,31 +357,7 @@ public class MainFrame extends JFrame {
 				Component selComp = modTabPane.getSelectedComponent();
 				if (selComp != null) {
 					ModFileTab tab = (ModFileTab) selComp;
-
-					// grab UPK file from cache
-					UpkFile upkFile = upkCache.get(file);
-					if (upkFile == null) {
-						// if cache doesn't contain UPK file instantiate a new one
-						upkFile = new UpkFile(file);
-					}
-
-					// TODO: create function for upk association
-					// check whether UPK file is valid (i.e. header parsing worked properly)
-					if (upkFile.getHeader() != null) {
-						// store UPK file in cache
-						upkCache.put(file, upkFile);
-						// link UPK file to tab
-						tab.setUpkFile(upkFile);
-						// show file name in status bar
-						upkTtf.setText(file.getPath());
-						// enable 'update', 'apply' and 'revert' actions
-						setEditActionsEnabled(true);
-						// FIXME
-						// persistently store file-to-upk association
-//						appProperties.setUpkProperty(tab.getModFile().getName(), file.getAbsolutePath());
-					} else {
-						// TODO: show error/warning message
-					}
+					setTargetUpk(tab, file);
 				}
 			}
 		});
@@ -469,7 +446,7 @@ public class MainFrame extends JFrame {
 					// update status message text to show added line
 					statusMsgTtf.setText(evt.getDocument().getText(evt.getOffset(), evt.getLength()));
 				} catch (BadLocationException e) {
-					e.printStackTrace();
+					System.err.println("Error when writing to logger");
 				}
 			}
 			
@@ -527,8 +504,6 @@ public class MainFrame extends JFrame {
 
 	@Override
 		public void dispose() {
-			// FIXME
-	//		appProperties.saveOpenState(tabPane, projectMdl);
 			super.dispose();
 		}
 
@@ -550,6 +525,7 @@ public class MainFrame extends JFrame {
 		ActionCache.getAction("closeAllModFiles").setEnabled(enabled);
 		ActionCache.getAction("saveModFile").setEnabled(enabled);
 		ActionCache.getAction("saveModFileAs").setEnabled(enabled);
+		ActionCache.getAction("refUpdate").setEnabled(enabled);
 	}
 	
 	/**
@@ -559,7 +535,6 @@ public class MainFrame extends JFrame {
 	 * @param enabled the enable state
 	 */
 	public void setEditActionsEnabled(boolean enabled) {
-		ActionCache.getAction("refUpdate").setEnabled(enabled);
 		ActionCache.getAction("hexApply").setEnabled(enabled);
 		ActionCache.getAction("hexRevert").setEnabled(enabled);
 	}
@@ -595,7 +570,7 @@ public class MainFrame extends JFrame {
 
 	/**
 	 * Opens a project defined in the specified project XML file.
-	 * @param file the project XML
+	 * @param xmlFile the project XML
 	 */
 	public void openProject(File xmlFile) {
 		projectTree.openProject(xmlFile);
@@ -608,9 +583,6 @@ public class MainFrame extends JFrame {
 		projectTree.removeProject();
 		ActionCache.getAction("removeProject").setEnabled(false);
 		ActionCache.getAction("deleteProject").setEnabled(false);
-		
-		// FIXME
-//		appProperties.saveOpenState(tabPane, projectMdl);
 	}
 	
 	/**
@@ -663,6 +635,15 @@ public class MainFrame extends JFrame {
 	public void openModFile(File modFile) {
 		if (modTabPane.openModFile(modFile)) {
 			this.setFileActionsEnabled(true);
+			
+			// TODO: create function for upk re-association
+			//re-associate upk if possible
+			String uFileName = UpkModderProperties.getUpkProperty(modFile.getName());
+			if(uFileName != null) {
+				File uFile = new File(uFileName);
+				ModFileTab tab = modTabPane.getTab(modFile);
+				setTargetUpk(tab, uFile);
+			}
 		}
 		// TODO: associate mod file with active project
 	}
@@ -677,8 +658,6 @@ public class MainFrame extends JFrame {
 		if (modTabPane.getTabCount() == 0) {
 			this.setFileActionsEnabled(false);
 		}
-		// FIXME
-//		appProperties.saveOpenState(tabPane, projectMdl);
 	}
 
 	/**
@@ -688,8 +667,6 @@ public class MainFrame extends JFrame {
 		modTabPane.closeAllModFiles();
 		
 		this.setFileActionsEnabled(false);
-		// FIXME
-//		appProperties.saveOpenState(tabPane, projectMdl);
 	}
 
 	/**
@@ -713,8 +690,6 @@ public class MainFrame extends JFrame {
 	 */
 	public void saveModFileAs(File target) {
 		modTabPane.saveModFileAs(target);
-		// FIXME
-//		appProperties.saveOpenState(tabPane, projectMdl);
 	}
 
 	/**
