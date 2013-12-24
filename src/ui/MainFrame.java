@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -58,6 +57,7 @@ import util.unrealhex.ReferenceUpdate;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
 import java.util.Set;
+import static ui.Constants.*;
 import util.properties.UpkModderProperties;
 
 /**
@@ -321,7 +321,7 @@ public class MainFrame extends JFrame {
 	 */
 	private JPanel createStatusBar() {
 		// TODO: maybe make status bar a JToolBar
-		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.4), 0px:g(0.2), 0px:g(0.4)", "f:p"));
+		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.5), 0px:g(0.2), 0px:g(0.3)", "f:p"));
 		Color bgCol = new Color(214, 217, 223);
 		
 		JPanel upkPnl = new JPanel(new FormLayout("0px:g, 3px,  r:p", "b:p"));
@@ -330,6 +330,7 @@ public class MainFrame extends JFrame {
 		upkTtf = new JTextField("no modfile loaded");
 		upkTtf.setEditable(false);
 		upkTtf.setBackground(bgCol);
+		upkTtf.setFont(TARGET_UPK_FONT);
 		
 		final JButton upkBtn = new JButton();
 		Icon defaultIcon = UIManager.getIcon("FileView.directoryIcon");
@@ -404,7 +405,7 @@ public class MainFrame extends JFrame {
 		JPanel statusMsgPnl = new JPanel(new FormLayout("p:g, r:p", "b:p"));
 		
 		final JTextField statusMsgTtf = new JTextField();
-		statusMsgTtf.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		statusMsgTtf.setFont(STATUS_MSG_FONT);
 		statusMsgTtf.setEditable(false);
 		statusMsgTtf.setBackground(bgCol);
 		
@@ -436,7 +437,7 @@ public class MainFrame extends JFrame {
 		// create editor pane for storing log messages
 		JEditorPane loggingEditor = new JEditorPane();
 		loggingEditor.setDocument(new DefaultStyledDocument());
-		loggingEditor.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+		loggingEditor.setFont(LOGGER_FRAME_FONT);
 		loggingEditor.setEditable(false);
 		
 		loggingEditor.getDocument().addDocumentListener(new DocumentListener() {
@@ -446,7 +447,7 @@ public class MainFrame extends JFrame {
 					// update status message text to show added line
 					statusMsgTtf.setText(evt.getDocument().getText(evt.getOffset(), evt.getLength()));
 				} catch (BadLocationException e) {
-					System.err.println("Error when writing to logger");
+					System.err.println("Error when writing to logger" + e);
 				}
 			}
 			

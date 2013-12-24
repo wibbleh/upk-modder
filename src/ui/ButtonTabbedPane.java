@@ -16,6 +16,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JToolBar;
+import static ui.Constants.*;
 
 /**
  * Custom tabbed pane featuring a 'Close' button in its tabs.
@@ -39,7 +40,9 @@ public class ButtonTabbedPane extends JTabbedPane {
 	public void addTab(String title, Component component) {
 		super.addTab(title, component);
 		// add 'Close' button to new tab
-		this.setTabComponentAt(this.getTabCount() - 1, new ButtonTabComponent(this));
+		ButtonTabComponent buttonTabComponent = new ButtonTabComponent(this);
+		this.setTabComponentAt(this.getTabCount() - 1, buttonTabComponent);
+		buttonTabComponent.getComponent(0).setFont(TAB_PANE_FONT_UNKNOWN);
 	}
 	
 	@Override
@@ -70,7 +73,7 @@ public class ButtonTabbedPane extends JTabbedPane {
 	     * @param tabPane the reference to the parent tabbed pane
 	     */
 	    public ButtonTabComponent(final JTabbedPane tabPane) {
-	        super(new BorderLayout(5, 0));
+	        super(new BorderLayout(0, 0));
 	        
 	        this.tabPane = tabPane;
 
@@ -79,6 +82,7 @@ public class ButtonTabbedPane extends JTabbedPane {
 			
 			// create label, make it display its corresponding tab title as text
 			JLabel label = new JLabel() {
+				@Override
 				public String getText() {
 					int index = tabPane.indexOfTabComponent
 							(ButtonTabComponent.this);
@@ -108,7 +112,7 @@ public class ButtonTabbedPane extends JTabbedPane {
 			 * Constructs a 'Close' button.
 			 */
 			public TabButton() {
-				int size = 17;
+				int size = 16;
 				this.setPreferredSize(new Dimension(size, size));
 
 				// configure visuals
@@ -128,6 +132,7 @@ public class ButtonTabbedPane extends JTabbedPane {
 			}
 
 			// paint the cross
+			@Override
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
 				Graphics2D g2 = (Graphics2D) g.create();

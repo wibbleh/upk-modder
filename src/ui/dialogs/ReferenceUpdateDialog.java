@@ -40,6 +40,7 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import static ui.Constants.REFERENCE_UPDATE_FONT;
 
 /**
  * Dialog implementation listing distinct references of a modfile tree model.
@@ -187,7 +188,7 @@ public class ReferenceUpdateDialog extends JDialog {
 		
 		DefaultTableCellRenderer monoRenderer = new DefaultTableCellRenderer() {
 			/** Reference to monospaced font. */
-			private Font monoFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
+			private Font monoFont = REFERENCE_UPDATE_FONT;
 			@Override
 			public Component getTableCellRendererComponent(JTable table,
 					Object value, boolean isSelected, boolean hasFocus,
