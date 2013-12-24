@@ -12,7 +12,7 @@ UPKmodder provides the following :
   * The project pane, on the left-hand side
     * Multiple projects can be open and are denoted *bold*
     * Projects may have subfolders, as well as mod_files
-    * Projects are essentially a mapping to a directory on disc, so changes to the folder will be reflected in the Project view once the it refreshes
+    * Projects are essentially a mapping to a directory on disc, so changes to the folder will be reflected in the Project view once it refreshes
 
   * Each open modfile has a separate tab and is divided into 2 sub-panes
     * The main editor on the left hand side, which is open by default
