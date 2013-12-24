@@ -4,6 +4,7 @@
 
 This page provides a general overview of the features in the UPKmodder tool.
 
+[https://upk-modder.googlecode.com/svn/wiki/images/UPK_modder_v0_65_marked_up.png]
 
 = Details =
 
