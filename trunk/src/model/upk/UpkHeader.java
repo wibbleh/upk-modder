@@ -110,13 +110,13 @@ public class UpkHeader {
 		this.aGUID = aGUID;
 		long startTime = System.currentTimeMillis();
 		constructImportNames(importList);
-		logger.log(Level.INFO, "Constructed import list names, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Constructed import list names, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		constructObjectNames(objectList);
-		logger.log(Level.INFO, "Constructed object list names, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Constructed object list names, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		constructNames(nameList);
-		logger.log(Level.INFO, "Constructed searchable names, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Constructed searchable names, took " + (System.currentTimeMillis() - startTime) + "ms");
 	}
 
         private void constructNames(List<NameEntry> list){

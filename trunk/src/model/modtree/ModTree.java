@@ -224,11 +224,11 @@ public class ModTree implements TreeModel {
 			ModTreeRootNode root = this.getRoot();
 			root.insertString(0, s, null);
 			root.reorganizeAfterInsertion();
-			logger.log(Level.INFO, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
+			logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 			if(updatingEnabled) {
 				startTime = System.currentTimeMillis();
 				this.updateDocument(0,0);
-				logger.log(Level.INFO, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
+				logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
 			}
 		}
 		doc.addDocumentListener(this.mtListener);
@@ -300,7 +300,7 @@ public class ModTree implements TreeModel {
 		}
 		this.fireTreeStructureChanged();
 
-		logger.log(Level.INFO, count + " lines out of " + total + " re-styled: " + restylingEvents + " total restyling events");
+		logger.log(Level.FINE, count + "/" + total + " line re-styled: " + restylingEvents + " total events");
 	}
 	
 	protected boolean lineHasChanged(ModTreeNode newLine, ModTreeNode oldLine) {
@@ -340,7 +340,7 @@ public class ModTree implements TreeModel {
 		AttributeSet as = new SimpleAttributeSet(); 
 		int start = node.getStartOffset();
 		int end = node.getEndOffset();
-		boolean replace = false;
+		boolean replace = true;
 
 		if(node.getParentNode() == null) {
 			return;
@@ -479,11 +479,11 @@ public class ModTree implements TreeModel {
 				long startTime = System.currentTimeMillis();
 				this.currRootNode.insertString(0, s, null);
 				this.currRootNode.reorganizeAfterInsertion();
-				logger.log(Level.INFO, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
+				logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 
 				startTime = System.currentTimeMillis();
 				this.updateDocument(deltaLines, lineInsertPoint);
-				logger.log(Level.INFO, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
+				logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
 			}
 		}
 	}
