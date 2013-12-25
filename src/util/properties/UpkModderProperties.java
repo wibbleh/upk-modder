@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import static model.modtree.ModTree.logger;
 
 
 /**
@@ -93,9 +93,9 @@ public class UpkModderProperties {
 		// store properties file
 		try {
     		configProperties.store(new FileOutputStream(file), null);
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.FINE, "Upk mapping properties written.");
+			logger.log(Level.FINE, "Upk mapping properties written.");
 		} catch(IOException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.SEVERE, "IO Error writing upk mapping properties", ex);
+			logger.log(Level.SEVERE, "IO Error writing upk mapping properties", ex);
 		}
 	}
 
@@ -110,9 +110,9 @@ public class UpkModderProperties {
 		}
 		try {
 			configProperties.load(new FileInputStream(file));
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.FINE, "upk mapping properties read.");
+			logger.log(Level.FINE, "upk mapping properties read.");
 		} catch(IOException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.SEVERE, "IO Error reading upk mapping properties", ex);
+			logger.log(Level.SEVERE, "IO Error reading upk mapping properties", ex);
 		}
 	}
 	
@@ -192,9 +192,9 @@ public class UpkModderProperties {
 
 			out.flush();
 			out.close();
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.FINE, "Object written to file");
+			logger.log(Level.FINE, "Object written to file");
 		} catch(IOException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.SEVERE, "IO Error", ex);
+			logger.log(Level.SEVERE, "IO Error", ex);
 		}
 	}
 
@@ -218,13 +218,13 @@ public class UpkModderProperties {
 			openFiles = (Set<String>) in.readObject();
 
 				in.close();
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.FINE, "Object read from file");
+			logger.log(Level.FINE, "Object read from file");
 		} catch(IOException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.SEVERE, "IO Error", ex);
+			logger.log(Level.SEVERE, "IO Error", ex);
 		} catch(ClassNotFoundException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.SEVERE, "Class not found", ex);
+			logger.log(Level.SEVERE, "Class not found", ex);
 		} catch(ClassCastException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.INFO, "Properties file invalid");
+			logger.log(Level.INFO, "Properties file invalid", ex);
 		}
 		
 	}
@@ -276,9 +276,9 @@ public class UpkModderProperties {
 		// store properties file
 		try {
     		fileToUpkMap.store(new FileOutputStream(file), null);
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.FINE, "Upk mapping properties written.");
+			logger.log(Level.FINE, "Upk mapping properties written.");
 		} catch(IOException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.SEVERE, "IO Error writing upk mapping properties", ex);
+			logger.log(Level.SEVERE, "IO Error writing upk mapping properties", ex);
 		}
 	}
 
@@ -298,9 +298,9 @@ public class UpkModderProperties {
 		}
 		try {
 			fileToUpkMap.load(new FileInputStream(file));
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.FINE, "upk mapping properties read.");
+			logger.log(Level.FINE, "upk mapping properties read.");
 		} catch(IOException ex) {
-			Logger.getLogger(UpkModderProperties.class.getName()).log(Level.SEVERE, "IO Error reading upk mapping properties", ex);
+			logger.log(Level.SEVERE, "IO Error reading upk mapping properties", ex);
 		}
 	}
 

@@ -12,7 +12,6 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -40,6 +39,7 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import static model.modtree.ModTree.logger;
 import static ui.Constants.REFERENCE_UPDATE_FONT;
 
 /**
@@ -308,7 +308,7 @@ public class ReferenceUpdateDialog extends JDialog {
 					// TODO: implement better error handling
 					convertToRefNames();
 				} catch(BadLocationException ex) {
-					Logger.getLogger(ReferenceUpdateDialog.class.getName()).log(Level.SEVERE, null, ex);
+					logger.log(Level.SEVERE, "Unknown error while converting to Reference Names", ex);
 				}
 				
 			}
@@ -321,7 +321,7 @@ public class ReferenceUpdateDialog extends JDialog {
 					// TODO: implement better error handling
 					convertToRefDestValues();
 				} catch(BadLocationException ex) {
-					Logger.getLogger(ReferenceUpdateDialog.class.getName()).log(Level.SEVERE, null, ex);
+					logger.log(Level.SEVERE, "Unknown error while converting to Reference Values", ex);
 				}
 				
 			}

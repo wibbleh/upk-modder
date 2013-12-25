@@ -313,8 +313,8 @@ public class ModTab extends JSplitPane {
 	 */
 	public boolean applyChanges() {
 		try {
-			if(this.getTree().getAction().equals("")) { // default action of making changes to object
-				if(this.getTree().getResizeAmount() == 0) {
+			if(this.modTree.getAction().equals("")) { // default action of making changes to object
+				if(this.modTree.getResizeAmount() == 0) {
 					// basic search and replace without file backup
 					if(this.searchAndReplace(
 							HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
@@ -352,8 +352,8 @@ public class ModTab extends JSplitPane {
 	 */
 	public boolean revertChanges() {
 		try {
-			if(this.getTree().getAction().equals("")) { // default action of making changes to object
-				if(this.getTree().getResizeAmount() == 0) {
+			if(this.modTree.getAction().equals("")) { // default action of making changes to object
+				if(this.modTree.getResizeAmount() == 0) {
 					// basic search and replace without file backup
 					if(this.searchAndReplace(
 							HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
@@ -371,7 +371,7 @@ public class ModTab extends JSplitPane {
 				}
 			} else { // perform special action
 				// TODO: replace within enumeration?
-				if(this.getTree().getAction().equalsIgnoreCase("typechange")) {
+				if(this.modTree.getAction().equalsIgnoreCase("typechange")) {
 					if (HexSearchAndReplace.changeObjectType(false, modTree)) {
 						ModTab.logger.log(Level.INFO, "Variable type reverted to BEFORE");
 						return true;

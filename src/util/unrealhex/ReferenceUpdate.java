@@ -266,7 +266,7 @@ public class ReferenceUpdate {
 						offsetIncrease += (name.length() - 12);
 					}
 				} catch(BadLocationException ex) {
-					Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
+					logger.log(Level.SEVERE, null, ex);
 					failureMode = 4; // 2 = FILE WRITE ERROR
 					return false;
 				}
@@ -315,7 +315,7 @@ public class ReferenceUpdate {
 							document.insertString(this.referenceOffsets.get(i) + offsetIncrease, docNewString, as);
 						}
 					} catch(BadLocationException ex) {
-						Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
+						logger.log(Level.SEVERE, null, ex);
 						failureMode = 4; // 2 = FILE WRITE ERROR
 						return false;
 					}
@@ -352,7 +352,7 @@ public class ReferenceUpdate {
 					StyleConstants.setItalic((MutableAttributeSet) as, false);
 					document.insertString(offset, destGUID, as);
 				} catch(BadLocationException ex) {
-					Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
+					logger.log(Level.SEVERE, null, ex);
 					success = false;
 				}
 			}
@@ -445,7 +445,7 @@ public class ReferenceUpdate {
 						}
 					}
 				} catch(BadLocationException ex) {
-					Logger.getLogger(ReferenceUpdate.class.getName()).log(Level.SEVERE, null, ex);
+					logger.log(Level.SEVERE, null, ex);
 					failureMode = 2; // 2 = FILE READ ERROR
 					return false;
 				}

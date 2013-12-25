@@ -69,13 +69,13 @@ public class UpkParser {
 		
 		long startTime = System.currentTimeMillis();
 		List<NameEntry> nameList = this.parseNameList(ints[1], ints[0]);
-		logger.log(Level.INFO, "Parsed name list, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Parsed name list, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		List<ObjectEntry> objectList = this.parseObjectList(ints[3], ints[2]);
-		logger.log(Level.INFO, "Parsed object list, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Parsed object list, took " + (System.currentTimeMillis() - startTime) + "ms");
 		startTime = System.currentTimeMillis();
 		List<ImportEntry> importList = this.parseImportList(ints[5], ints[4]);
-		logger.log(Level.INFO, "Parsed import list, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Parsed import list, took " + (System.currentTimeMillis() - startTime) + "ms");
         
         this.raf.seek(0x45L);
         byte[] aGUID = new byte[16];

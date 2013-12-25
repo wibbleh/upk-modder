@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import model.modtree.ModContext.ModContextType;
 import model.modtree.ModTree;
@@ -242,16 +241,16 @@ public class HexSearchAndReplace {
 		boolean success = true;
 		
 		if(tree.getFileVersion() < 4) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Modfile version does not support resize operations");
+			logger.log(Level.INFO, "Modfile version does not support resize operations");
 			return false;
 		}
 		
 		int currentObjectIndex = upk.findRefByName(tree.getFunctionName());
 		if(currentObjectIndex < 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Cannot resize import objects");
+			logger.log(Level.INFO, "Cannot resize import objects");
 			return false;
 		} else if(currentObjectIndex == 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Function not found in upk");
+			logger.log(Level.INFO, "Function not found in upk");
 			return false;
 		}
 
@@ -275,7 +274,7 @@ public class HexSearchAndReplace {
 		
 		// Verify that tree has only one replacement block
 		if(findHexList.size()!= 1 || replaceHexList.size() != 1) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Resize operation requires exactly 1 BEFORE and 1 AFTER block");
+			logger.log(Level.INFO, "Resize operation requires exactly 1 BEFORE and 1 AFTER block");
 			return false;
 		}
 		
@@ -284,7 +283,7 @@ public class HexSearchAndReplace {
 		
 		// Verify size change
 		if(findHex.length + resizeAmount != replaceHex.length) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Mismatch in expected size difference between FIND/REPLACE blocks\n"
+			logger.log(Level.INFO, "Mismatch in expected size difference between FIND/REPLACE blocks\n"
 					+ "    FIND size: " + findHex.length + "\n"
 					+ "    Request resize: " + resizeAmount + "\n"
 					+ "    REPLACE size: " + replaceHex.length + "\n");
@@ -296,13 +295,13 @@ public class HexSearchAndReplace {
 		try {
 			filePosition = findFilePosition(findHex, upk,  tree);
 		} catch(IOException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "IO Error finding file position", ex);
+			logger.log(Level.SEVERE, "IO Error finding file position", ex);
 			return false;
 		}
 		
 		// verify found file position
 		if(filePosition == -1) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "FIND hex not found");
+			logger.log(Level.SEVERE, "FIND hex not found");
 			return false;
 		}
 		
@@ -311,10 +310,10 @@ public class HexSearchAndReplace {
 		// Invoke copyAndReplace function
 		File newFile = copyAndReplaceUpk((int) filePosition, findHex, replaceHex , upk);
 		if(newFile == null) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Failure during copyAndReplace");
+			logger.log(Level.INFO, "Failure during copyAndReplace");
 			return false;
 		}
-		logger.log(Level.INFO, "Resize: inserted new hex, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Resize: inserted new hex, took " + (System.currentTimeMillis() - startTime) + "ms");
 
 
 		startTime = System.currentTimeMillis();
@@ -361,7 +360,7 @@ public class HexSearchAndReplace {
 			return false;
 		}
 		
-		logger.log(Level.INFO, "Resize: rewrote object table, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.FINE, "Resize: rewrote object table, took " + (System.currentTimeMillis() - startTime) + "ms");
 		return success;
 	}
 	
@@ -390,11 +389,11 @@ public class HexSearchAndReplace {
 			sbc.position(filePosition);
 			sbc.read(fileBuf);
 		} catch(IOException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Failed to read upk file", ex);
+			logger.log(Level.SEVERE, "Failed to read upk file", ex);
 			return null;
 		}
 		if(!Arrays.equals(findHex, fileBuf.array())) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Find hex not found");
+			logger.log(Level.INFO, "Find hex not found");
 			return null;
 		}
 		long endFindHexPosition = filePosition + findHex.length;
@@ -403,7 +402,7 @@ public class HexSearchAndReplace {
 		// verify that filename ends with ".upk"
 		String origFilename = origFile.toPath().toAbsolutePath().toString();
 		if(!origFilename.endsWith(".upk")) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Target file not valid upk");
+			logger.log(Level.INFO, "Target file not valid upk");
 			return null;
 		}
 		String backupFileName = origFilename.replace(".upk", ".bak");
@@ -430,7 +429,7 @@ public class HexSearchAndReplace {
 		try {
 			newPath = Files.move(origFile.toPath(), backupFilePath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch(IOException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Failed to create backup file", ex);
+			logger.log(Level.INFO, "Failed to create backup file", ex);
 			return null;
 		}
 		File backupFile = newPath.toFile();
@@ -441,7 +440,7 @@ public class HexSearchAndReplace {
 			try {
 				newFile.createNewFile();
 			} catch(IOException ex) {
-				Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Could not create new upk file", ex);
+				logger.log(Level.SEVERE, "Could not create new upk file", ex);
 				return null;
 			}
 		}
@@ -465,10 +464,10 @@ public class HexSearchAndReplace {
 				destination.transferFrom(source, destination.size(), source.size()-endFindHexPosition);
 				
 		} catch(FileNotFoundException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "File not found during copy", ex);
+			logger.log(Level.SEVERE, "File not found during copy", ex);
 			return null;
 		} catch(IOException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "IO Error during file copy", ex);
+			logger.log(Level.SEVERE, "IO Error during file copy", ex);
 			return null;
 		}
 
@@ -498,69 +497,69 @@ public class HexSearchAndReplace {
 		//retrieve type change properties from tree
 		String findType = findByKeyword("OBJECT_TYPE", tree, findContext);
 		if (findType.isEmpty()) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No FIND object type.");
+			logger.log(Level.INFO, "No FIND object type.");
 			return false;
 		}
 		String findSizeString = findByKeyword("SIZE", tree, findContext);
 		if (findSizeString.isEmpty()) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No FIND object size.");
+			logger.log(Level.INFO, "No FIND object size.");
 			return false;
 		}
 		try {
 			findSize = Integer.parseInt(findSizeString, 16);
 		}
 		catch (NumberFormatException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Invalid FIND size.", ex);
+			logger.log(Level.INFO, "Invalid FIND size.", ex);
 			return false;
 		}
 		
 		String replaceType = findByKeyword("OBJECT_TYPE", tree, replaceContext);
 		if (replaceType.isEmpty()) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No REPLACE object type.");
+			logger.log(Level.INFO, "No REPLACE object type.");
 			return false;
 		}
 		String replaceSizeString = findByKeyword("SIZE", tree, replaceContext);
 		if (replaceSizeString.isEmpty()) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No REPLACE object size.");
+			logger.log(Level.INFO, "No REPLACE object size.");
 			return false;
 		}
 		try {
 			replaceSize = Integer.parseInt(replaceSizeString, 16);
 		}
 		catch (NumberFormatException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Invalid REPLACE size.", ex);
+			logger.log(Level.INFO, "Invalid REPLACE size.", ex);
 			return false;
 		}
 		
 		// retrieve import table references for types
 		int findTypeIdx = tree.getSourceUpk().findRefByName(findType);
 		if(findTypeIdx == 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No match for FIND type in Import Table");
+			logger.log(Level.INFO, "No match for FIND type in Import Table");
 			return false;
 		}
 		if(findTypeIdx > 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "ERROR - FIND object type can only be from Import Table");
+			logger.log(Level.INFO, "ERROR - FIND object type can only be from Import Table");
 			return false;
 		}
 		
 		int replaceTypeIdx = tree.getSourceUpk().findRefByName(replaceType);
 		if(replaceTypeIdx == 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "No match for REPLACE type in Import Table");
+			logger.log(Level.INFO, "No match for REPLACE type in Import Table");
 			return false;
 		}
 		if(replaceTypeIdx > 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "ERROR - REPLACE object type can only be from Import Table");
+			logger.log(Level.INFO, "ERROR - REPLACE object type can only be from Import Table");
 			return false;
 		}
 		
 		// attempt to find object
 		int objectIdx = tree.getSourceUpk().findRefByName(tree.getFunctionName());
 		if(objectIdx == 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Object not found");
+			logger.log(Level.INFO, "Object not found");
 			return false;
 		}
 		if(objectIdx < 0) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "Import Objects cannot have type changed");
+			logger.log(Level.INFO, "Import Objects cannot have type changed");
 			return false;
 		}
 		
@@ -568,11 +567,11 @@ public class HexSearchAndReplace {
 		
 		// verify that old values are there.
 		if(currentObjEntry.getType() != findTypeIdx) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "FIND type mismatch - unexpected type found");
+			logger.log(Level.INFO, "FIND type mismatch - unexpected type found");
 			return false;
 		}
 		if(currentObjEntry.getUpkSize() != findSize) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.INFO, "FIND size mismatch - unexpected size found");
+			logger.log(Level.INFO, "FIND size mismatch - unexpected size found");
 			return false;
 		}
 		
@@ -599,7 +598,7 @@ public class HexSearchAndReplace {
 			currentObjEntry.setUpkSize(replaceSize);
 			
 		} catch(IOException ex) {
-			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "IO Exception while writing data", ex);
+			logger.log(Level.SEVERE, "IO Exception while writing data", ex);
 			return false;
 		}
 		
