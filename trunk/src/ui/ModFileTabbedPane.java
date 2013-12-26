@@ -37,6 +37,7 @@ import static ui.Constants.*;
 import ui.dialogs.ReferenceUpdateDialog;
 import util.properties.UpkModderProperties;
 import util.unrealhex.HexSearchAndReplace;
+import static util.unrealhex.HexSearchAndReplace.testFileStatus;
 
 /**
  * Tabbed pane implementation for the application's mod file editor.
@@ -268,6 +269,42 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		}
 	}
 
+	/**
+	 * Tests current active modfile apply status and sets tab coloring accordingly
+	 */
+	public void testStatusModFile() {
+		int selectedIndex = this.getSelectedIndex();
+		Component selComp = this.getComponentAt(selectedIndex);
+		if (selComp != null) {
+			ModFileTab tab = (ModFileTab) selComp;
+			HexSearchAndReplace.ApplyStatus status = tab.testStatusModFile();
+			
+			if (status == HexSearchAndReplace.ApplyStatus.AFTER_HEX_PRESENT) {
+				this.setForegroundAt(selectedIndex,  new Color(0, 0, 230)); // blue indicates AFTER
+				this.setFontAt(selectedIndex, TAB_PANE_FONT_APPLIED);
+				this.setToolTipTextAt(selectedIndex, "Hex Applied");
+			} else if (status == HexSearchAndReplace.ApplyStatus.BEFORE_HEX_PRESENT) {
+				this.setForegroundAt(selectedIndex,  new Color(0, 128, 0)); // green indicates BEFORE
+				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+				this.setToolTipTextAt(selectedIndex, "Original Hex");
+			} else if (status == HexSearchAndReplace.ApplyStatus.MIXED_STATUS) {
+				this.setForegroundAt(selectedIndex,  new Color(232, 118, 0)); // orange indicates MIXED
+				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+				this.setToolTipTextAt(selectedIndex, "Mixed Status");
+			} else if (status == HexSearchAndReplace.ApplyStatus.APPLY_ERROR) {
+				this.setForegroundAt(selectedIndex,  new Color(255, 0, 0)); // red indicates ERROR
+				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+				this.setToolTipTextAt(selectedIndex, "ERROR");
+			} else if (status ==HexSearchAndReplace.ApplyStatus.NO_UPK) {
+				this.setForegroundAt(selectedIndex,  new Color(0, 0, 0)); // black indicates NOUPK
+				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+				this.setToolTipTextAt(selectedIndex, "No target UPK");
+			}
+			this.updateUI(); // needed to update tab 
+		}
+	}
+
+	
 	/**
 	 * The basic component inside the tabbed pane.
 	 * @author XMS
@@ -618,6 +655,14 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				}
 			}
 			return filePositions;
+		}
+
+		/**
+		 * Tests this tab's apply status and updates tab coloring
+		 * @return the result of the test
+		 */
+		public HexSearchAndReplace.ApplyStatus testStatusModFile() {
+			return testFileStatus(modTree);
 		}
 		
 		/**

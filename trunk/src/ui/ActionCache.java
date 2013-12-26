@@ -241,6 +241,19 @@ public class ActionCache {
 		hexRevertAction.putValue(Action.SHORT_DESCRIPTION, "Revert Hex Changes");
 		hexRevertAction.setEnabled(false);
 		
+		// revert hex
+		Action testApplyStatusAction = new AbstractAction("Test File Status") {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				mainFrame.testStatusModFile();
+			}
+		};
+		testApplyStatusAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+		testApplyStatusAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
+		testApplyStatusAction.putValue(Action.MNEMONIC_KEY, (int) 't');
+		testApplyStatusAction.putValue(Action.SHORT_DESCRIPTION, "Test File Status");
+		testApplyStatusAction.setEnabled(false);
+		
 		// create help and about icons
 		BufferedImage helpImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = helpImg.createGraphics();
@@ -299,6 +312,7 @@ public class ActionCache {
 		
 		cache.put("hexApply", hexApplyAction);
 		cache.put("hexRevert", hexRevertAction);
+		cache.put("testFile", testApplyStatusAction);
 		
 		// help actions
 		cache.put("help", helpAction);
