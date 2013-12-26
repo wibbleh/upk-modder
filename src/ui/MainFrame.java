@@ -246,6 +246,7 @@ public class MainFrame extends JFrame {
 		editMenu.addSeparator();
 		editMenu.add(ActionCache.getAction("hexApply"));
 		editMenu.add(ActionCache.getAction("hexRevert"));
+		editMenu.add(ActionCache.getAction("testFile"));
 		
 		// create help menu
 		JMenu helpMenu = new JMenu("Help");
@@ -538,6 +539,7 @@ public class MainFrame extends JFrame {
 	public void setEditActionsEnabled(boolean enabled) {
 		ActionCache.getAction("hexApply").setEnabled(enabled);
 		ActionCache.getAction("hexRevert").setEnabled(enabled);
+		ActionCache.getAction("testFile").setEnabled(enabled);
 	}
 
 	/**
@@ -707,4 +709,10 @@ public class MainFrame extends JFrame {
 		modTabPane.revertModFile();
 	}
 
+	/**
+	 * Tests whether a modfile is applied or not
+	 */
+	public void testStatusModFile() {
+		modTabPane.testStatusModFile();
+	}
 }

@@ -125,45 +125,6 @@ public class ProjectTree extends JTree {
 							File file = (File) selPath.getLastPathComponent();
 							if (file.isFile()) {
 								((BrowseAbstractAction) ActionCache.getAction("openModFile")).execute(file);
-//								try {
-//									MainFrame.getInstance().openModFile(file);
-//									ModFileTab tab = new ModFileTab(file);
-//									tabPane.addTab(file.getName(), tab);
-//									tabPane.setSelectedComponent(tab);
-//									FIXME
-//									appProperties.saveOpenState(tabPane, projectMdl);
-
-//									FIXME
-//									// TODO: create function for upk re-association
-//									//re-associate upk if possible
-//									if(appProperties.getUpkProperty(file.getName()) != null) {
-//										File ufile = new File(appProperties.getUpkProperty(file.getName()));
-//										// grab UPK file from cache
-//										UpkFile upkFile = upkCache.get(ufile);
-//										if (upkFile == null) {
-//											// if cache doesn't contain UPK file instantiate a new one
-//											upkFile = new UpkFile(ufile);
-//										}
-//
-//										// check whether UPK file is valid (i.e. header parsing worked properly)
-//										if (upkFile.getHeader() != null) {
-//											// store UPK file in cache
-//											upkCache.put(ufile, upkFile);
-//											// link UPK file to tab
-//											tab.setUpkFile(upkFile);
-//											// show file name in status bar
-//											upkTtf.setText(ufile.getPath());
-//											// enable 'update', 'apply' and 'revert' actions
-//											setEditActionsEnabled(true);
-//										} else {
-//											// TODO: show error/warning message
-//										}
-//									}
-
-//									MainFrame.getInstance().setFileActionsEnabled(true);
-//								} catch (Exception ex) {
-//									logger.log(Level.SEVERE, "Failure to open modfile from Project: " + ex);
-//								}
 							}
 						}
 					}

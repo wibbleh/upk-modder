@@ -34,6 +34,13 @@ import model.upk.UpkFile;
  */
 public class HexSearchAndReplace {
 	
+	public enum ApplyStatus {
+		NO_UPK,
+		APPLY_ERROR,
+		MIXED_STATUS,
+		BEFORE_HEX_PRESENT,
+		AFTER_HEX_PRESENT;
+	}
 	/**
 	 * Parses the tree and finds any hex that is part of a [BEFORE] block
 	 * Each block is returned as a separate byte[] in the list
@@ -222,6 +229,66 @@ public class HexSearchAndReplace {
 			sbc.position(filePos);
 			sbc.write(fileBuf);
 		}
+	}
+	
+	public static ApplyStatus testFileStatus(ModTree tree) {
+		// consolidate BEFORE hex
+		List<byte[]> beforeHex = consolidateBeforeHex(tree, tree.getSourceUpk());
+		
+		//consolidate AFTER hex
+		List<byte[]> afterHex = consolidateAfterHex(tree, tree.getSourceUpk());
+		
+		if(beforeHex.size() != afterHex.size()) {
+			return ApplyStatus.APPLY_ERROR;
+		}
+		
+		boolean foundSomeBefore = false;  // will be true if any BEFORE blocks are found
+		boolean missingSomeBefore = false; // will be true if any BEFORE blocks are not found
+		boolean foundSomeAfter = false;  // will be true if any AFTER blocks are found
+		boolean missingSomeAfter = false;
+		long beforePos, afterPos;
+		for (int i = 0 ; i < beforeHex.size() ; i ++ ) {
+			try {
+				beforePos = findFilePosition(beforeHex.get(i), tree.getSourceUpk(), tree);
+				afterPos = findFilePosition(afterHex.get(i), tree.getSourceUpk(), tree);
+			}
+			catch (IOException ex) {
+				logger.log(Level.SEVERE, "IO Exception: ", ex);
+				return ApplyStatus.APPLY_ERROR;
+			}
+			
+			if((beforePos < 0) && (afterPos < 0)) { // both blocks not found return error
+				return ApplyStatus.APPLY_ERROR;
+			}
+			if((beforePos >=0) && (afterPos < 0)) { // found before block and not after
+				foundSomeBefore = true;
+				missingSomeAfter = true;
+			}
+
+			if((beforePos < 0) && (afterPos >= 0)) { // found after block and not before
+				foundSomeAfter = true;
+				missingSomeAfter = true;
+			}
+
+			if((beforePos >= 0) && (afterPos >= 0)) { // matched both before and after blocks... this is probably an error
+				foundSomeAfter = true;
+				foundSomeBefore = true;
+			}
+		}
+
+		if(foundSomeBefore && foundSomeAfter) {
+			return ApplyStatus.MIXED_STATUS;
+		}
+		
+		if(foundSomeBefore && !missingSomeBefore && !foundSomeAfter) {
+			return ApplyStatus.BEFORE_HEX_PRESENT;
+		}
+		
+		if(foundSomeAfter && !missingSomeAfter && !foundSomeBefore) {
+			return ApplyStatus.AFTER_HEX_PRESENT;
+		}
+				
+		return ApplyStatus.APPLY_ERROR;
 	}
 	
 	/**
