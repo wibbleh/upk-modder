@@ -2,6 +2,8 @@ package ui;
 
 import java.awt.Font;
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -35,6 +37,19 @@ public class Constants {
 		"XMarksTheSpot"
 	};
 
+	/**
+	 * The application's 'About' text.
+	 */
+	public static final String ABOUT_TEXT = "<html>" + APPLICATION_NAME + "<br><br>Version: " +
+			VERSION_NUMBER + "<br><br>" +
+			"Authors: " + Arrays.toString(AUTHORS) + "<br><br>" +
+			"Released under the <a href=\"http://www.gnu.org/licenses/gpl.html\">GNU GPL v3</a> license<br>" +
+			"Source code is available under <a href=\"https://code.google.com/p/upk-modder/\"https://code.google.com/p/upk-modder/</a>";
+
+	/** <img src="../ui/resources/icons/hex16.png"/> */
+	public static final Icon HEX_SMALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex16.png"));
+	/** <img src="../ui/resources/icons/hex32.png"/> */
+	public static final Icon HEX_LARGE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex32.png"));
 	
 	// TODO: Make the font sizes, etc user-configurable
 	/**
@@ -73,7 +88,7 @@ public class Constants {
 	/**
 	 * Project Entry font 
 	 */
-	public static final Font PROJECT_ENTRY_FONT = new Font(Font.DIALOG, Font.TRUETYPE_FONT, 11);
+	public static final Font PROJECT_ENTRY_FONT = new Font(Font.DIALOG, Font.PLAIN, 11);
 	
 	/**
 	 * Reference Update font 
@@ -89,11 +104,16 @@ public class Constants {
 	 * Tab size 
 	 */
 	public static final int TAB_SIZE = 24;
+	
+	/**
+	 * The application state file.
+	 */
+	public static final Path APPLICATION_STATE_FILE = Paths.get("UPKModder.conf");
 
 	/**
 	 * The operand data file.
 	 */
-	public static final File OPERAND_DATA_FILE = new File("config/operand_data.ini");
+	public static final Path OPERAND_DATA_FILE = Paths.get("config/operand_data.ini");
 	
 	/**
 	 * The default mod file template file.
@@ -103,8 +123,11 @@ public class Constants {
 	/**
 	 * The default mod file template file.
 	 */
-	public static final File TEMPLATE_MOD_FILE = new File("defaultModfileTemplate.upk_mod");
+	public static final Path TEMPLATE_MOD_FILE = Paths.get("defaultModfileTemplate.upk_mod");
 	
+	/**
+	 * The output properties for writing project XML files.
+	 */
 	public static final Properties PROJECT_XML_OUTPUT_PROPERTIES;
 	static {
 		Properties props = new Properties();
@@ -114,20 +137,6 @@ public class Constants {
 		props.setProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 		PROJECT_XML_OUTPUT_PROPERTIES = props;
 	}
-
-	/** <img src="../ui/resources/icons/hex16.png"/> */
-	public static final Icon HEX_SMALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex16.png"));
-	/** <img src="../ui/resources/icons/hex32.png"/> */
-	public static final Icon HEX_LARGE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex32.png"));
-
-	/**
-	 * The application's 'About' text.
-	 */
-	public static final String ABOUT_TEXT = "<html>" + APPLICATION_NAME + "<br><br>Version: " +
-			VERSION_NUMBER + "<br><br>" +
-			"Authors: " + Arrays.toString(AUTHORS) + "<br><br>" +
-			"Released under the <a href=\"http://www.gnu.org/licenses/gpl.html\">GNU GPL v3</a> license<br>" +
-			"Source code is available under <a href=\"https://code.google.com/p/upk-modder/\"https://code.google.com/p/upk-modder/</a>";
 	
 	/**
 	 * File filter for *.mod files.

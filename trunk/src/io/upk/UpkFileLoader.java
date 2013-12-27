@@ -1,14 +1,14 @@
 package io.upk;
 
-import UPKmodder.UpkConfigData;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Scanner;
+
 import model.upk.UpkFile;
+import UPKmodder.UpkConfigData;
 
 /**
  *
@@ -108,8 +108,8 @@ public class UpkFileLoader
                         String upkPath = currLine.split("::")[0].split("=",2)[1].trim();
                         String GUID = currLine.split("::")[1].split("=",2)[1].trim();
                         try {
-                            File file = new File(upkPath);		
-                            upkList.add(new UpkFile(file));
+//                            File file = new File(upkPath);		
+                            upkList.add(new UpkFile(Paths.get(upkPath)));
                             guidList.add(GUID);
                         }
                         catch(Throwable x)

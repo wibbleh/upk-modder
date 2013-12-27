@@ -2,8 +2,8 @@ package model.upk;
 
 import io.parser.UpkParser;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * Model class for UPK files.
@@ -13,9 +13,10 @@ import java.io.IOException;
 public class UpkFile {
 
 	/**
-	 * The file descriptor pointing to the *.upk file.
+	 * The pathr pointing to the *.upk file.
 	 */
-	private File file;
+//	private File file;
+	private Path upkPath;
 
 	/**
 	 * The header of this UPK file.
@@ -24,20 +25,20 @@ public class UpkFile {
 
 	/**
 	 * Constructs a UPK file model class from the specified file.
-	 * @param upkFile the file descriptor pointing to the referenced *.upk file
+	 * @param upkPath the path pointing to the referenced *.upk file
 	 */
-	public UpkFile(File upkFile) {
-		this.file = upkFile;
-		this.header = this.parseHeader(upkFile);
+	public UpkFile(Path upkPath) {
+		this.upkPath = upkPath;
+		this.header = this.parseHeader(upkPath);
 	}
 
 	/**
 	 * Parses the header of the specified *.upk file
-	 * @param upkFile the *.upk file
+	 * @param upkPath the *.upk file path
 	 * @return the parsed header or <code>null</code> if a parsing error occurred
 	 */
-	private UpkHeader parseHeader(File upkFile) {
-		UpkParser parser = new UpkParser(upkFile);
+	private UpkHeader parseHeader(Path upkPath) {
+		UpkParser parser = new UpkParser(upkPath);
 		try {
 			return parser.parseHeader();
 		} catch(IOException e) {
@@ -59,7 +60,7 @@ public class UpkFile {
 	 * @return the name
 	 */
 	public String getName() {
-		String name = this.file.getName();
+		String name = upkPath.getFileName().toString();
 		// return file name without extension
 		return name.substring(0, name.length() - 4);
 	}
@@ -68,8 +69,8 @@ public class UpkFile {
 	 * Returns the referenced *.upk file.
 	 * @return the file descriptor pointing to the referenced *.upk file
 	 */
-	public File getFile() {
-		return this.file;
+	public Path getPath() {
+		return this.upkPath;
 	}
 
 	public String getRefName(int ref) {

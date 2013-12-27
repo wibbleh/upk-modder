@@ -1,16 +1,20 @@
 package ui;
 
+import static ui.Constants.TAB_PANE_FONT_APPLIED;
+import static ui.Constants.TAB_PANE_FONT_REVERTED;
+import static ui.Constants.TEXT_PANE_FONT;
+import static ui.Constants.TREE_PANE_FONT;
+import static util.unrealhex.HexSearchAndReplace.testFileStatus;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.HashMap;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,12 +36,9 @@ import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
 import org.bounce.text.LineNumberMargin;
-import static ui.Constants.*;
 
 import ui.dialogs.ReferenceUpdateDialog;
-import util.properties.UpkModderProperties;
 import util.unrealhex.HexSearchAndReplace;
-import static util.unrealhex.HexSearchAndReplace.testFileStatus;
 
 /**
  * Tabbed pane implementation for the application's mod file editor.
@@ -52,22 +53,25 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	public static final Logger logger = Logger.getLogger(ModFileTabbedPane.class.getName());
 
 	/**
-	 * Set of mappings from ModFile File to ModFileTab
-	 * Used to prevent opening of duplicate tabs and to lookup tabs based on filename
+	 * Constructs a mod file tabbed pane. 
 	 */
-	private Map<String, ModFileTab> filenameToTabMap = new HashMap<>();
-	
 	public ModFileTabbedPane() {
 		super(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
 	}
 
 	/**
-	 * Retrieves the tab based on file
-	 * @param file the file for the tab to retrieve
-	 * @return the tab, or null if not found
+	 * Retrieves the tab associated with the provided mod file.
+	 * @param file the mod file path
+	 * @return the tab or <code>null</code> if not found
 	 */
-	public ModFileTab getTab(File file) {
-		return filenameToTabMap.get(file.getAbsolutePath());
+	public ModFileTab getTab(Path modPath) {
+		for (int i = 0; i < this.getTabCount(); i++) {
+			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
+			if (tab.getModFile().equals(modPath)) {
+				return tab;
+			}
+		}
+		return null;
 	}
 	
 	@Override
@@ -88,13 +92,12 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			}
 			// if referenced UPK file is unique among tabs remove it from cache
 			if (!shared) {
-				MainFrame.getInstance().getUPKCache().remove(upkFile.getFile());
+				MainFrame.getInstance().getUpkCache().remove(upkFile.getPath());
 			}
 		}
-		UpkModderProperties.removeOpenModFile(thisTab.getModFile());
-		if(thisTab.getModFile() != null) {
-			filenameToTabMap.remove(thisTab.getModFile().getAbsolutePath());
-		}
+		// FIXME
+//		UpkModderProperties.removeOpenModFile(thisTab.getModFile());
+//		filenameToTabMap.remove(thisTab.getModFile());
 		super.removeTabAt(index);
 	}
 
@@ -117,22 +120,20 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 
 	/**
 	 * Creates a new tab containing the specified mod file.
-	 * @param file the mod file
+	 * @param modPath the mod file path
 	 * @return <code>false</code> if an error occurred, <code>true</code> otherwise
 	 */
-	public boolean openModFile(File file) {
+	public boolean openModFile(Path modPath) {
 		try {
-			if(filenameToTabMap.get(file.getAbsolutePath()) != null) { // file already open, switch to its tab
-				this.setSelectedComponent(filenameToTabMap.get(file.getAbsolutePath()));
-			} else {
-				ModFileTab tab = new ModFileTab(file);
-				this.addTab(file.getName(), tab);
-				this.setSelectedComponent(tab);
-				filenameToTabMap.put(file.getAbsolutePath(), tab);
-				UpkModderProperties.addOpenModFile(file);
+			ModFileTab modTab = this.getTab(modPath);
+			if (modTab == null) {
+				modTab = new ModFileTab(modPath);
+				this.addTab(modPath.getFileName().toString(), modTab);
+				// FIXME
+//				UpkModderProperties.addOpenModFile(path);
 			}
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Failed to load mod file \'" + file.getName() + "\'", e);
+			logger.log(Level.SEVERE, "Failed to load mod file \'" + modPath.getFileName() + "\'", e);
 			return false;
 		}
 		return true;
@@ -142,8 +143,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * Closes the currently opened mod file tab.
 	 */
 	public void closeModFile() {
-		filenameToTabMap.put(this.getActiveModFile().getAbsolutePath(), (ModFileTab) this.getSelectedComponent());
-		UpkModderProperties.removeOpenModFile(this.getActiveModFile());
+		// FIXME
+//		UpkModderProperties.removeOpenModFile(this.getActiveModFile());
 		this.remove(this.getSelectedComponent());
 	}
 
@@ -151,24 +152,24 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * Closes all tabs.
 	 */
 	public void closeAllModFiles() {
-		filenameToTabMap.clear();
-		UpkModderProperties.removeAllOpenModFiles();
+		// FIXME
+//		UpkModderProperties.removeAllOpenModFiles();
 		this.removeAll();
 	}
 
 	/**
 	 * Returns the mod file of the currently selected tab.
-	 * @return the active mod file
+	 * @return the path to the active mod file
 	 */
-	public File getActiveModFile() {
+	public Path getActiveModFile() {
 		Component selComp = this.getSelectedComponent();
 		if (selComp != null) {
-			File file = ((ModFileTab) selComp).getModFile();
-			if ((file == null) || !file.exists()) {
-				file = new File(BrowseAbstractAction.getLastSelectedFile().getParent()
-						+ this.getTitleAt(this.getSelectedIndex()) + ".upk_mod");
+			Path modPath = ((ModFileTab) selComp).getModFile();
+			if ((modPath == null) || Files.notExists(modPath)) {
+				modPath = Paths.get(BrowseAbstractAction.getLastSelectedFile().getParent(),
+						this.getTitleAt(this.getSelectedIndex()) + ".upk_mod");
 			}
-			return file;
+			return modPath;
 		}
 		return null;
 	}
@@ -180,12 +181,12 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		Component selComp = this.getSelectedComponent();
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
-			File file = tab.getModFile();
-			if (file != null) {
+			Path modPath = tab.getModFile();
+			if (modPath != null) {
 				try {
 					tab.saveFile();
 				} catch (IOException e) {
-					logger.log(Level.SEVERE, "Failed to save mod file \'" + file.getName() + "\'", e);
+					logger.log(Level.SEVERE, "Failed to save mod file \'" + modPath.getFileName() + "\'", e);
 				}
 			} else {
 				ActionCache.getAction("saveModFileAs").actionPerformed(null);
@@ -195,23 +196,24 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 
 	/**
 	 * Saves the contents of the currently selected tab to the specified file.
-	 * @param file the file to save to
+	 * @param targetPath the path to the file to save to
 	 */
-	public void saveModFileAs(File file) {
+	public void saveModFileAs(Path targetPath) {
 		Component selComp = this.getSelectedComponent();
 		if (selComp != null) {
-			this.setTitleAt(this.getSelectedIndex(), file.getName());
+			String fileName = targetPath.getFileName().toString();
+			this.setTitleAt(this.getSelectedIndex(), fileName);
 			this.updateUI(); // needed to update tab with
 			ModFileTab tab = (ModFileTab) selComp;
-			filenameToTabMap.remove(this.getActiveModFile().getAbsolutePath());
-			UpkModderProperties.removeOpenModFile(this.getActiveModFile());
-			tab.setModFile(file);
-			filenameToTabMap.put(file.getAbsolutePath(), tab);
-			UpkModderProperties.addOpenModFile(file);
+			// FIXME
+//			UpkModderProperties.removeOpenModFile(this.getActiveModFile());
+			tab.setModFile(targetPath);
+			// FIXME
+//			UpkModderProperties.addOpenModFile(modPath);
 			try {
 				tab.saveFile();
 			} catch (IOException e) {
-				logger.log(Level.SEVERE, "Failed to save mod file \'" + file.getName() + "\'", e);
+				logger.log(Level.SEVERE, "Failed to save mod file \'" + fileName + "\'", e);
 			}
 		}
 	}
@@ -304,7 +306,21 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		}
 	}
 
-	
+	/**
+	 * Associates the provided UPK file with the currently active mod file tab.
+	 * @param upkFile the UPK file to associate
+	 * @return <code>true</code> if association succeeded, <code>false</code> otherwise
+	 */
+	public boolean associateUpk(UpkFile upkFile) {
+		Component selComp = this.getSelectedComponent();
+		if (selComp != null) {
+			ModFileTab tab = (ModFileTab) selComp;
+			tab.setUpkFile(upkFile);
+			return true;
+		}
+		return false;
+	}
+
 	/**
 	 * The basic component inside the tabbed pane.
 	 * @author XMS
@@ -324,25 +340,25 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		/**
 		 * The modfile associated with this tab.
 		 */
-		private File modFile;
+		private Path modFile;
 		
 
 		/**
 		 * Creates a new tab from the specified modfile reference.
-		 * @param modFile the modfile to parse
+		 * @param modFile the path to the mod file to parse
 		 * @throws Exception if the mod file could not be parsed
 		 */
-		public ModFileTab(File modFile) throws Exception {
+		public ModFileTab(Path modFile) throws Exception {
 			this(modFile, false);
 		}
 
 		/**
 		 * Creates a new tab from the specified modfile reference.
-		 * @param modFile the modfile to parse
+		 * @param modFile the path to the mod file to parse
 		 * @param template specifies whether the file being opened is a template file
 		 * @throws Exception if the mod file could not be parsed
 		 */
-		public ModFileTab(File modFile, boolean template) throws Exception {
+		public ModFileTab(Path modFile, boolean template) throws Exception {
 			super(JSplitPane.HORIZONTAL_SPLIT);
 			this.modFile = modFile;
 			
@@ -364,60 +380,13 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			modEditor.setFont(TEXT_PANE_FONT);
 
 			// install editor kit
-			modEditor.setEditorKit(new ModStyledEditorKit()); // relocated to new class
-//			modEditor.setEditorKit(new StyledEditorKit() {
-//				@Override
-//				public ViewFactory getViewFactory() {
-//					return new ViewFactory() {
-//						@Override
-//				        public View create(Element elem) {
-//				            String kind = elem.getName();
-//				            if (kind != null) {
-//				                if (kind.equals(AbstractDocument.ContentElementName)) {
-//				                    return new LabelView(elem);
-//				                } else if (kind.equals(AbstractDocument.ParagraphElementName)) {
-//				                	return new ParagraphView(elem) {
-//				                    	/* hack to prevent line wrapping */
-////				                    	@Override
-////										public void layout(int width, int height) {
-////											super.layout(Short.MAX_VALUE, height);
-////										}
-////				                    	@Override
-////										public float getMinimumSpan(int axis) {
-////											return super.getPreferredSpan(axis);
-////										}
-//										// tab-stop code from http://java-sl.com/tip_default_tabstop_size.html
-//										@Override
-//										public float nextTabStop(float x, int tabOffset) {
-//											TabSet tabs = getTabSet();
-//											if(tabs == null) {
-//												// a tab every 72 pixels.
-//												return (float)(getTabBase() + (((int)x / TAB_SIZE + 1) * TAB_SIZE));
-//											}
-//
-//											return super.nextTabStop(x, tabOffset);
-//										 }
-//				                    };
-//				                } else if (kind.equals(AbstractDocument.SectionElementName)) {
-//				                    return new BoxView(elem, View.Y_AXIS);
-//				                } else if (kind.equals(StyleConstants.ComponentElementName)) {
-//				                    return new ComponentView(elem);
-//				                } else if (kind.equals(StyleConstants.IconElementName)) {
-//				                    return new IconView(elem);
-//				                }
-//				            }
-//				            // default to text display
-//				            return new LabelView(elem);
-//				        }
-//				    };
-//				}
-//			});
+			modEditor.setEditorKit(new ModStyledEditorKit());
 			
 			// read provided file, if possible
 			if (modFile != null) {
-				modEditor.read(new FileInputStream(modFile), modFile);
+				modEditor.read(Files.newInputStream(modFile), modFile);
 			}
-
+			
 			// wrap editor in scroll pane
 			JScrollPane modEditorScpn = new JScrollPane(modEditor,
 					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
@@ -426,8 +395,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			modEditorScpn.setPreferredSize(new Dimension(650, 600));
 			
 			Document modDocument = modEditor.getDocument();
-//			modDocument.putProperty(PlainDocument.tabSizeAttribute, 4);
-
+			
 			// create tree view of right-hand mod editor
 			modTree = new ModTree(modDocument);
 //			final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
@@ -439,8 +407,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			
 			// configure look and feel of tree view
 			modElemTree.setRootVisible(false);
-//			modElemTree.setShowsRootHandles(false);
-//			modElemTree.putClientProperty("JTree.lineStyle", "Angled");
 			
 			// display alternate operand text info for opened ModOperandNodes
 			DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
@@ -478,44 +444,14 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			
 		}
 
-//		private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
-//			// perform simple error checking first
-//			// check for same number of blocks
-//			if(patterns.size() != replacements.size()) {
-//				logger.log(Level.INFO, "Block count mismatch");
-//				return null;
-//			}
-//			// check each block has same number of bytes
-//			long[] filePositions = new long[patterns.size()];
-//			for (int i = 0; i < patterns.size() ; i++) {
-//				if(patterns.get(i).length != replacements.get(i).length) {
-//				logger.log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
-//						+ patterns.get(i).length + ", REPLACE = " 
-//						+ replacements.get(i).length);
-//					return null;
-//				}
-//			}
-//			// try and find each pattern blocks position
-//			for(int j = 0; j < patterns.size() ; j ++) {
-//				long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), this.getUpkFile(), this.modTree);
-//				if(filePos == -1) {
-//					logger.log(Level.INFO, "Block " + j + " FIND not found");
-//					return null;
-//				} else {
-//					filePositions[j]= filePos;
-//				}
-//			}
-//			return filePositions;
-//		}
-
 		/**
 		 * Saves the editor's contents to the file associated with this tab.
 		 * @throws IOException if an I/O error occurs
 		 */
 		public void saveFile() throws IOException {
-			modEditor.write(new OutputStreamWriter(new FileOutputStream(modFile)));
+			modEditor.write(Files.newBufferedWriter(modFile, Charset.defaultCharset()));
 		}
-
+		
 		/**
 		 * Searches the associated UPK file for the byte data of the <code>BEFORE</code>
 		 * block(s) and overwrites it using the byte data of the <code>AFTER</code> block(s).
@@ -557,6 +493,25 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			}
 			return false;
 		}
+
+//		/**
+//		 * Searches the associated UPK file for the byte data of the <code>BEFORE</code>
+//		 * block(s) and overwrites it using the byte data of the <code>AFTER</code> block(s).
+//		 * @return <code>true</code> if changes applied successfully, <code>false</code> if not
+//		 */
+//		public boolean applyChanges() {
+//			try {
+//				if (this.searchAndReplace(
+//						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
+//						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))) {
+//					ModFileTabbedPane.logger.log(Level.INFO, "AFTER Hex Installed");
+//					return true;
+//				}
+//			} catch (IOException e) {
+//				ModFileTabbedPane.logger.log(Level.SEVERE, "File error", e);
+//			}
+//			return false;
+//		}
 
 		/**
 		 * Searches the associated UPK file for the byte data of the <code>AFTER</code>
@@ -608,7 +563,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			// TODO: move to HexSearchAndReplace class
 			// perform error checking first
 			long[] filePositions = this.testBeforeAndAfterBlocks(patterns, replacements);
-			if(filePositions == null) {
+			if (filePositions == null) {
 				return false;
 			}
 
@@ -677,7 +632,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * Returns the mod file reference of this tab.
 		 * @return the mod file
 		 */
-		public File getModFile() {
+		public Path getModFile() {
 			return modFile;
 		}
 		
@@ -685,7 +640,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * Sets the mod file reference of this tab.
 		 * @param modFile the mod file to set
 		 */
-		public void setModFile(File modFile) {
+		public void setModFile(Path modFile) {
 			this.modFile = modFile;
 		}
 		

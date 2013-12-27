@@ -1,6 +1,7 @@
 package ui;
 
 import java.awt.Shape;
+
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BoxView;

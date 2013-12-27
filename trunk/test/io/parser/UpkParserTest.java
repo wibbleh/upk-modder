@@ -2,11 +2,11 @@ package io.parser;
 
 import io.model.upk.NameEntry;
 
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import junit.framework.TestCase;
-
 import model.upk.UpkFile;
 import model.upk.UpkHeader;
 
@@ -22,9 +22,9 @@ public class UpkParserTest extends TestCase {
 	@Test
 	public void testHeaderParsing() {
 		
-		File file = new File("test/resources/XComGame_EU_patch4.upk");
+		Path path = Paths.get("test/resources/XComGame_EU_patch4.upk");
 		
-		UpkFile upkFile = new UpkFile(file);
+		UpkFile upkFile = new UpkFile(path);
 		UpkHeader header = upkFile.getHeader();
 		
 		List<NameEntry> nameList = header.getNameList();
@@ -43,9 +43,9 @@ public class UpkParserTest extends TestCase {
 		 * Tests for XComGame.upk ENEMY WITHIN RELEASE
 		 */
 		
-		file = new File("test/resources/XComGame_EW_release.upk");
+		path = Paths.get("test/resources/XComGame_EW_release.upk");
 		
-		upkFile = new UpkFile(file);
+		upkFile = new UpkFile(path);
 		header = upkFile.getHeader();
 		
 		nameList = header.getNameList();

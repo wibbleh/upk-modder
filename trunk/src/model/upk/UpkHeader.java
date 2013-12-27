@@ -17,9 +17,9 @@
 
 package model.upk;
 
+import io.model.upk.ImportEntry;
 import io.model.upk.NameEntry;
 import io.model.upk.ObjectEntry;
-import io.model.upk.ImportEntry;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

@@ -1,11 +1,10 @@
 package util.unrealhex;
 
+import static model.modtree.ModTree.logger;
 import io.model.upk.ObjectEntry;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -24,7 +23,6 @@ import java.util.logging.Level;
 
 import model.modtree.ModContext.ModContextType;
 import model.modtree.ModTree;
-import static model.modtree.ModTree.logger;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
@@ -172,7 +170,7 @@ public class HexSearchAndReplace {
 		
 		//allocate buffer as large as we need
 		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.READ)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.READ)) {
 			long endSearch = functPos + functLength - hex.length;
 			for (long currPos = functPos; currPos < endSearch; currPos++) {
 				
@@ -222,10 +220,9 @@ public class HexSearchAndReplace {
 	}
 
 	public static void applyHexChange(byte[] hex, UpkFile upk, long filePos) throws IOException {
-		//allocate buffer as large as we need and wrap the hex to write
-//		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
+		// allocate buffer as large as we need and wrap the hex to write
 		ByteBuffer fileBuf = ByteBuffer.wrap(hex);
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.WRITE)) {
 			sbc.position(filePos);
 			sbc.write(fileBuf);
 		}
@@ -386,13 +383,13 @@ public class HexSearchAndReplace {
 		startTime = System.currentTimeMillis();
 
 		
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.WRITE)) {
 			ByteBuffer intBuf = ByteBuffer.allocate(4);
 			intBuf.order(ByteOrder.LITTLE_ENDIAN);
 			
 			// update changed object/function's ObjectEntry size in file
 			ObjectEntry currObjectEntry = upk.getHeader().getObjectList().get(currentObjectIndex);
-			int objectListPos = currObjectEntry.getObjectEntryPos();
+			long objectListPos = currObjectEntry.getObjectEntryPos();
 			int objectSize = currObjectEntry.getUpkSize();
 			intBuf.putInt(objectSize + resizeAmount);
 			intBuf.rewind();
@@ -448,11 +445,11 @@ public class HexSearchAndReplace {
 	 */
 	public static File copyAndReplaceUpk(int filePosition, byte[] findHex, byte[] replaceHex , UpkFile upk) {
 		
-		File origFile = upk.getFile();
+		Path origFile = upk.getPath();
 		
 		// verify that oldHex is at FilePosition 
 		ByteBuffer fileBuf = ByteBuffer.allocate(findHex.length);
-		try (SeekableByteChannel sbc = Files.newByteChannel(origFile.toPath(), StandardOpenOption.READ)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(origFile, StandardOpenOption.READ)) {
 			sbc.position(filePosition);
 			sbc.read(fileBuf);
 		} catch(IOException ex) {
@@ -463,17 +460,18 @@ public class HexSearchAndReplace {
 			logger.log(Level.INFO, "Find hex not found");
 			return null;
 		}
-		long endFindHexPosition = filePosition + findHex.length;
+//		long endFindHexPosition = filePosition + findHex.length;
 		
 		// Rename upk to .bak version
 		// verify that filename ends with ".upk"
-		String origFilename = origFile.toPath().toAbsolutePath().toString();
-		if(!origFilename.endsWith(".upk")) {
+		String origFilename = origFile.toAbsolutePath().toString();
+		if (!origFilename.endsWith(".upk")) {
 			logger.log(Level.INFO, "Target file not valid upk");
 			return null;
 		}
 		String backupFileName = origFilename.replace(".upk", ".bak");
-		Path backupFilePath = Paths.get(backupFileName);
+		Path backupPath = Paths.get(backupFileName);
+		
 //		File backupFile = new File(backupFileName);
 		// delete old backup if it exists
 //		try {
@@ -494,19 +492,19 @@ public class HexSearchAndReplace {
 //		File backupFile = new File(backupFileName);
 		Path newPath;
 		try {
-			newPath = Files.move(origFile.toPath(), backupFilePath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			newPath = Files.move(origFile, backupPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch(IOException ex) {
 			logger.log(Level.INFO, "Failed to create backup file", ex);
 			return null;
 		}
-		File backupFile = newPath.toFile();
+//		File backupFile = newPath.toFile();
 		
 		// create new file with same name as original upk
 		File newFile = new File(origFilename);
-		if(!newFile.exists()) {
+		if (!newFile.exists()) {
 			try {
 				newFile.createNewFile();
-			} catch(IOException ex) {
+			} catch (IOException ex) {
 				logger.log(Level.SEVERE, "Could not create new upk file", ex);
 				return null;
 			}
@@ -514,26 +512,26 @@ public class HexSearchAndReplace {
 		
 		// benchmark comparisons : http://java.dzone.com/articles/file-copy-java-%E2%80%93-benchmark
 		// NIO copy method
-		try (FileChannel source = new FileInputStream(backupFile).getChannel();
-			 FileChannel destination = new FileOutputStream(newFile).getChannel()) {
-				
-				// copy all hex from start of file to filePosition from oldFile to newFile
-				destination.transferFrom(source, 0, filePosition);
-				
-				ByteBuffer replaceHexBuf = ByteBuffer.wrap(replaceHex);
-				//Write newHex to newFile
-				destination.position(destination.size());
-				destination.write(replaceHexBuf);
-				
-				//Copy all hex from end of oldHex from old File to newFile
-				source.position(source.position()+findHex.length);
-				destination.position(destination.size());
-				destination.transferFrom(source, destination.size(), source.size()-endFindHexPosition);
-				
-		} catch(FileNotFoundException ex) {
+		try (FileChannel source = FileChannel.open(backupPath, StandardOpenOption.READ);
+				FileChannel destination = FileChannel.open(newPath, StandardOpenOption.WRITE)) {
+
+			// copy all hex from start to filePosition from backup file to new file
+			destination.transferFrom(source, 0, filePosition);
+			destination.position(filePosition);
+
+			// Write replacement bytes to new File
+			ByteBuffer replaceHexBuf = ByteBuffer.wrap(replaceHex);
+			destination.write(replaceHexBuf);
+			filePosition += findHex.length;
+
+			// Copy remaining bytes from backup file to new file
+			source.position(filePosition);
+			destination.transferFrom(source, filePosition, Long.MAX_VALUE);
+			
+		} catch (FileNotFoundException ex) {
 			logger.log(Level.SEVERE, "File not found during copy", ex);
 			return null;
-		} catch(IOException ex) {
+		} catch (IOException ex) {
 			logger.log(Level.SEVERE, "IO Error during file copy", ex);
 			return null;
 		}
@@ -643,10 +641,10 @@ public class HexSearchAndReplace {
 		}
 		
 		// change the file entries
-		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getSourceUpk().getFile().toPath(), StandardOpenOption.WRITE)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getSourceUpk().getPath(), StandardOpenOption.WRITE)) {
 			ByteBuffer intBuf = ByteBuffer.allocate(4);
 			intBuf.order(ByteOrder.LITTLE_ENDIAN);
-			int objectListPos = currentObjEntry.getObjectEntryPos();
+			long objectListPos = currentObjEntry.getObjectEntryPos();
 			
 			// update changed object/function's ObjectEntry size in file
 			intBuf.putInt(replaceTypeIdx);
@@ -724,7 +722,7 @@ public class HexSearchAndReplace {
 		originalFunctBuf.order(ByteOrder.LITTLE_ENDIAN);
 		
 		// read original function
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.READ)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.READ)) {
 			sbc.position(functPos); // set file position
 			sbc.read(originalFunctBuf);		// retrieve original function code (including 48 byte header + 15 byte footer
 		} catch(IOException ex) {
@@ -787,7 +785,7 @@ public class HexSearchAndReplace {
 		
 		int newFunctPos;
 		// append new function
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.APPEND)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.APPEND)) {
 			newFunctPos = (int) sbc.position();
 //			sbc.write(newFunctionBuf);		// write buffer
 		} catch(IOException ex) {
@@ -796,7 +794,7 @@ public class HexSearchAndReplace {
 		}
 		
 		// fix up object list entry to point to new location
-		int objectListPos = functionEntry.getObjectEntryPos();
+		long objectListPos = functionEntry.getObjectEntryPos();
 		ByteBuffer intBuf = ByteBuffer.allocate(8);
 		intBuf.order(ByteOrder.LITTLE_ENDIAN);
 		intBuf.putInt(functLength + bytesToAdd + 24);
@@ -804,8 +802,8 @@ public class HexSearchAndReplace {
 		intBuf.rewind();
 		
 		// append new function
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getFile().toPath(), StandardOpenOption.WRITE)) {
-			sbc.position(objectListPos +32); // set file position
+		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.WRITE)) {
+			sbc.position(objectListPos + 32); // set file position
 //			sbc.write(intBuf);		// write buffer
 		} catch(IOException ex) {
 			logger.log(Level.SEVERE, "IO Failure when attempting to update Object Entry", ex);

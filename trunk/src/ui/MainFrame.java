@@ -1,64 +1,40 @@
 package ui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
-import java.awt.image.RescaleOp;
-import java.io.File;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Handler;
 
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextField;
 import javax.swing.JToolBar;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.plaf.InsetsUIResource;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument;
 
-import model.modtree.ModTree;
 import model.upk.UpkFile;
-
-import org.bounce.text.LineNumberMargin;
-
 import ui.ModFileTabbedPane.ModFileTab;
 import ui.dialogs.AboutDialog;
 import ui.tree.ProjectTree;
-import ui.tree.ProjectTreeModel;
 import ui.tree.ProjectTreeModel.ProjectNode;
-import util.unrealhex.ReferenceUpdate;
-
-import com.jgoodies.forms.factories.CC;
-import com.jgoodies.forms.layout.FormLayout;
-import java.util.Set;
-import static ui.Constants.*;
-import util.properties.UpkModderProperties;
 
 /**
  * The application's primary frame.
@@ -72,11 +48,11 @@ public class MainFrame extends JFrame {
 	 * The shared singleton instance of the application's main frame.
 	 */
 	private static MainFrame instance;
-	
+
 	/**
-	 * The mod file tabbed pane component.
+	 * The application state container object.
 	 */
-	private ModFileTabbedPane modTabPane;
+	private ApplicationState appState;
 
 	/**
 	 * The project pane tree component.
@@ -84,12 +60,19 @@ public class MainFrame extends JFrame {
 	private ProjectTree projectTree;
 	
 	/**
+	 * The mod file tabbed pane component.
+	 */
+	private ModFileTabbedPane modTabPane;
+
+	/**
+	 * The status bar component.
+	 */
+	private StatusBar statusBar;
+	
+	/**
 	 * The cache of shared UPK files.
 	 */
-	private Map<File, UpkFile> upkCache = new HashMap<>();
-
-	// FIXME - remove when "associate upk" changed to action
-	JTextField upkTtf = new JTextField("no modfile loaded");
+	private Map<Path, UpkFile> upkCache = new HashMap<>();
 	
 	/**
 	 * Constructs the application's main frame.
@@ -105,11 +88,11 @@ public class MainFrame extends JFrame {
 		images.add(((ImageIcon) Constants.HEX_LARGE_ICON).getImage());
 		this.setIconImages(images);
 
-		// TODO: move initial/default configuration elsewhere
-		// TODO: add configuration dialogue?
-		if(UpkModderProperties.getConfigProperty("project.path") == null) {
-			UpkModderProperties.setConfigProperty("project.path", "UPKmodderProjects");
-		}
+//		// TODO: move initial/default configuration elsewhere
+//		// TODO: add configuration dialogue?
+//		if(UpkModderProperties.getConfigProperty("project.path") == null) {
+//			UpkModderProperties.setConfigProperty("project.path", "UPKmodderProjects");
+//		}
 		
 		// initialize action cache
 		ActionCache.initActionCache(this);
@@ -118,9 +101,17 @@ public class MainFrame extends JFrame {
 		this.initComponents();
 		
 		// TODO: add separate thread here to re-open projects and files
+		appState = ApplicationState.readState();
+		this.restoreApplicationState();
 		
 		// make closing the main frame terminate the application
 		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+		this.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent evt) {
+				appState.storeState();
+			}
+		});
 		
 		// adjust frame size
 		this.pack();
@@ -164,6 +155,36 @@ public class MainFrame extends JFrame {
 		UIManager.put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
 		modTabPane = new ModFileTabbedPane();
 		modTabPane.setPreferredSize(new Dimension(1000, 600));
+		
+		// install listener on tabbed pane to capture selection changes
+		modTabPane.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent evt) {
+				Component selComp = modTabPane.getSelectedComponent();
+				Path upkPath = null;
+				if (selComp != null) {
+					ModFileTab modTab = (ModFileTab) selComp;
+
+					// get UPK file reference from tab
+					UpkFile upkFile = modTab.getUpkFile();
+					if (upkFile != null) {
+						upkPath = upkFile.getPath();
+					}
+					
+					// enable/disable 'update', 'apply' and 'revert' actions
+					setEditActionsEnabled((upkFile != null));
+					
+					// enable UPK selection button
+					ActionCache.getAction("associateUpk").setEnabled(true);
+				} else {
+					// last tab has been removed, reset to defaults
+					setEditActionsEnabled(false);
+					ActionCache.getAction("associateUpk").setEnabled(false);
+				}
+				// show file name in status bar (or missing file hint)
+				statusBar.setUpkPath(upkPath);
+			}
+		});
 
 		// create left-hand project pane
 		projectTree = new ProjectTree();
@@ -174,7 +195,7 @@ public class MainFrame extends JFrame {
 		JSplitPane mainPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, projectScpn, modTabPane);
 		
 		// create status bar
-		JPanel statusBar = this.createStatusBar();
+		statusBar = new StatusBar(this);
 		
 		// add components to frame
 		this.setJMenuBar(menuBar);
@@ -182,33 +203,34 @@ public class MainFrame extends JFrame {
 		contentPane.add(mainPane, BorderLayout.CENTER);
 		contentPane.add(statusBar, BorderLayout.SOUTH);
 		
-		// TODO - move to separate method and invoke in background so application launches immediately
-		// open previously open projects
-		Set<String> projectPathSet = UpkModderProperties.getOpenProjects();
-		if(projectPathSet != null) {
-			if(!projectPathSet.isEmpty()) {
-				for (String filePath : projectPathSet) {
-					if(filePath != null) {
-						((BrowseAbstractAction) ActionCache.getAction("openProject")).execute(new File(filePath));
-					}
-				}
-				setFileActionsEnabled(true);
-			}
-		}
-
-		// open previously open files
-		Set<String> filePathSet = UpkModderProperties.getOpenFiles();
-		if(filePathSet != null) {
-			if(!filePathSet.isEmpty()) {
-				for (String filePath : filePathSet) {
-					File modFile = new File(filePath);
-					if(modFile.exists()) {
-						((BrowseAbstractAction) ActionCache.getAction("openModFile")).execute(modFile);
-					}
-				}
-				setFileActionsEnabled(true);
-			}
-		}
+		// FIXME
+//		// TODO - move to separate method and invoke in background so application launches immediately
+//		// open previously open projects
+//		Set<String> projectPathSet = UpkModderProperties.getOpenProjects();
+//		if(projectPathSet != null) {
+//			if(!projectPathSet.isEmpty()) {
+//				for (String filePath : projectPathSet) {
+//					if(filePath != null) {
+//						((BrowseAbstractAction) ActionCache.getAction("openProject")).execute(new File(filePath));
+//					}
+//				}
+//				setFileActionsEnabled(true);
+//			}
+//		}
+//
+//		// open previously open files
+//		Set<String> filePathSet = UpkModderProperties.getOpenFiles();
+//		if(filePathSet != null) {
+//			if(!filePathSet.isEmpty()) {
+//				for (String filePath : filePathSet) {
+//					File modFile = new File(filePath);
+//					if(modFile.exists()) {
+//						((BrowseAbstractAction) ActionCache.getAction("openModFile")).execute(modFile);
+//					}
+//				}
+//				setFileActionsEnabled(true);
+//			}
+//		}
 	}
 	
 	/**
@@ -286,218 +308,38 @@ public class MainFrame extends JFrame {
 		return toolBar;
 	}
 
-	public void setTargetUpk(ModFileTab tab, File uFile) {
-
-			// grab UPK file from cache
-			UpkFile upkFile = upkCache.get(uFile);
-			if (upkFile == null) {
-				// if cache doesn't contain UPK file instantiate a new one
-				upkFile = new UpkFile(uFile);
-			}
-
-			// TODO: create function for upk association
-			// check whether UPK file is valid (i.e. header parsing worked properly)
-			if (upkFile.getHeader() != null) {
-				// store UPK file in cache
-				upkCache.put(uFile, upkFile);
-				// link UPK file to tab
-				tab.setUpkFile(upkFile);
-				// show file name in status bar
-				upkTtf.setText(uFile.getPath());
-				// enable 'update', 'apply' and 'revert' actions
-				setEditActionsEnabled(true);
-
-				if(tab.getModFile() != null) {
-					// persistently store file-to-upk association
-					UpkModderProperties.setUpkProperty(tab.getModFile().getName(), uFile.getAbsolutePath());
-				}
-			} else {
-				// TODO: show error/warning message
-			}
-	}
+//	public void setTargetUpk(ModFileTab tab, Path filePath) {
+//
+//			// grab UPK file from cache
+//			UpkFile upkFile = upkCache.get(filePath);
+//			if (upkFile == null) {
+//				// if cache doesn't contain UPK file instantiate a new one
+//				upkFile = new UpkFile(filePath);
+//			}
+//
+//			// TODO: create function for upk association
+//			// check whether UPK file is valid (i.e. header parsing worked properly)
+//			if (upkFile.getHeader() != null) {
+//				// store UPK file in cache
+//				upkCache.put(filePath, upkFile);
+//				// link UPK file to tab
+//				tab.setUpkFile(upkFile);
+//				// show file name in status bar
+//				upkTtf.setText(filePath.toString());
+//				// enable 'update', 'apply' and 'revert' actions
+//				setEditActionsEnabled(true);
+//
+//				if(tab.getModFile() != null) {
+//					// persistently store file-to-upk association
+//					// FIXME
+//					UpkModderProperties.setUpkProperty(tab.getModFile().getName(), filePath.toAbsolutePath().toString());
+//				}
+//			} else {
+//				// TODO: show error/warning message
+//			}
+//	}
 	
-	/**
-	 * Creates and configures the status bar.
-	 * @return the status bar
-	 */
-	private JPanel createStatusBar() {
-		// TODO: maybe make status bar a JToolBar
-		JPanel statusBar = new JPanel(new FormLayout("0px:g(0.5), 0px:g(0.2), 0px:g(0.3)", "f:p"));
-		Color bgCol = new Color(214, 217, 223);
-		
-		JPanel upkPnl = new JPanel(new FormLayout("0px:g, 3px,  r:p", "b:p"));
-		
-//		final JTextField upkTtf = new JTextField("no modfile loaded");
-		upkTtf = new JTextField("no modfile loaded");
-		upkTtf.setEditable(false);
-		upkTtf.setBackground(bgCol);
-		upkTtf.setFont(TARGET_UPK_FONT);
-		
-		final JButton upkBtn = new JButton();
-		Icon defaultIcon = UIManager.getIcon("FileView.directoryIcon");
-		
-		// create lighter and darker versions of icon
-		BufferedImage normalImg = new BufferedImage(
-				defaultIcon.getIconWidth(), defaultIcon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
-		Graphics2D g = normalImg.createGraphics();
-		defaultIcon.paintIcon(null, g, 0, 0);
-		g.dispose();
-		Icon rolloverIcon = new ImageIcon(new RescaleOp(
-				new float[] { 1.1f, 1.1f, 1.1f, 1.0f }, new float[4], null).filter(normalImg, null));
-		Icon pressedIcon = new ImageIcon(new RescaleOp(
-				new float[] { 0.8f, 0.8f, 0.8f, 1.0f }, new float[4], null).filter(normalImg, null));
 
-		upkBtn.setIcon(defaultIcon);
-		upkBtn.setRolloverIcon(rolloverIcon);
-		upkBtn.setPressedIcon(pressedIcon);
-		upkBtn.setBorder(null);
-		upkBtn.setEnabled(false);
-		
-		upkBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
-			@Override
-			protected void execute(File file) {
-				Component selComp = modTabPane.getSelectedComponent();
-				if (selComp != null) {
-					ModFileTab tab = (ModFileTab) selComp;
-					setTargetUpk(tab, file);
-				}
-			}
-		});
-		// exchange borders
-		upkPnl.setBorder(upkTtf.getBorder());
-		upkTtf.setBorder(null);
-		
-		upkPnl.add(upkTtf, CC.xy(1, 1));
-		upkPnl.add(upkBtn, CC.xy(3, 1));
-		
-		// install listener on tabbed pane to capture selection changes
-		modTabPane.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent evt) {
-				Component selComp = modTabPane.getSelectedComponent();
-				if (selComp != null) {
-					ModFileTab tab = (ModFileTab) selComp;
-					
-					// get UPK file reference from tab
-					UpkFile upkFile = tab.getUpkFile();
-					boolean hasUpk = (upkFile != null);
-					
-					// show file name in status bar (or missing file hint)
-					upkTtf.setText((upkFile != null) ? ((upkFile.getFile() != null) ? upkFile.getFile().getPath() : null ) : "no UPK file selected");
-					// enable/disable 'update', 'apply' and 'revert' actions
-					setEditActionsEnabled(hasUpk);
-					// enable UPK selection button
-					upkBtn.setEnabled(true);
-				} else {
-					// last tab has been removed, reset to defaults
-					upkTtf.setText("no modfile loaded");
-					setEditActionsEnabled(false);
-					upkBtn.setEnabled(false);
-				}
-			}
-		});
-		
-		// TODO: implement progress monitoring hooks into various processes
-		UIManager.getDefaults().put("nimbusOrange",
-				UIManager.getDefaults().get("nimbusFocus"));
-		JProgressBar progressBar = new JProgressBar();
-		progressBar.setStringPainted(true);
-		
-		JPanel statusMsgPnl = new JPanel(new FormLayout("p:g, r:p", "b:p"));
-		
-		final JTextField statusMsgTtf = new JTextField();
-		statusMsgTtf.setFont(STATUS_MSG_FONT);
-		statusMsgTtf.setEditable(false);
-		statusMsgTtf.setBackground(bgCol);
-		
-		JButton loggingBtn = new JButton();
-		loggingBtn.setBorder(null);
-		
-		defaultIcon = UIManager.getIcon("FileChooser.listViewIcon");
-		
-		// create lighter and darker versions of icon
-		normalImg = new BufferedImage(
-				defaultIcon.getIconWidth(), defaultIcon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
-		g = normalImg.createGraphics();
-		defaultIcon.paintIcon(null, g, 0, 0);
-		g.dispose();
-		rolloverIcon = new ImageIcon(new RescaleOp(
-				new float[] { 1.1f, 1.1f, 1.1f, 1.0f }, new float[4], null).filter(normalImg, null));
-		pressedIcon = new ImageIcon(new RescaleOp(
-				new float[] { 0.8f, 0.8f, 0.8f, 1.0f }, new float[4], null).filter(normalImg, null));
-		
-		loggingBtn.setIcon(defaultIcon);
-		loggingBtn.setRolloverIcon(rolloverIcon);
-		loggingBtn.setPressedIcon(pressedIcon);
-		
-		// create simple message log dialog
-		final JDialog loggingDlg = new JDialog(this, "Message Log");
-		loggingDlg.setIconImage(normalImg);
-		Container loggingCont = loggingDlg.getContentPane();
-		
-		// create editor pane for storing log messages
-		JEditorPane loggingEditor = new JEditorPane();
-		loggingEditor.setDocument(new DefaultStyledDocument());
-		loggingEditor.setFont(LOGGER_FRAME_FONT);
-		loggingEditor.setEditable(false);
-		
-		loggingEditor.getDocument().addDocumentListener(new DocumentListener() {
-			@Override
-			public void insertUpdate(DocumentEvent evt) {
-				try {
-					// update status message text to show added line
-					statusMsgTtf.setText(evt.getDocument().getText(evt.getOffset(), evt.getLength()));
-				} catch (BadLocationException e) {
-					System.err.println("Error when writing to logger" + e);
-				}
-			}
-			
-			@Override
-			public void removeUpdate(DocumentEvent evt) { }
-			@Override
-			public void changedUpdate(DocumentEvent evt) { }
-		});
-		
-		// install log handler on various loggers
-		Handler logHandler = new LogHandler(loggingEditor);
-		ModTree.logger.addHandler(logHandler);
-		ModFileTabbedPane.logger.addHandler(logHandler);
-		ReferenceUpdate.logger.addHandler(logHandler);
-		ProjectTreeModel.logger.addHandler(logHandler);
-		
-		
-		JScrollPane loggingScpn = new JScrollPane(loggingEditor,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		loggingScpn.setPreferredSize(new Dimension(480, 300));
-		loggingScpn.setRowHeaderView(new LineNumberMargin(loggingEditor));
-		
-		loggingCont.add(loggingScpn);
-		
-		loggingDlg.pack();
-		loggingDlg.setMinimumSize(loggingDlg.getSize());
-		loggingDlg.setLocationRelativeTo(this);
-		
-		// install listener on logging button to show dialog
-		loggingBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				loggingDlg.setVisible(true);
-			}
-		});
-		
-		// exchange borders
-		statusMsgPnl.setBorder(statusMsgTtf.getBorder());
-		statusMsgTtf.setBorder(null);
-		
-		statusMsgPnl.add(statusMsgTtf, CC.xy(1, 1));
-		statusMsgPnl.add(loggingBtn, CC.xy(2, 1));
-				
-		statusBar.add(upkPnl, CC.xy(1, 1));
-		statusBar.add(progressBar, CC.xy(2, 1));
-		statusBar.add(statusMsgPnl, CC.xy(3, 1));
-		
-		return statusBar;
-	}
 	
 	@Override
 	public void setTitle(String title) {
@@ -513,7 +355,7 @@ public class MainFrame extends JFrame {
 	 * Returns the cache of UPK files.
 	 * @return the UPK cache
 	 */
-	public Map<File, UpkFile> getUPKCache() {
+	public Map<Path, UpkFile> getUpkCache() {
 		return upkCache;
 	}
 
@@ -564,19 +406,29 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
+	 * Shows the message log dialog.
+	 */
+	public void showLogDialog() {
+		statusBar.showLogDialog();
+	}
+
+	/**
 	 * Creates a new project to be placed inside the specified project directory.
 	 * @param projectDir the project directory
 	 */
-	public void createNewProject(File projectDir) {
-		projectTree.createProject(projectDir);
+	public void createNewProject(Path projectPath) {
+		projectTree.createProject(projectPath);
 	}
 
 	/**
 	 * Opens a project defined in the specified project XML file.
 	 * @param xmlFile the project XML
 	 */
-	public void openProject(File xmlFile) {
-		projectTree.openProject(xmlFile);
+	public void openProject(Path xmlPath) {
+		projectTree.openProject(xmlPath);
+		
+		// store opened file
+		appState.addProjectFile(xmlPath);
 	}
 
 	/**
@@ -593,9 +445,16 @@ public class MainFrame extends JFrame {
 	 * all associated files.
 	 */
 	public void deleteProject() {
-		projectTree.deleteProject();
-		ActionCache.getAction("removeProject").setEnabled(false);
-		ActionCache.getAction("deleteProject").setEnabled(false);
+		// ask for confirmation
+		int res = JOptionPane.showConfirmDialog(this,
+				"<html>Are you sure you want to delete this project?<br>" +
+				"This operation is irreversible.</html>",
+				"Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+		if (res == JOptionPane.OK_OPTION) {
+			projectTree.deleteProject();
+			ActionCache.getAction("removeProject").setEnabled(false);
+			ActionCache.getAction("deleteProject").setEnabled(false);
+		}
 	}
 	
 	/**
@@ -608,9 +467,9 @@ public class MainFrame extends JFrame {
 		if (projNode != null) {
 			ProjectNode target = (ProjectNode) projNode;
 			// extract file from project
-			File projectFile = target.getProjectFile();
+			Path projectFile = target.getProjectFile();
 			// update frame title
-			this.setTitle(" : " + projectFile.getName());
+			this.setTitle(" : " + projectFile.getFileName());
 			// enable 'Close Project' menu item
 			ActionCache.getAction("removeProject").setEnabled(true);
 			ActionCache.getAction("deleteProject").setEnabled(true);
@@ -633,20 +492,21 @@ public class MainFrame extends JFrame {
 
 	/**
 	 * Creates a new mod file tab containing the specified mod file contents.
-	 * @param modFile the mod file to open
+	 * @param modPath the mod file to open
 	 */
-	public void openModFile(File modFile) {
-		if (modTabPane.openModFile(modFile)) {
+	public void openModFile(Path modPath) {
+		if (modTabPane.openModFile(modPath)) {
 			this.setFileActionsEnabled(true);
 			
 			// TODO: create function for upk re-association
-			//re-associate upk if possible
-			String uFileName = UpkModderProperties.getUpkProperty(modFile.getName());
-			if(uFileName != null) {
-				File uFile = new File(uFileName);
-				ModFileTab tab = modTabPane.getTab(modFile);
-				setTargetUpk(tab, uFile);
-			}
+			// re-associate upk if possible
+			// FIXME
+//			String uFileName = UpkModderProperties.getUpkProperty(modPath.getName());
+//			if (uFileName != null) {
+//				File uFile = new File(uFileName);
+//				ModFileTab tab = modTabPane.getTab(modPath);
+//				setTargetUpk(tab, uFile.toPath());
+//			}
 		}
 		// TODO: associate mod file with active project
 	}
@@ -676,7 +536,7 @@ public class MainFrame extends JFrame {
 	 * Returns the mod file of the currently active mod file tab.
 	 * @return the active mod file
 	 */
-	public File getActiveModFile() {
+	public Path getActiveModFile() {
 		return modTabPane.getActiveModFile();
 	}
 
@@ -689,10 +549,10 @@ public class MainFrame extends JFrame {
 
 	/**
 	 * Saves the contents of the currently selected mod file tab to the specified target file.
-	 * @param target the target file to save to
+	 * @param targetPath the target file to save to
 	 */
-	public void saveModFileAs(File target) {
-		modTabPane.saveModFileAs(target);
+	public void saveModFileAs(Path targetPath) {
+		modTabPane.saveModFileAs(targetPath);
 	}
 
 	/**
@@ -715,4 +575,60 @@ public class MainFrame extends JFrame {
 	public void testStatusModFile() {
 		modTabPane.testStatusModFile();
 	}
+
+	/**
+	 * Associates the specified UPK file with the currently active mod file tab.
+	 * @param upkPath the path to the UPK file to associate
+	 */
+	public void associateUpk(Path upkPath) {
+		UpkFile upkFile = upkCache.get(upkPath);
+		if (upkFile == null) {
+			upkFile = new UpkFile(upkPath);
+			upkCache.put(upkPath, upkFile);
+		}
+		if (modTabPane.associateUpk(upkFile)) {
+			statusBar.setUpkPath(upkPath);
+		}
+	}
+
+	/**
+	 * Sets the status bar's status message text.
+	 * @param text the status message to display
+	 */
+	public void setStatusMessage(String text) {
+		statusBar.setStatusMessage(text);
+	}
+	
+	/**
+	 * Restores the application state from a deserialized state object.
+	 */
+	private void restoreApplicationState() {
+		new RestoreWorker().execute();
+	}
+
+	/**
+	 * Worker implementation to restore a serialized application state in a
+	 * background thread.
+	 * @author XMS
+	 */
+	private class RestoreWorker extends SwingWorker<Object, Object> {
+
+		@Override
+		protected Object doInBackground() throws Exception {
+			// TODO: make frame appear busy
+			Collection<String> openedProjects = appState.getOpenedProjectFiles();
+			for (String xmlPath : openedProjects) {
+				openProject(Paths.get(xmlPath));
+			}
+			
+			return null;
+		}
+		
+		@Override
+		protected void done() {
+			// TODO: do some clean up, e.g. stop appearing busy
+		}
+		
+	}
+
 }

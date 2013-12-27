@@ -2,7 +2,6 @@ package ui;
 
 import java.util.Locale;
 
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
@@ -23,8 +22,7 @@ public class Launcher {
 		// init and show main frame instance
 		MainFrame.getInstance().setVisible(true);
 		
-		
-		//new PrototypeEditorFrame().setVisible(true);
+//		new PrototypeEditorFrame().setVisible(true);
 	}
 
 	/**
@@ -34,22 +32,18 @@ public class Launcher {
 		// set locale to english
 		Locale.setDefault(Locale.ENGLISH);
 		// try setting Nimbus LAF
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					// iterate installed LAFs, look for Nimbus LAF to install
-				    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-				        if ("Nimbus".equals(info.getName())) {
-				            UIManager.setLookAndFeel(info.getClassName());
-				            break;
-				        }
-				    }
-				} catch (Exception e) {
-				    e.printStackTrace();
-				}
-			}
-		});
+		try {
+			// iterate installed LAFs, look for Nimbus LAF to install
+		    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+		        if ("Nimbus".equals(info.getName())) {
+		            UIManager.setLookAndFeel(info.getClassName());
+		            break;
+		        }
+		    }
+		} catch (Exception e) {
+		    e.printStackTrace();
+		    System.exit(-1);
+		}
 	}
 	
 }
