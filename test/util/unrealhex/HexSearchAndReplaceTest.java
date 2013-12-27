@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import io.upk.UpkFileLoader;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -211,7 +212,7 @@ public class HexSearchAndReplaceTest {
 	public void testResizeAndReplace() {
 		System.out.println("resizeAndReplace");
 		ModTab tab = new ModTab(new File("test/resources/testResize.upk_mod"));
-		UpkFile upk = new UpkFile(new File("test/resources/XComGame_EW_patch1_test_resize.upk"));
+		UpkFile upk = new UpkFile(Paths.get("test/resources/XComGame_EW_patch1_test_resize.upk"));
 		boolean expResult = true;
 		boolean result = HexSearchAndReplace.resizeAndReplace(true, tab.getTree(), upk);
 		assertEquals(expResult, result);

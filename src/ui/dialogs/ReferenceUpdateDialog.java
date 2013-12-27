@@ -9,7 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -285,8 +285,8 @@ public class ReferenceUpdateDialog extends JDialog {
 		// install action listeners
 		lookupSrcBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
 			@Override
-			protected void execute(File file) {
-				boolean res = lookUpSourceReferences(file);
+			protected void execute(Path filePath) {
+				boolean res = lookUpSourceReferences(filePath);
 				hexToNamesBtn.setEnabled(res);
 				lookupDestBtn.setEnabled(res);
 				triedSrcLookup = true;
@@ -295,8 +295,8 @@ public class ReferenceUpdateDialog extends JDialog {
 		
 		lookupDestBtn.addActionListener(new BrowseActionListener(this, Constants.UPK_FILE_FILTER) {
 			@Override
-			protected void execute(File file) {
-				boolean res = lookUpDestinationReferences(file);
+			protected void execute(Path filePath) {
+				boolean res = lookUpDestinationReferences(filePath);
 				srcToDestBtn.setEnabled(res || !hasSourceRefs());
 			}
 		});
@@ -462,18 +462,18 @@ public class ReferenceUpdateDialog extends JDialog {
 	/**
 	 * Looks up reference names from the specified file and inserts them into
 	 * the reference table.
-	 * @param file the UPK file to parse
+	 * @param filePath the path to the UPK file to parse
 	 * @return <code>true</code> if reference lookup processed without errors,
 	 *  <code>false</code> otherwise
 	 */
-	private boolean lookUpSourceReferences(File file) {
+	private boolean lookUpSourceReferences(Path filePath) {
 		// init return value
 		// TODO: maybe replace with error code of some sort
 		boolean res = true;
 		
 		// parse UPK file
 		// TODO: implement progress monitoring for upk parsing
-		UpkFile upkFile = new UpkFile(file);
+		UpkFile upkFile = new UpkFile(filePath);
 		// extract GUID
 		byte[] guid = upkFile.getHeader().getGUID();
 		// compare file GUID with tree GUID
@@ -530,17 +530,17 @@ public class ReferenceUpdateDialog extends JDialog {
 	/**
 	 * Looks up reference values from the specified file and inserts them into
 	 * the reference table.
-	 * @param file the UPK file to parse
+	 * @param filePath the path to the UPK file to parse
 	 * @return <code>true</code> if reference lookup processed without errors,
 	 *  <code>false</code> otherwise
 	 */
-	private boolean lookUpDestinationReferences(File file) {
+	private boolean lookUpDestinationReferences(Path filePath) {
 		// init return value
 		boolean res = true;
 		
 		// parse UPK file
 		// TODO: implement progress monitoring for upk parsing
-		UpkFile upkFile = new UpkFile(file);
+		UpkFile upkFile = new UpkFile(filePath);
 		
 		// store destination upk for later GUID updating if it is applied
 		destUpk = upkFile; 

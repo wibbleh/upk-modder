@@ -661,7 +661,7 @@ public class ReferenceUpdate {
 					newLine = "GUID=UNSPECIFIED // no hex references in file\n";
 				} else {
 					String destGUID = convertByteArrayToHexString(upk.getHeader().getGUID()).trim();
-					newLine = "GUID=" + destGUID + " // " + upk.getFile().getName() + "\n";
+					newLine = "GUID=" + destGUID + " // " + upk.getPath().getFileName() + "\n";
 				}
 				
 				tree.getDocument().remove(offset, originalLine.length());

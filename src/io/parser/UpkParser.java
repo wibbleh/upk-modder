@@ -1,19 +1,20 @@
 package io.parser;
 
+import static model.modtree.ModTree.logger;
 import io.model.upk.ImportEntry;
 import io.model.upk.NameEntry;
 import io.model.upk.ObjectEntry;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import static model.modtree.ModTree.logger;
 
 import model.upk.UpkHeader;
 
@@ -25,14 +26,14 @@ import model.upk.UpkHeader;
 public class UpkParser {
 	
 	/**
-	 * The UPK file reference.
+	 * The UPK file path reference.
 	 */
-	private File upkFile;
+	private Path upkPath;
 	
 	/**
-	 * The reader instance.
+	 * The byte channel used for reading.
 	 */
-	private RandomAccessFile raf;
+	private SeekableByteChannel sbc;
 	
 	/**
 	 * The buffer size.
@@ -40,11 +41,11 @@ public class UpkParser {
 	private int bufSize = 10240;
 	
 	/**
-	 * Constructs an UPK parser from the specified UPK file.
-	 * @param upkFile the file to parse
+	 * Constructs an UPK parser from the specified UPK file path.
+	 * @param upkFile the path to the file to parse
 	 */
-	public UpkParser(File upkFile) {
-		this.upkFile = upkFile;
+	public UpkParser(Path upkPath) {
+		this.upkPath = upkPath;
 	}
 
 	/**
@@ -54,18 +55,17 @@ public class UpkParser {
 	 */
 	public UpkHeader parseHeader() throws IOException {
 		
-        this.raf = new RandomAccessFile(upkFile, "r");
-		this.raf.seek(0x19L);
+		sbc = Files.newByteChannel(upkPath);
+		sbc.position(0x19L);
         
 		int numInts = 6;
-		byte[] bytes = new byte[numInts * 4];
-		raf.read(bytes);
-		
-		ByteBuffer buf = ByteBuffer.wrap(bytes);
-		buf.order(ByteOrder.LITTLE_ENDIAN);
+		ByteBuffer byteBuf = ByteBuffer.allocate(numInts * 4);
+		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
+		sbc.read(byteBuf);
+		byteBuf.rewind();
 
 		int[] ints = new int[numInts];
-		buf.asIntBuffer().get(ints);
+		byteBuf.asIntBuffer().get(ints);
 		
 		long startTime = System.currentTimeMillis();
 		List<NameEntry> nameList = this.parseNameList(ints[1], ints[0]);
@@ -77,11 +77,12 @@ public class UpkParser {
 		List<ImportEntry> importList = this.parseImportList(ints[5], ints[4]);
 		logger.log(Level.FINE, "Parsed import list, took " + (System.currentTimeMillis() - startTime) + "ms");
         
-        this.raf.seek(0x45L);
-        byte[] aGUID = new byte[16];
-        this.raf.read(aGUID);
+		sbc.position(0x45L);
+		byte[] aGUID = new byte[16];
+		sbc.read(ByteBuffer.wrap(aGUID));
 		
-		this.raf.close();
+//		this.raf.close();
+		sbc.close();
 
 		return new UpkHeader(nameList, ints[1], objectList, ints[3], importList, ints[5], aGUID);
 	}
@@ -98,25 +99,28 @@ public class UpkParser {
 		List<NameEntry> entryList = new ArrayList<>(nameListSize);
 		
 		// init double buffer
-		byte[] buf = new byte[this.bufSize * 2];
-		this.raf.seek(nameListPos);
-		this.raf.read(buf);
+		byte[] buf = new byte[bufSize * 2];
+		sbc.position(nameListPos);
 		
 		ByteBuffer byteBuf = ByteBuffer.wrap(buf);
 		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
+		sbc.read(byteBuf);
+		byteBuf.rewind();
 		for (int i = 0; i < nameListSize; i++) {
 			// extract name entry from buffer
 			entryList.add(this.readNameEntry(byteBuf));
 
 			// check whether we reached into back buffer range
 			int position = byteBuf.position();
-			if (position > this.bufSize) {
-				// rewind buffer position
-				byteBuf.position(position - this.bufSize);
+			if (position > bufSize) {
+				int newPosition = position - bufSize;
 				// copy back buffer to front buffer range
-				System.arraycopy(buf, this.bufSize, buf, 0, this.bufSize);
+				System.arraycopy(buf, bufSize, buf, 0, bufSize);
 				// read new bytes into back buffer
-				this.raf.read(buf, this.bufSize, this.bufSize);
+				byteBuf.position(bufSize);
+				sbc.read(byteBuf);
+				// rewind buffer position
+				byteBuf.position(newPosition);
 			}
 		}
 		
@@ -134,6 +138,7 @@ public class UpkParser {
 		
 		// extract string (without termination character)
 		byte[] strBuf = new byte[strLen - 1];
+		// TODO: investigate BufferUnderflowException
 		byteBuf.get(strBuf);
 		
 		// skip termination character and 8 extra flag bytes
@@ -156,24 +161,28 @@ public class UpkParser {
 		
 		// init double buffer
 		byte[] buf = new byte[this.bufSize * 2];
-		this.raf.seek(objectListPos);
-		this.raf.read(buf);
+		sbc.position(objectListPos);
 
 		ByteBuffer byteBuf = ByteBuffer.wrap(buf);
 		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
+		sbc.read(byteBuf);
+		byteBuf.rewind();
 		for (int i = 0; i < objectListSize; i++) {
 			// extract object entry from buffer
-			objectList.add(this.readObjectEntry(byteBuf, (int) raf.getFilePointer()));
+			objectList.add(this.readObjectEntry(byteBuf, sbc.position()));
 
 			// check whether we reached into back buffer range
 			int position = byteBuf.position();
 			if (position > this.bufSize) {
-				// rewind buffer position
-				byteBuf.position(position - this.bufSize);
+				int newPosition = position - bufSize;
 				// copy back buffer to front buffer range
 				System.arraycopy(buf, this.bufSize, buf, 0, this.bufSize);
 				// read new bytes into back buffer
-				this.raf.read(buf, this.bufSize, this.bufSize);
+//				this.raf.read(buf, this.bufSize, this.bufSize);
+				byteBuf.position(bufSize);
+				sbc.read(byteBuf);
+				// rewind buffer position
+				byteBuf.position(newPosition);
 			}
 		}
 		
@@ -183,13 +192,14 @@ public class UpkParser {
 	/**
 	 * Reads a single objectlist entry at the specified byte buffer's current position.
 	 * @param byteBuf the byte buffer to extract the objectlist entry from
+	 * @param pos the file offset
 	 * @return the objectlist entry
 	 */
-	private ObjectEntry readObjectEntry(ByteBuffer byteBuf, int rafPosition) {
+	private ObjectEntry readObjectEntry(ByteBuffer byteBuf, long pos) {
 		// create int buffer view of byte buffer
 		IntBuffer intBuf = byteBuf.asIntBuffer();
 		
-		int filePosition = rafPosition + byteBuf.position() - byteBuf.capacity();
+		long filePosition = pos + byteBuf.position() - byteBuf.capacity();
 		
 		// number of ints of objectlist entry is 17 plus whatever is encoded in the eleventh int
 		int numInts = 17 + intBuf.get(11);
@@ -218,11 +228,12 @@ public class UpkParser {
 		
 		// init double buffer
 		byte[] buf = new byte[this.bufSize * 2];
-		this.raf.seek(importListPos);
-		this.raf.read(buf);
+		sbc.position(importListPos);
 
 		ByteBuffer byteBuf = ByteBuffer.wrap(buf);
 		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
+		sbc.read(byteBuf);
+		byteBuf.rewind();
 		for (int i = 0; i < importListSize; i++) {
 			// extract import entry from buffer
 			importList.add(this.readImportEntry(byteBuf));
@@ -230,12 +241,14 @@ public class UpkParser {
 			// check whether we reached into back buffer range
 			int position = byteBuf.position();
 			if (position > this.bufSize) {
-				// rewind buffer position
-				byteBuf.position(position - this.bufSize);
+				int newPosition = position - bufSize;
 				// copy back buffer to front buffer range
 				System.arraycopy(buf, this.bufSize, buf, 0, this.bufSize);
 				// read new bytes into back buffer
-				this.raf.read(buf, this.bufSize, this.bufSize);
+				byteBuf.position(bufSize);
+				sbc.read(byteBuf);
+				// rewind buffer position
+				byteBuf.position(newPosition);
 			}
 		}
 		

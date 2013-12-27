@@ -3,14 +3,13 @@ package ui.tree;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
 import javax.swing.UIManager;
-import javax.swing.event.TreeModelEvent;
-import javax.swing.event.TreeModelListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -20,8 +19,10 @@ import javax.swing.tree.TreeSelectionModel;
 
 import ui.ActionCache;
 import ui.BrowseAbstractAction;
-import static ui.Constants.*;
+import ui.Constants;
 import ui.MainFrame;
+import ui.tree.ProjectTreeModel.FileNode;
+import ui.tree.ProjectTreeModel.ModFileNode;
 import ui.tree.ProjectTreeModel.ProjectNode;
 
 /**
@@ -70,19 +71,20 @@ public class ProjectTree extends JTree {
 						tree, value, sel, expanded, leaf, row, hasFocus);
 				
 				// modify renderer component depending on context
-				if (value instanceof ProjectNode) {
-					rendererLbl.setFont(PROJECT_NAME_FONT);
-					if (leaf) {
-						// change icon for empty projects
-						rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));
-					}
-				} else if (value instanceof File) {
-					File file = (File) value;
-					rendererLbl.setText(file.getName());
-					rendererLbl.setFont(PROJECT_ENTRY_FONT);
-					if (leaf && file.isDirectory()) {
-						// change icon for empty directories
-						rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));
+				if (value instanceof FileNode) {
+					FileNode fileNode = (FileNode) value;
+					if (value instanceof ProjectNode) {
+						rendererLbl.setFont(Constants.PROJECT_NAME_FONT);
+						if (leaf) {
+							// change icon for empty projects
+							rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));
+						}
+					} else {
+						rendererLbl.setFont(Constants.PROJECT_ENTRY_FONT);
+						if (leaf && Files.isDirectory(fileNode.getFilePath())) {
+							// change icon for empty directories
+							rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));
+						}
 					}
 				}
 				
@@ -90,22 +92,6 @@ public class ProjectTree extends JTree {
 			}
 		};
 		this.setCellRenderer(renderer);
-		
-		// add listener to model to auto-expand added nodes
-		this.treeModel.addTreeModelListener(new TreeModelListener() {
-
-			@Override
-			public void treeNodesInserted(TreeModelEvent e) {
-				ProjectTree.this.expandPath(new TreePath(treeModel.getRoot()));
-			}
-
-			@Override
-			public void treeStructureChanged(TreeModelEvent e) { }
-			@Override
-			public void treeNodesRemoved(TreeModelEvent e) { }
-			@Override
-			public void treeNodesChanged(TreeModelEvent e) { }
-		});
 		
 		final JPopupMenu contextMenu = new JPopupMenu();
 		contextMenu.add(ActionCache.getAction("newModFile"));
@@ -121,11 +107,9 @@ public class ProjectTree extends JTree {
 					// open mod file on double-click
 					TreePath selPath = getPathForLocation(evt.getX(), evt.getY());
 					if (selPath != null) {
-						if (selPath.getLastPathComponent() instanceof File) {
-							File file = (File) selPath.getLastPathComponent();
-							if (file.isFile()) {
-								((BrowseAbstractAction) ActionCache.getAction("openModFile")).execute(file);
-							}
+						if (selPath.getLastPathComponent() instanceof ModFileNode) {
+							Path path = ((ModFileNode) selPath.getLastPathComponent()).getFilePath();
+							((BrowseAbstractAction) ActionCache.getAction("openModFile")).execute(path.toFile());
 						}
 					}
 				}
@@ -163,19 +147,23 @@ public class ProjectTree extends JTree {
 	}
 	
 	/**
-	 * TODO: API
-	 * @param projectDir
+	 * Creates a new project in the specified directorz.
+	 * @param projectPath the path to the project root directorz
 	 */
-	public void createProject(File projectDir) {
-		this.getModel().createProject(projectDir);
+	public void createProject(Path projectPath) {
+		this.getModel().createProject(projectPath);
+		// expand root
+		this.expandPath(new TreePath(this.getModel().getRoot()));
 	}
 
 	/**
-	 * TODO: API
-	 * @param xmlFile
+	 * Opens the project associated with the specified project XML file.
+	 * @param xmlPath the path to the project XML file
 	 */
-	public void openProject(File xmlFile) {
-		this.getModel().openProject(xmlFile);
+	public void openProject(Path xmlPath) {
+		this.getModel().openProject(xmlPath);
+		// expand root
+		this.expandPath(new TreePath(this.getModel().getRoot()));
 	}
 
 	/**

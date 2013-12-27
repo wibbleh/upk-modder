@@ -1,12 +1,15 @@
 package model.upk;
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -18,7 +21,7 @@ public class UpkFileTest {
 	
 	public UpkFileTest() {
 	}
-	static File file = new File("test/resources/XComGame_EU_patch4.upk");
+	static Path file = Paths.get("test/resources/XComGame_EU_patch4.upk");
 	
 	static UpkFile upkFile;
 	static UpkHeader header;

@@ -56,7 +56,7 @@ public class ActionCache {
 		Action newProjectAction = new BrowseAbstractAction("New Project", mainFrame, null) {
 			@Override
 			public void execute(File file) {
-				mainFrame.createNewProject(file);
+				mainFrame.createNewProject(file.toPath());
 			}
 		};
 		newProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.fileIcon"));
@@ -68,7 +68,7 @@ public class ActionCache {
 		Action openProjectAction = new BrowseAbstractAction("Open Project...", mainFrame, Constants.XML_FILE_FILTER) {
 			@Override
 			public void execute(File file) {
-				mainFrame.openProject(file);
+				mainFrame.openProject(file.toPath());
 			}
 		};
 		openProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
@@ -117,7 +117,7 @@ public class ActionCache {
 		Action openModFileAction = new BrowseAbstractAction("Open Mod File...", mainFrame, Constants.MOD_FILE_FILTER) {
 			@Override
 			public void execute(File file) {
-				mainFrame.openModFile(file);
+				mainFrame.openModFile(file.toPath());
 			}
 		};
 		openModFileAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
@@ -166,19 +166,20 @@ public class ActionCache {
 		final Action saveAsAction = new BrowseAbstractAction("Save Mod File As...", mainFrame, Constants.MOD_FILE_FILTER, true) {
 			@Override
 			public File getTarget() {
-				return mainFrame.getActiveModFile();
+				return mainFrame.getActiveModFile().toFile();
 			}
 			@Override
 			public void execute(File file) {
-				mainFrame.saveModFileAs(file);
+				mainFrame.saveModFileAs(file.toPath());
 			}
 		};
 		saveAsAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.floppyDriveIcon"));
 		saveAsAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
 		saveAsAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
-		closeAllModFilesAction.putValue(Action.SHORT_DESCRIPTION, "Save Mod File As...");
+		saveAsAction.putValue(Action.SHORT_DESCRIPTION, "Save Mod File As...");
 		saveAsAction.setEnabled(false);
-				
+		
+		/* General File menu actions */
 		// export
 		// TODO: implement export functionality, create file filters
 		Action exportAction = new BrowseAbstractAction("Export...", mainFrame, null, true) {
@@ -202,6 +203,7 @@ public class ActionCache {
 		exitAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F4, InputEvent.ALT_DOWN_MASK));
 		exitAction.putValue(Action.MNEMONIC_KEY, (int) 'x');
 		
+		/* Edit menu actions */
 		// update references
 		Action refUpdateAction = new AbstractAction("Update References...") {
 			@Override
@@ -254,6 +256,7 @@ public class ActionCache {
 		testApplyStatusAction.putValue(Action.SHORT_DESCRIPTION, "Test File Status");
 		testApplyStatusAction.setEnabled(false);
 		
+		/* Help menu actions */
 		// create help and about icons
 		BufferedImage helpImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = helpImg.createGraphics();
@@ -290,6 +293,26 @@ public class ActionCache {
 		aboutAction.putValue(Action.SMALL_ICON, aboutIcon);
 		aboutAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
 		
+		/* Misc actions */
+		Action associateUpkAction = new BrowseAbstractAction(null, mainFrame, Constants.UPK_FILE_FILTER) {
+			@Override
+			public void execute(File file) {
+				mainFrame.associateUpk(file.toPath());
+			}
+		};
+		associateUpkAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.directoryIcon"));
+		associateUpkAction.putValue(Action.SHORT_DESCRIPTION, "Associate UPK File");
+		associateUpkAction.setEnabled(false);
+		
+		Action showLogAction = new AbstractAction() {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				mainFrame.showLogDialog();
+			}
+		};
+		showLogAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileChooser.listViewIcon"));
+		showLogAction.putValue(Action.SHORT_DESCRIPTION, "Show Message Log");
+		
 		// file actions
 		cache.put("newProject", newProjectAction);
 		cache.put("openProject", openProjectAction);
@@ -317,6 +340,10 @@ public class ActionCache {
 		// help actions
 		cache.put("help", helpAction);
 		cache.put("about", aboutAction);
+		
+		// misc actions
+		cache.put("associateUpk", associateUpkAction);
+		cache.put("showLog", showLogAction);
 		
 		actionCache = Collections.unmodifiableMap(cache);
 	}

@@ -17,10 +17,11 @@
 
 package parser.unrealhex;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import ui.Constants;
 
@@ -65,17 +66,15 @@ public class OperandTable {
 
 	/**
 	 * Parses the specified operand data file and extract operand token data from it.
-	 * @param file the operand data file
+	 * @param filePath the path pointing to the operand data file
 	 * @throws IOException if an I/O error occurs
 	 */
-	public static void parseFile(File file) throws IOException {
-		try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-			String line;
-			while ((line = br.readLine()) != null) {
-				String[] split = line.split(";");
-				if (!split[0].isEmpty()) {
-					parseLine(line);
-				}
+	public static void parseFile(Path filePath) throws IOException {
+		List<String> lines = Files.readAllLines(filePath, Charset.defaultCharset());
+		for (String line : lines) {
+			String[] split = line.split(";", 2);
+			if (!split[0].isEmpty()) {
+				parseLine(line);
 			}
 		}
 	}
@@ -85,9 +84,9 @@ public class OperandTable {
 	 * @param line the operand code string to parse
 	 */
 	public static void parseLine(String line) {
-		int iOpIndex = Integer.parseInt(line.split("\\s")[0], 16);
+		int iOpIndex = Integer.parseInt(line.split("\\s", 2)[0], 16);
 		if (operandDecodes[iOpIndex] == null) {
-			operandDecodes[iOpIndex] = line.split(";")[0];
+			operandDecodes[iOpIndex] = line.split(";", 2)[0];
 		} else {
 			System.out.println("Duplicate opcode " + iOpIndex);
 			System.out.println(operandDecodes[iOpIndex]);
