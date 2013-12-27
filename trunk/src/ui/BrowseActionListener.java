@@ -15,9 +15,10 @@ import ui.Constants.ExtensionFileFilter;
 /**
  * Convenience implementation of the action listener interface for selecting
  * a file and doing an operation on it.
- * 
+ * @deprecated use BrowseAbstractAction instead
  * @author XMS
  */
+@Deprecated
 public abstract class BrowseActionListener implements ActionListener {
 
 	/**

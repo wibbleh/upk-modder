@@ -112,6 +112,7 @@ public class ActionCache {
 		newModFileAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
 		newModFileAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
 		newModFileAction.putValue(Action.SHORT_DESCRIPTION, "New Mod File");
+		newModFileAction.setEnabled(false);
 
 		// open mod file
 		Action openModFileAction = new BrowseAbstractAction("Open Mod File...", mainFrame, Constants.MOD_FILE_FILTER) {
