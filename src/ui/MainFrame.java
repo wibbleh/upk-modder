@@ -34,6 +34,8 @@ import model.upk.UpkFile;
 import ui.ModFileTabbedPane.ModFileTab;
 import ui.dialogs.AboutDialog;
 import ui.tree.ProjectTree;
+import ui.tree.ProjectTreeModel.FileNode;
+import ui.tree.ProjectTreeModel.ModFileNode;
 import ui.tree.ProjectTreeModel.ProjectNode;
 
 /**
@@ -58,7 +60,7 @@ public class MainFrame extends JFrame {
 	 * The project pane tree component.
 	 */
 	private ProjectTree projectTree;
-	
+
 	/**
 	 * The mod file tabbed pane component.
 	 */
@@ -435,9 +437,22 @@ public class MainFrame extends JFrame {
 	 * Removes the currently active project from the project pane.
 	 */
 	public void removeProject() {
-		projectTree.removeProject();
-		ActionCache.getAction("removeProject").setEnabled(false);
-		ActionCache.getAction("deleteProject").setEnabled(false);
+		this.removeProject(null);
+	}
+	
+	/**
+	 * Removes the specified project from the project pane.
+	 * @param projNode the project to remove
+	 */
+	public void removeProject(ProjectNode projNode) {
+		Path xmlPath = projectTree.removeProject(projNode);
+		if (xmlPath != null) {
+			appState.removeProjectFile(xmlPath);
+			// reset title and some menu items
+			this.setTitle("");
+			ActionCache.getAction("removeProject").setEnabled(false);
+			ActionCache.getAction("deleteProject").setEnabled(false);
+		}
 	}
 	
 	/**
@@ -458,46 +473,90 @@ public class MainFrame extends JFrame {
 	}
 	
 	/**
-	 * Sets the currently active project in the project pane identified by the
-	 * specified project node.
-	 * @param projNode the project node
+	 * Updates the main frame's title to display the currently selected
+	 * project's name.
 	 */
-	public void setActiveProject(ProjectNode projNode) {
-		// TODO: maybe persistently store active project node and provide getter method
-		if (projNode != null) {
-			ProjectNode target = (ProjectNode) projNode;
+	public void updateTitle() {
+		ProjectNode activeProject = projectTree.getActiveProject();
+		if (activeProject != null) {
 			// extract file from project
-			Path projectFile = target.getProjectFile();
+			Path projectFile = activeProject.getProjectFile();
 			// update frame title
 			this.setTitle(" : " + projectFile.getFileName());
-			// enable 'Close Project' menu item
+			// enable some menu items
 			ActionCache.getAction("removeProject").setEnabled(true);
 			ActionCache.getAction("deleteProject").setEnabled(true);
+			ActionCache.getAction("newModFile").setEnabled(true);
 		} else {
+			// no project selected, reset some properties
 			this.setTitle("");
 			ActionCache.getAction("removeProject").setEnabled(false);
 			ActionCache.getAction("deleteProject").setEnabled(false);
+			ActionCache.getAction("newModFile").setEnabled(false);
 		}
 	}
-
+	
 	/**
-	 * Creates a new mod file tab containing a default template file.
+	 * Creates a new mod file containing a default template file inside the
+	 * currently active project.
 	 */
 	public void createNewModFile() {
-		if (modTabPane.createNewModFile()) {
-			this.setFileActionsEnabled(true);
+		this.createNewModFile(projectTree.getActiveDirectory());
+	}
+	
+	/**
+	 * Creates a new mod file containing a default template file inside the
+	 * specified directory node.
+	 * @param dirNode the directory node of the project pane tree under which a mod file shall be created
+	 */
+	public void createNewModFile(FileNode dirNode) {
+		if (dirNode != null) {
+			// prompt for mod file name
+			String res = JOptionPane.showInputDialog(this, "Enter Name of New Mod File",
+					"New Mod File", JOptionPane.INFORMATION_MESSAGE);
+			// check whether user aborted or entered invalid name
+			// TODO: implement enhanced error checking to prevent invalid file names
+			if ((res != null) && !res.isEmpty()) {
+				// create a new mod file node
+				// TODO: should always succeed if error checking is in place
+				ModFileNode node = projectTree.createModFile(dirNode, res);
+				if (node != null) {
+					// create a new mod file tab
+					ModFileTab tab = this.openModFile(node.getFilePath());
+					if (tab == null) {
+						// tab creation failed, show error message
+						JOptionPane.showMessageDialog(this,
+								"Failed to create mod file tab, see message log for details.",
+								"Error", JOptionPane.ERROR_MESSAGE);
+						// TODO: perform clean-up?
+					} else {
+						// TODO: associate node with tab (or the other way round?)
+					}
+				} else {
+					// node creation failed, show error message
+					JOptionPane.showMessageDialog(this,
+							"Failed to create mod file, see message log for details.",
+							"Error", JOptionPane.ERROR_MESSAGE);
+					// TODO: perform clean-up?
+				}
+			}
+		} else {
+			// we shouldn't get here as the corresponding action(s) should be disabled
+			throw new IllegalArgumentException();
 		}
-		// TODO: associate mod file with active project
 	}
 
 	/**
 	 * Creates a new mod file tab containing the specified mod file contents.
 	 * @param modPath the mod file to open
+	 * @return the newly created mod file tab or <code>null</code> if an error occurred
 	 */
-	public void openModFile(Path modPath) {
-		if (modTabPane.openModFile(modPath)) {
+	public ModFileTab openModFile(Path modPath) {
+		ModFileTab newTab = modTabPane.openModFile(modPath);
+		this.setFileActionsEnabled(newTab != null);
+		if (newTab != null) {
 			this.setFileActionsEnabled(true);
-			
+			return newTab;
 			// TODO: create function for upk re-association
 			// re-associate upk if possible
 			// FIXME
@@ -507,8 +566,9 @@ public class MainFrame extends JFrame {
 //				ModFileTab tab = modTabPane.getTab(modPath);
 //				setTargetUpk(tab, uFile.toPath());
 //			}
+			// TODO: associate mod file with active project
 		}
-		// TODO: associate mod file with active project
+		return null;
 	}
 
 	/**

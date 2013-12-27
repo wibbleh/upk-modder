@@ -99,7 +99,13 @@ public abstract class BrowseAbstractAction extends AbstractAction {
 		chooser.setMultiSelectionEnabled(false);
 		chooser.setAcceptAllFileFilterUsed(false);
 		// show file selection dialog
-		int res = (this.save) ? chooser.showSaveDialog(this.parent) : chooser.showOpenDialog(this.parent);
+		int res;
+		if (this.save) {
+			chooser.setSelectedFile(lastSelectedFile);
+			res = chooser.showSaveDialog(this.parent);
+		} else {
+			res = chooser.showOpenDialog(this.parent);
+		}
 		// TODO: implement prompting for confirmation in save dialog
 		if (res == JFileChooser.APPROVE_OPTION) {
 			File selectedFile = chooser.getSelectedFile();

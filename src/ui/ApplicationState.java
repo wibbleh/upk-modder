@@ -48,14 +48,15 @@ public class ApplicationState implements Serializable {
 	 * @param xmlPath the project XML file path to add
 	 */
 	public void addProjectFile(Path xmlPath) {
-		openedProjectFiles.add(xmlPath.toString());
+		String pathStr = xmlPath.toString();
+		openedProjectFiles.add(pathStr);
 		
-		if (recentProjectFiles.contains(xmlPath)) {
+		if (recentProjectFiles.contains(pathStr)) {
 			// remove already existing element (effectively moving it to the front)
-			recentProjectFiles.remove(xmlPath);
+			recentProjectFiles.remove(pathStr);
 		}
 		// insert path at front of list
-		recentProjectFiles.add(0, xmlPath.toString());
+		recentProjectFiles.add(0, pathStr);
 		if (recentProjectFiles.size() > 10) {
 			// truncate list
 			recentProjectFiles.remove(recentProjectFiles.size() - 1);
@@ -68,7 +69,7 @@ public class ApplicationState implements Serializable {
 	 * @param xmlPath the project XML file path to remove
 	 */
 	public void removeProjectFile(Path xmlPath) {
-		openedProjectFiles.remove(xmlPath);
+		openedProjectFiles.remove(xmlPath.toString());
 	}
 	
 	/**

@@ -19,10 +19,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.JEditorPane;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.Document;
 import javax.swing.tree.DefaultTreeCellRenderer;
 
@@ -77,6 +81,24 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	@Override
 	public void removeTabAt(int index) {
 		ModFileTab thisTab = (ModFileTab) this.getComponentAt(index);
+		// check whether the tab has unsaved changes
+		if (thisTab.isModified()) {
+			// show confirmation dialog
+			int res = JOptionPane.showOptionDialog(this, "The tab you're about to close has unsaved changes, close anyway?",
+					"Confirm Close", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+					null, new String[] { "Close Without Save", "Save And Close", "Cancel" }, "Cancel");
+			 if ((res == JOptionPane.CANCEL_OPTION) || (res == JOptionPane.CLOSED_OPTION)) {
+				 // abort on cancel
+				 return;
+			 } else if (res == JOptionPane.NO_OPTION) {
+				 // save before closing
+				 try {
+					 thisTab.saveFile();
+				 } catch (IOException e) {
+					 logger.log(Level.SEVERE, "Failed to save mod file \'" + thisTab.getModFile() + "\'", e);
+				 }
+			 }
+		}
 		// check whether the tab has a valid UPK file reference and whether
 		// the same file is referenced by another tab
 		UpkFile upkFile = thisTab.getUpkFile();
@@ -100,43 +122,51 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 //		filenameToTabMap.remove(thisTab.getModFile());
 		super.removeTabAt(index);
 	}
-
-	/**
-	 * Creates a new tab containing a default template file.
-	 * @return <code>false</code> if an error occurred, <code>true</code> otherwise
-	 */
-	public boolean createNewModFile() {
-		try {
-			// load configured template file
-			ModFileTab tab = new ModFileTab(Constants.TEMPLATE_MOD_FILE, true);
-			this.addTab("New File", tab);
-			this.setSelectedComponent(tab);
-		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Failed to load template mod file", e);
-			return false;
-		}
-		return true;
+	
+	@Override
+	public void setTitleAt(int index, String title) {
+		super.setTitleAt(index, title);
+		this.updateUI();
 	}
+
+//	/**
+//	 * Creates a new tab containing a default template file.
+//	 * @param name
+//	 * @return
+//	 */
+//	public ModFileTab createNewModFile(String name) {
+//		try {
+//			// load configured template file
+//			ModFileTab tab = new ModFileTab(Constants.TEMPLATE_MOD_FILE, true);
+//			this.addTab(name, tab);
+//			this.setSelectedComponent(tab);
+//			return tab;
+//		} catch (Exception e) {
+//			logger.log(Level.SEVERE, "Failed to load template mod file", e);
+//		}
+//		return null;
+//	}
 
 	/**
 	 * Creates a new tab containing the specified mod file.
 	 * @param modPath the mod file path
-	 * @return <code>false</code> if an error occurred, <code>true</code> otherwise
+	 * @return the newly created tab or <code>null</code> if an error occurred
 	 */
-	public boolean openModFile(Path modPath) {
+	public ModFileTab openModFile(Path modPath) {
 		try {
 			ModFileTab modTab = this.getTab(modPath);
 			if (modTab == null) {
 				modTab = new ModFileTab(modPath);
 				this.addTab(modPath.getFileName().toString(), modTab);
+				this.setSelectedComponent(modTab);
 				// FIXME
 //				UpkModderProperties.addOpenModFile(path);
+				return modTab;
 			}
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Failed to load mod file \'" + modPath.getFileName() + "\'", e);
-			return false;
 		}
-		return true;
+		return null;
 	}
 
 	/**
@@ -342,6 +372,10 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		private Path modFile;
 		
+		/**
+		 * Flag denoting whether the underlying mod file has been modified.
+		 */
+		private boolean modified;
 
 		/**
 		 * Creates a new tab from the specified modfile reference.
@@ -363,6 +397,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			this.modFile = modFile;
 			
 			this.initComponents();
+			
+			// TODO: remove template stuff
 				
 			if (template) {
 				this.modFile = null;	// remove link to file
@@ -378,13 +414,13 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			// create right-hand editor pane
 			modEditor = new JEditorPane();
 			modEditor.setFont(TEXT_PANE_FONT);
-
+			
 			// install editor kit
 			modEditor.setEditorKit(new ModStyledEditorKit());
 			
 			// read provided file, if possible
 			if (modFile != null) {
-				modEditor.read(Files.newInputStream(modFile), modFile);
+				modEditor.read(Files.newInputStream(modFile), null);
 			}
 			
 			// wrap editor in scroll pane
@@ -394,11 +430,31 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			modEditorScpn.setRowHeaderView(new LineNumberMargin(modEditor));
 			modEditorScpn.setPreferredSize(new Dimension(650, 600));
 			
-			Document modDocument = modEditor.getDocument();
+			final Document modDocument = modEditor.getDocument();
+			// install listener to track modifications, do it after the mod file has been read
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					modDocument.addDocumentListener(new DocumentListener() {
+						// TODO: maybe store original document state to set flag back to false when user undoes changes
+						@Override
+						public void removeUpdate(DocumentEvent evt) {
+							setModified(true);
+						}
+						@Override
+						public void insertUpdate(DocumentEvent evt) {
+							setModified(true);
+						}
+						@Override
+						public void changedUpdate(DocumentEvent evt) {
+							setModified(true);
+						}
+					});
+				}
+			});
 			
 			// create tree view of right-hand mod editor
 			modTree = new ModTree(modDocument);
-//			final JTree modElemTree = new JTree(modTree.getRoot()); // draw from ModTree
 			final JTree modElemTree = new JTree(modTree); // draw from ModTree
 			JScrollPane modElemTreeScpn = new JScrollPane(modElemTree,
 					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
@@ -450,6 +506,13 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public void saveFile() throws IOException {
 			modEditor.write(Files.newBufferedWriter(modFile, Charset.defaultCharset()));
+			if (this.modified) {
+				// modify tab title, remove leading asterisk
+				ModFileTabbedPane tabPane = ModFileTabbedPane.this;
+				int index = tabPane.indexOfComponent(this);
+				tabPane.setTitleAt(index, tabPane.getTitleAt(index).substring(1));
+				this.modified = false;
+			}
 		}
 		
 		/**
@@ -462,10 +525,11 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public boolean applyChanges() {
 			try {
-				if(this.modTree.getAction().equals("")) { // default action of making changes to object
-					if(this.modTree.getResizeAmount() == 0) {
+				if (this.modTree.getAction().equals("")) {
+					// default action of making changes to object
+					if (this.modTree.getResizeAmount() == 0) {
 						// basic search and replace without file backup
-						if(this.searchAndReplace(
+						if (this.searchAndReplace(
 								HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
 								HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
 								) {
@@ -474,44 +538,27 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						}
 					} else {
 						// advanced search and replace resizing function (many changes to upk)
-						if(HexSearchAndReplace.resizeAndReplace(true, this.modTree, this.getUpkFile())) {
+						if (HexSearchAndReplace.resizeAndReplace(
+								true, this.modTree, this.getUpkFile())) {
 							ModTab.logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
 							return true;
 						}
 					}
-				} else { // perform special action
+				} else {
+					// perform special action
 					// TODO: replace within enumeration?
-					if(this.modTree.getAction().equalsIgnoreCase("typechange")) {
-						if(	HexSearchAndReplace.changeObjectType(true, modTree)) {
+					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
+						if (HexSearchAndReplace.changeObjectType(true, modTree)) {
 							ModTab.logger.log(Level.INFO, "Variable type changed to AFTER");
 							return true;
 						}
 					}
 				}
-			} catch(IOException ex) {
+			} catch (IOException ex) {
 				ModTab.logger.log(Level.SEVERE, "File error", ex);
 			}
 			return false;
 		}
-
-//		/**
-//		 * Searches the associated UPK file for the byte data of the <code>BEFORE</code>
-//		 * block(s) and overwrites it using the byte data of the <code>AFTER</code> block(s).
-//		 * @return <code>true</code> if changes applied successfully, <code>false</code> if not
-//		 */
-//		public boolean applyChanges() {
-//			try {
-//				if (this.searchAndReplace(
-//						HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
-//						HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))) {
-//					ModFileTabbedPane.logger.log(Level.INFO, "AFTER Hex Installed");
-//					return true;
-//				}
-//			} catch (IOException e) {
-//				ModFileTabbedPane.logger.log(Level.SEVERE, "File error", e);
-//			}
-//			return false;
-//		}
 
 		/**
 		 * Searches the associated UPK file for the byte data of the <code>AFTER</code>
@@ -658,6 +705,29 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public void setUpkFile(UpkFile upkFile) {
 			this.modTree.setSourceUpk(upkFile);
+		}
+		
+		/**
+		 * Returns whether the underlying mod file has been modified.
+		 * @return <code>true</code> if the mod file has been modified, <code>false</code> otherwise
+		 */
+		public boolean isModified() {
+			return modified;
+		}
+		
+		/**
+		 * Sets whether the underlying model should be marked as being modified.<br>
+		 * Modifies the tab title to have an asterisk in front.
+		 * @param modified <code>true</code> if the mod file has been modified, <code>false</code> otherwise
+		 */
+		public void setModified(boolean modified) {
+			if (!this.modified) {
+				// modify tab title, prepend asterisk
+				ModFileTabbedPane tabPane = ModFileTabbedPane.this;
+				int index = tabPane.indexOfComponent(this);
+				tabPane.setTitleAt(index, "*" + tabPane.getTitleAt(index));
+				this.modified = modified;
+			}
 		}
 
 	}

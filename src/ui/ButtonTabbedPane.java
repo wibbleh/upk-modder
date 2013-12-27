@@ -84,8 +84,8 @@ public class ButtonTabbedPane extends JTabbedPane {
 			JLabel label = new JLabel() {
 				@Override
 				public String getText() {
-					int index = tabPane.indexOfTabComponent
-							(ButtonTabComponent.this);
+					int index = tabPane.indexOfTabComponent(
+							ButtonTabComponent.this);
 					if (index != -1) {
 						return tabPane.getTitleAt(index);
 					}

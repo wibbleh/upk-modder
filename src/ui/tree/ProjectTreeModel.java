@@ -9,7 +9,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -206,182 +208,35 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			}
 		}
 	}
-	
-//	/**
-//	 * Notifies all registered listeners that tree nodes have been added.
-//	 */
-//	private void fireTreeNodesInserted(int[] childIndices, Object[] children) {
-//		TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.root), childIndices, children);
-//		for (TreeModelListener listener : this.listeners) {
-//			listener.treeNodesInserted(evt);
-//		}
-//	}
-//
-//	/**
-//	 * Notifies all registered listeners that tree nodes have been removed.
-//	 */
-//	private void fireTreeNodesRemoved(int[] childIndices, Object[] children) {
-//		TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.root), childIndices, children);
-//		for (TreeModelListener listener : this.listeners) {
-//			listener.treeNodesRemoved(evt);
-//		}
-//	}
 
-//	/**
-//	 * Convenience method checking whether the provided parent is a project
-//	 * node or a file itself. In the former case returns the root directory
-//	 * of the project, in the latter case returns the node cast to
-//	 * <code>File</code>.
-//	 * @param node the parent node
-//	 * @return a file reference or <code>null</code> if the parent node does
-//	 *  not reference a file
-//	 */
-//	// FIXME: API
-//	private Path getPathForNode(Object node) {
-//		Path path = null;
-//		if (node instanceof ProjectNode) {
-//			// node is a project node, use project root directory
-//			path = ((ProjectNode) node).getProjectDirectory();
-//		} else if (node instanceof Path) {
-//			// is a directory below a project's root directory, return file at index
-//			path = (Path) node;
-//		}
-//		return path;
-//	}
-
-//	@Override
-//	public MutableTreeNode getRoot() {
-//		return this.root;
-//	}
-//
-//	@Override
-//	public Object getChild(Object parent, int index) {
-//		if (parent == this.root) {
-//			// parent is the tree root, return project node at index
-//			return this.root.getChildAt(index);
-//		}
-//		Path path = this.getPathForNode(parent);
-//		if (path != null) {	// sanity check
-//			// return file at index
-////			return file.listFiles((java.io.FileFilter) Constants.MOD_FILE_FILTER)[index];
-////			return path.listFiles()[index];
-//			try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(path)) {
-//				int i = 0;
-//				for (Path childPath : dirStream) {
-//					if (i == index) {
-//						return childPath;
-//					}
-//					i++;
-//				}
-//			} catch (IOException e) {
-//				logger.log(Level.SEVERE, "Unable to fetch children for " + parent, e);
-//			}
-//		}
-//		// fallback value, we should actually never get here
-//		logger.log(Level.SEVERE, "Unknown node type in project tree: " + parent);
-//		return null;
-//	}
-//
-//	@Override
-//	public int getChildCount(Object parent) {
-//		if (parent == this.root) {
-//			// parent is the tree root, return the number of project nodes
-//			return this.root.getChildCount();
-//		}
-//		Path path = this.getPathForNode(parent);
-//		if (path != null) {	// sanity check
-//			// if file is directory return number of files and subdirectories in it
-////			return (file.isFile()) ? 0 :
-////				file.listFiles((java.io.FileFilter) Constants.MOD_FILE_FILTER).length;
-////			return (path.isFile()) ? 0 :
-////				path.listFiles().length;
-//			if (Files.isRegularFile(path)) {
-//				return 0;
-//			} else {
-//				try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(path)) {
-//					Iterator<Path> iter = dirStream.iterator();
-//					int childCount;
-//					for (childCount = 0; iter.hasNext(); iter.next()) {
-//						childCount++;
-//					}
-//					return childCount;
-//				} catch (IOException e) {
-//					logger.log(Level.SEVERE, "Unable to fetch children for " + parent, e);
-//				}
-//			}
-//		}
-//		// fallback value, we should actually never get here
-//		System.err.println("ERROR: unknown node type in project tree: " + parent);
-//		return 0;
-//	}
-//	
-//	@Override
-//	public boolean isLeaf(Object node) {
-//		if (node == this.root) {
-//			// node is the tree root, return whether it has any children
-//			return (this.root.getChildCount() == 0);
-//		}
-//		Path path = this.getPathForNode(node);
-//		if (path != null) {	// sanity check
-//			// leaves may be empty directories or files
-//			if (Files.isDirectory(path)) {
-//				try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(path)) {
-//					return !dirStream.iterator().hasNext();
-//				} catch (IOException e) {
-//					logger.log(Level.SEVERE, "Unable to fetch children for " + node, e);
-//				}
-//			} else {
-//				return true;
-//			}
-//		}
-//		// fallback value, we should actually never get here
-//		System.err.println("ERROR: unknown node type in project tree: " + node);
-//		return false;
-//	}
-//
-//	@Override
-//	public int getIndexOfChild(Object parent, Object child) {
-//		if (parent == this.root) {
-//			// parent is the tree root, child must be a project node, return its index
-//			this.root.getIndex((TreeNode) child);
-//		}
-//		Path path = this.getPathForNode(parent);
-//		if (path != null) {	// sanity check
-//			// return index of file inside parent directory
-////			return Arrays.asList(
-////					path.listFiles((java.io.FileFilter) Constants.MOD_FILE_FILTER)).indexOf(child);
-//			try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(path)) {
-//				int index = 0;
-//				for (Path childPath : dirStream) {
-//					if (childPath.equals(child)) {
-//						return index;
-//					}
-//					index++;
-//				}
-//				return -1;
-//			} catch (IOException e) {
-//				logger.log(Level.SEVERE, "Unable to fetch children for " + parent, e);
-//			}
-//		}
-//		// fallback value, we should actually never get here
-//		System.err.println("ERROR: unknown node type in project tree: " + parent);
-//		return -1;
-//	}
-//
-//	@Override
-//	public void addTreeModelListener(TreeModelListener l) {
-//		this.listeners.add(l);
-//	}
-//	
-//	@Override
-//	public void removeTreeModelListener(TreeModelListener l) {
-//		this.listeners.remove(l);
-//	}
-//	
-//	@Override
-//	public void valueForPathChanged(TreePath path, Object newValue) {
-//		// don't need, tree model is not supposed to be editable
-//	}
+	/**
+	 * Creates and inserts a new mod file under the specified file node using
+	 * the specified filename.
+	 * @param dirNode the parent directory node
+	 * @param filename the filename of the mod file to create
+	 * @return the new ModFileNode or <code>null</code> if an error occurred
+	 */
+	@SuppressWarnings("unchecked")
+	public ModFileNode createModFile(FileNode dirNode, String filename) {
+		Path modPath = dirNode.getFilePath().resolve(filename);
+		// TODO: check whether file already exists
+		try {
+			Files.copy(Constants.TEMPLATE_MOD_FILE, modPath);
+			ModFileNode node = new ModFileNode(modPath);
+			// find insertion point
+			List<FileNode> list = Collections.list(dirNode.children());
+			int index = Collections.binarySearch(list, node);
+			if (index < 0) {	// sanity check, should always be negative
+				index = Math.abs(index + 1);
+				// insert new node
+				this.insertNodeInto(node, dirNode, index);
+				return node;
+			}
+		} catch (IOException e) {
+			logger.log(Level.SEVERE, "Unable to create mod file " + modPath, e);
+		}
+		return null;
+	}
 	
 	@Override
 	public MutableTreeNode getRoot() {
@@ -399,7 +254,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	 * Custom tree node representing a file or directory in the project tree.
 	 * @author XMS
 	 */
-	public class FileNode extends DefaultMutableTreeNode {
+	public class FileNode extends DefaultMutableTreeNode implements Comparable<FileNode> {
 		
 		/**
 		 * Constructs a generic file node from the specified file or directory path.
@@ -426,6 +281,20 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		public String toString() {
 			return this.getUserObject().getFileName().toString();
 		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj instanceof FileNode) {
+				FileNode that = (FileNode) obj;
+				return (this.getFilePath().equals(that.getFilePath()));
+			}
+			return false;
+		}
+		
+		@Override
+		public int compareTo(FileNode that) {
+			return this.getFilePath().compareTo(that.getFilePath());
+		}
 		
 	}
 	
@@ -437,9 +306,9 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	public class ProjectNode extends FileNode {
 		
 		/**
-		 * The project's source directory.
+		 * The path to the project XML file.
 		 */
-		private Path projectPath;
+		private Path xmlPath;
 		
 		/**
 		 * The project's name.
@@ -454,7 +323,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		 * @throws SAXException if any parse errors occur
 		 */
 		public ProjectNode(Path xmlPath) throws ParserConfigurationException, SAXException, IOException {
-			super(xmlPath);
+			super(null);
 			
 			this.parse(xmlPath);
 		}
@@ -473,7 +342,9 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			Document doc = db.parse(xmlPath.toFile());
 			// extract project name and source directory
 			this.projectName = doc.getElementsByTagName("name").item(0).getTextContent();
-			this.projectPath = Paths.get(doc.getElementsByTagName("source-root").item(0).getTextContent());
+			this.userObject = Paths.get(doc.getElementsByTagName("source-root").item(0).getTextContent());
+			
+			this.xmlPath = xmlPath;
 		}
 
 		/**
@@ -481,7 +352,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		 * @return the project XML path
 		 */
 		public Path getProjectFile() {
-			return this.getFilePath();
+			return this.xmlPath;
 		}
 		
 		/**
@@ -489,18 +360,9 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		 * @return the project path
 		 */
 		public Path getProjectDirectory() {
-			return projectPath;
+			return this.getFilePath();
 		}
 		
-		@Override
-		public boolean equals(Object obj) {
-			if (obj instanceof ProjectNode) {
-				ProjectNode that = (ProjectNode) obj;
-				return this.getProjectFile().equals(that.getProjectFile());
-			}
-			return false;
-		}
-
 		@Override
 		public String toString() {
 			return this.projectName;
