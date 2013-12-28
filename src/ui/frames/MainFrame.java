@@ -532,14 +532,7 @@ public class MainFrame extends JFrame {
 				ModFileNode node = projectTree.createModFile(dirNode, res);
 				if (node != null) {
 					// create a new mod file tab
-					ModFileTab tab = this.openModFile(node.getFilePath(), node);
-					if (tab == null) {
-						// tab creation failed, show error message
-						JOptionPane.showMessageDialog(this,
-								"Failed to create mod file tab, see message log for details.",
-								"Error", JOptionPane.ERROR_MESSAGE);
-						// TODO: perform clean-up?
-					}
+					this.openModFile(node.getFilePath(), node);
 				} else {
 					// node creation failed, show error message
 					JOptionPane.showMessageDialog(this,
@@ -583,8 +576,8 @@ public class MainFrame extends JFrame {
 	 * @param modPath the path to the mod file to open
 	 * @return the newly created mod file tab or <code>null</code> if an error occurred
 	 */
-	public ModFileTab openModFile(Path modPath) {
-		return this.openModFile(modPath, null);
+	public void openModFile(Path modPath) {
+		this.openModFile(modPath, null);
 	}
 	
 	/**
@@ -594,22 +587,32 @@ public class MainFrame extends JFrame {
 	 * @param modNode the mod file node of the project tree
 	 * @return the newly created mod file tab or <code>null</code> if an error occurred
 	 */
-	public ModFileTab openModFile(Path modPath, ModFileNode modNode) {
+	public void openModFile(Path modPath, ModFileNode modNode) {
 		ModFileTab newTab = modTabPane.openModFile(modPath, modNode);
 		if (newTab != null) {
 			this.setFileActionsEnabled(true);
-			return newTab;
-			// TODO: create function for upk re-association
-			// re-associate upk if possible
-			// FIXME
-//			String uFileName = UpkModderProperties.getUpkProperty(modPath.getName());
-//			if (uFileName != null) {
-//				File uFile = new File(uFileName);
-//				ModFileTab tab = modTabPane.getTab(modPath);
-//				setTargetUpk(tab, uFile.toPath());
-//			}
+			
+			// check whether tab is associated with a project
+			if (modNode != null) {
+				ProjectNode project = modNode.getProject();
+				if (project != null) {
+					// get targeted generic UPK file name
+					String upkName = newTab.getModTree().getUpkName();
+					// look up path in project's UPK file associations
+					Path upkPath = project.getUpkPath(upkName);
+					if (upkPath != null) {
+						// associate tab with mapped UPK file
+						this.associateUpk(upkPath);
+					}
+				}
+			}
+		} else {
+			// tab creation failed, show error message
+			JOptionPane.showMessageDialog(this,
+					"Failed to create mod file tab, see message log for details.",
+					"Error", JOptionPane.ERROR_MESSAGE);
+			// TODO: perform clean-up?
 		}
-		return null;
 	}
 	
 
