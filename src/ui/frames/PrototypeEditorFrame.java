@@ -1,4 +1,4 @@
-package ui;
+package ui.frames;
 
 import java.awt.Component;
 import java.awt.Container;
@@ -42,9 +42,9 @@ import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
-import ui.PrototypeEditorFrame.CodeBlockNode.CodeHexNode;
-import ui.PrototypeEditorFrame.HeaderBlockNode.HeaderHexNode;
 import ui.editor.ModEditorKit;
+import ui.frames.PrototypeEditorFrame.CodeBlockNode.CodeHexNode;
+import ui.frames.PrototypeEditorFrame.HeaderBlockNode.HeaderHexNode;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;

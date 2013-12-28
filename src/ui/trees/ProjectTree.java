@@ -1,4 +1,4 @@
-package ui.tree;
+package ui.trees;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -23,12 +23,11 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 import ui.ActionCache;
-import ui.BrowseAbstractAction;
 import ui.Constants;
-import ui.MainFrame;
-import ui.tree.ProjectTreeModel.FileNode;
-import ui.tree.ProjectTreeModel.ModFileNode;
-import ui.tree.ProjectTreeModel.ProjectNode;
+import ui.frames.MainFrame;
+import ui.trees.ProjectTreeModel.FileNode;
+import ui.trees.ProjectTreeModel.ModFileNode;
+import ui.trees.ProjectTreeModel.ProjectNode;
 
 /**
  * Tree view implementation for the application's project pane.
@@ -104,16 +103,20 @@ public class ProjectTree extends JTree {
 		this.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent evt) {
+				TreePath treePath =
+						ProjectTree.this.getPathForLocation(evt.getX(), evt.getY());
+				// check click count and type of button
 				if ((evt.getClickCount() == 1) && evt.isPopupTrigger()) {
 					// show context menu on right-click
+					ProjectTree.this.setSelectionPath(treePath);
 					contextMenu.show(ProjectTree.this, evt.getX(), evt.getY());
 				} else if ((evt.getClickCount() == 2) && !evt.isPopupTrigger()) {
 					// open mod file on double-click
-					TreePath selPath = getPathForLocation(evt.getX(), evt.getY());
-					if (selPath != null) {
-						if (selPath.getLastPathComponent() instanceof ModFileNode) {
-							Path path = ((ModFileNode) selPath.getLastPathComponent()).getFilePath();
-							((BrowseAbstractAction) ActionCache.getAction("openModFile")).execute(path.toFile());
+					if (treePath != null) {
+						// check whether a mod file was targeted
+						if (treePath.getLastPathComponent() instanceof ModFileNode) {
+							Path path = ((ModFileNode) treePath.getLastPathComponent()).getFilePath();
+							MainFrame.getInstance().openModFile(path);
 						}
 					}
 				}

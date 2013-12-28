@@ -42,7 +42,10 @@ import model.upk.UpkFile;
 import org.bounce.text.LineNumberMargin;
 
 import ui.dialogs.ReferenceUpdateDialog;
+import ui.frames.MainFrame;
+import ui.trees.ProjectTreeModel.ModFileNode;
 import util.unrealhex.HexSearchAndReplace;
+import util.unrealhex.HexSearchAndReplace.ApplyStatus;
 
 /**
  * Tabbed pane implementation for the application's mod file editor.
@@ -71,10 +74,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	public ModFileTab getTab(Path modPath) {
 		for (int i = 0; i < this.getTabCount(); i++) {
 			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
-			if (tab.getModFile() != null) {
-				if (tab.getModFile().equals(modPath)) {
-					return tab;
-				}
+			if (modPath.equals(tab.getModFilePath())) {
+				return tab;
 			}
 		}
 		return null;
@@ -97,7 +98,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				 try {
 					 thisTab.saveFile();
 				 } catch (IOException e) {
-					 logger.log(Level.SEVERE, "Failed to save mod file \'" + thisTab.getModFile() + "\'", e);
+					 logger.log(Level.SEVERE, "Failed to save mod file \'" + thisTab.getModFilePath() + "\'", e);
 				 }
 			 }
 		}
@@ -131,34 +132,16 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		this.updateUI();
 	}
 
-//	/**
-//	 * Creates a new tab containing a default template file.
-//	 * @param name
-//	 * @return
-//	 */
-//	public ModFileTab createNewModFile(String name) {
-//		try {
-//			// load configured template file
-//			ModFileTab tab = new ModFileTab(Constants.TEMPLATE_MOD_FILE, true);
-//			this.addTab(name, tab);
-//			this.setSelectedComponent(tab);
-//			return tab;
-//		} catch (Exception e) {
-//			logger.log(Level.SEVERE, "Failed to load template mod file", e);
-//		}
-//		return null;
-//	}
-
 	/**
 	 * Creates a new tab containing the specified mod file.
 	 * @param modPath the mod file path
 	 * @return the newly created tab or <code>null</code> if an error occurred
 	 */
-	public ModFileTab openModFile(Path modPath) {
+	public ModFileTab openModFile(Path modPath, ModFileNode modNode) {
 		try {
 			ModFileTab modTab = this.getTab(modPath);
 			if (modTab == null) {
-				modTab = new ModFileTab(modPath);
+				modTab = new ModFileTab(modPath, modNode);
 				this.addTab(modPath.getFileName().toString(), modTab);
 				this.setSelectedComponent(modTab);
 				// FIXME
@@ -196,7 +179,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	public Path getActiveModFile() {
 		Component selComp = this.getSelectedComponent();
 		if (selComp != null) {
-			Path modPath = ((ModFileTab) selComp).getModFile();
+			Path modPath = ((ModFileTab) selComp).getModFilePath();
 			if ((modPath == null) || Files.notExists(modPath)) {
 				modPath = Paths.get(BrowseAbstractAction.getLastSelectedFile().getParent(),
 						this.getTitleAt(this.getSelectedIndex()) + ".upk_mod");
@@ -213,7 +196,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		Component selComp = this.getSelectedComponent();
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
-			Path modPath = tab.getModFile();
+			Path modPath = tab.getModFilePath();
 			if (modPath != null) {
 				try {
 					tab.saveFile();
@@ -239,7 +222,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			ModFileTab tab = (ModFileTab) selComp;
 			// FIXME
 //			UpkModderProperties.removeOpenModFile(this.getActiveModFile());
-			tab.setModFile(targetPath);
+			tab.setModFilePath(targetPath);
 			// FIXME
 //			UpkModderProperties.addOpenModFile(modPath);
 			try {
@@ -311,32 +294,15 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		Component selComp = this.getComponentAt(selectedIndex);
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
-			HexSearchAndReplace.ApplyStatus status = tab.testStatusModFile();
-	
-				if (status == HexSearchAndReplace.ApplyStatus.AFTER_HEX_PRESENT) {
-				this.setForegroundAt(selectedIndex,  new Color(0, 0, 230)); // blue indicates AFTER
-					this.setFontAt(selectedIndex, TAB_PANE_FONT_APPLIED);
-					this.setToolTipTextAt(selectedIndex, "Hex Applied");
-				} else if (status == HexSearchAndReplace.ApplyStatus.BEFORE_HEX_PRESENT) {
-				this.setForegroundAt(selectedIndex,  new Color(0, 128, 0)); // green indicates BEFORE
-					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-					this.setToolTipTextAt(selectedIndex, "Original Hex");
-				} else if (status == HexSearchAndReplace.ApplyStatus.MIXED_STATUS) {
-				this.setForegroundAt(selectedIndex,  new Color(232, 118, 0)); // orange indicates MIXED
-					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-					this.setToolTipTextAt(selectedIndex, "Mixed Status");
-				} else if (status == HexSearchAndReplace.ApplyStatus.APPLY_ERROR) {
-				this.setForegroundAt(selectedIndex,  new Color(255, 0, 0)); // red indicates ERROR
-					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-					this.setToolTipTextAt(selectedIndex, "ERROR");
-				} else if (status ==HexSearchAndReplace.ApplyStatus.NO_UPK) {
-				this.setForegroundAt(selectedIndex,  new Color(0, 0, 0)); // black indicates NOUPK
-					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-					this.setToolTipTextAt(selectedIndex, "No target UPK");
-				}
-				this.updateUI(); // needed to update tab 
-			}
+			ApplyStatus status = tab.testStatusModFile();
+
+			this.setForegroundAt(selectedIndex,  status.getForeground());
+			this.setFontAt(selectedIndex, status.getFont());
+			this.setToolTipTextAt(selectedIndex, status.getToolTipText());
+			
+			this.updateUI(); // needed to update tab 
 		}
+	}
 
 	/**
 	 * Associates the provided UPK file with the currently active mod file tab.
@@ -380,34 +346,27 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		private boolean modified;
 
 		/**
-		 * Creates a new tab from the specified modfile reference.
-		 * @param modFile the path to the mod file to parse
-		 * @throws Exception if the mod file could not be parsed
+		 * The reference to the project tree's mod file node. May be
+		 * <code>null</code> for mod files outside the project hierarchy.
 		 */
-		public ModFileTab(Path modFile) throws Exception {
-			this(modFile, false);
-		}
-
+		private ModFileNode modNode;
+		
 		/**
-		 * Creates a new tab from the specified modfile reference.
+		 * Creates a new tab from the specified mod file path and mod file node
+		 * from the project tree.
 		 * @param modFile the path to the mod file to parse
-		 * @param template specifies whether the file being opened is a template file
+		 * @param modNode the mod file node in the project tree, may be
+		 *  <code>null</code> for mod files outside of the project hierarchy
 		 * @throws Exception if the mod file could not be parsed
 		 */
-		public ModFileTab(Path modFile, boolean template) throws Exception {
+		public ModFileTab(Path modFile, ModFileNode modNode) throws Exception {
 			super(JSplitPane.HORIZONTAL_SPLIT);
 			this.modFile = modFile;
+			this.modNode = modNode;
 			
 			this.initComponents();
-			
-			// TODO: remove template stuff
-				
-			if (template) {
-				this.modFile = null;	// remove link to file
-			}
-
 		}
-		
+
 		/**
 		 * Creates and lays out the components of the tab.
 		 * @param modFile
@@ -681,7 +640,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * Returns the mod file reference of this tab.
 		 * @return the mod file
 		 */
-		public Path getModFile() {
+		public Path getModFilePath() {
 			return modFile;
 		}
 		
@@ -689,8 +648,17 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * Sets the mod file reference of this tab.
 		 * @param modFile the mod file to set
 		 */
-		public void setModFile(Path modFile) {
+		public void setModFilePath(Path modFile) {
 			this.modFile = modFile;
+		}
+		
+		/**
+		 * Returns the reference to the mod file node in the project tree.
+		 * @return the mod file node or <code>null</code> if the mod file
+		 *  is outside the project hierarchy
+		 */
+		public ModFileNode getModFileNode() {
+			return modNode;
 		}
 		
 		/**

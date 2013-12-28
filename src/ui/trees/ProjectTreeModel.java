@@ -1,4 +1,4 @@
-package ui.tree;
+package ui.trees;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,6 +31,9 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import ui.Constants;
@@ -59,9 +62,8 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	/**
 	 * Creates a new project the the given name at the specified location
 	 * @param projectPath the directory the project will occupy
-	 * @return ?
 	 */
-	public boolean createProject(Path projectPath) {
+	public void createProject(Path projectPath) {
 		try {
 			// grab template file
 			File templateFile = Constants.TEMPLATE_PROJECT_FILE;
@@ -73,7 +75,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 				// abort if a project file already exists
 				throw new IOException("A project already exists in the specified directory.");
 			}
-			Path srcPath = projectPath.resolve("modrc");
+			Path srcPath = projectPath.resolve("modsrc");
 			Files.createDirectories(srcPath);
 
 			// parse template XML into DOM structure
@@ -95,11 +97,9 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			// add new project to tree
 			this.openProject(xmlPath);
 			
-			return true;
 		} catch (IOException | ParserConfigurationException | TransformerException | DOMException | SAXException e) {
 			logger.log(Level.INFO, "Failed to create project \'" + projectPath.getFileName() + "\'", e);
 		}
-		return false;
 	}
 	
 	/**
@@ -119,8 +119,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			}
 			final Path srcDir = projectNode.getProjectDirectory();
 			// append new project node below root
-			this.insertNodeInto(
-					projectNode, rootNode,
+			this.insertNodeInto(projectNode, rootNode,
 					this.getChildCount(this.root));
 			// walk file tree and add nodes for all files
 			Files.walkFileTree(srcDir, new SimpleFileVisitor<Path>() {
@@ -181,12 +180,6 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	 */
 	public boolean removeProject(ProjectNode project) {
 		if (project != null) {
-//			int index = this.root.getIndex(project);
-//			if (index != -1) {
-//				this.root.remove(project);
-//				this.fireTreeNodesRemoved(new int[] { index }, new Object[] { project });
-//				return true;
-//			}
 			this.removeNodeFromParent(project);
 			return true;
 		}
@@ -199,8 +192,6 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	 */
 	public void deleteProject(ProjectNode project) {
 		this.removeProject(project);
-		// FIXME -- this really needs a warning dialogue !!!
-		// TODO: @Amineri: but not here! This is the MainFrame's responsibility! :] 
 		if (project != null) {
 			try {
 				Files.deleteIfExists(project.getProjectDirectory());
@@ -283,7 +274,6 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			return this.getUserObject().getFileName().toString();
 		}
 
-		//TODO: NetBeans IDE report warning "Generate Missing hashCode()"
 		@Override
 		public boolean equals(Object obj) {
 			if (obj instanceof FileNode) {
@@ -291,6 +281,11 @@ public class ProjectTreeModel extends DefaultTreeModel {
 				return (this.getFilePath().equals(that.getFilePath()));
 			}
 			return false;
+		}
+		
+		@Override
+		public int hashCode() {
+			return this.getFilePath().hashCode();
 		}
 		
 		@Override
@@ -318,6 +313,11 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		private String projectName;
 		
 		/**
+		 * The map of UPK name-to-UPK path associations.
+		 */
+		private Map<String, Path> upkAssociations;
+		
+		/**
 		 * Constructs a new project node by parsing XML file at the specified path.
 		 * @param xmlPath the path to the project XML file
 		 * @throws ParserConfigurationException if a document parser could not be created
@@ -338,15 +338,36 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		 * @throws SAXException if any parse errors occur
 		 */
 		private void parse(Path xmlPath) throws ParserConfigurationException, SAXException, IOException {
+			this.xmlPath = xmlPath;
+			this.upkAssociations = new HashMap<>();
+			
 			// create document builder
 			DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 			// parse XML
 			Document doc = db.parse(xmlPath.toFile());
 			// extract project name and source directory
-			this.projectName = doc.getElementsByTagName("name").item(0).getTextContent();
-			this.userObject = Paths.get(doc.getElementsByTagName("source-root").item(0).getTextContent());
-			
-			this.xmlPath = xmlPath;
+			Node dataNode = doc.getElementsByTagName("data").item(0);
+			NodeList childNodes = dataNode.getChildNodes();
+			for (int i = 0; i < childNodes.getLength(); i++) {
+				Node child = childNodes.item(i);
+				switch (child.getNodeName()) {
+				case "name":
+					this.projectName = child.getTextContent();
+					break;
+				case "source-root":
+					this.userObject = Paths.get(child.getTextContent());
+					break;
+				case "upk-file":
+					NamedNodeMap attributes = child.getAttributes();
+					this.upkAssociations.put(attributes.getNamedItem("name").getTextContent(),
+							Paths.get(attributes.getNamedItem("path").getTextContent()));
+					break;
+				default:
+					// ignore other tags
+					break;
+				}
+			}
+			System.out.println(this.upkAssociations);
 		}
 
 		/**
@@ -387,4 +408,4 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		
 	}
 	
-	}
+}

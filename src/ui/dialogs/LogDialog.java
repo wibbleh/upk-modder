@@ -26,9 +26,9 @@ import model.modtree.ModTree;
 import org.bounce.text.LineNumberMargin;
 
 import ui.Constants;
-import ui.MainFrame;
 import ui.ModFileTabbedPane;
-import ui.tree.ProjectTreeModel;
+import ui.frames.MainFrame;
+import ui.trees.ProjectTreeModel;
 import util.unrealhex.ReferenceUpdate;
 
 /**

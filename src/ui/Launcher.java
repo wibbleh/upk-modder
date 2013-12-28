@@ -5,6 +5,8 @@ import java.util.Locale;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import ui.frames.MainFrame;
+
 /**
  * Launcher class for graphical user interface.
  * 
