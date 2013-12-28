@@ -115,8 +115,9 @@ public class ProjectTree extends JTree {
 					if (treePath != null) {
 						// check whether a mod file was targeted
 						if (treePath.getLastPathComponent() instanceof ModFileNode) {
-							Path path = ((ModFileNode) treePath.getLastPathComponent()).getFilePath();
-							MainFrame.getInstance().openModFile(path);
+							ModFileNode modNode = (ModFileNode) treePath.getLastPathComponent();
+							Path path = modNode.getFilePath();
+							MainFrame.getInstance().openModFile(path, modNode);
 						}
 					}
 				}
@@ -221,7 +222,6 @@ public class ProjectTree extends JTree {
 	 *  contains neither
 	 */
 	private FileNode getDirectoryForPath(TreePath path) {
-		System.out.println(path);
 		if (path != null) {
 			// iterate nodes from the end of the path
 			for (int i = path.getPathCount() - 1; i > 0; i--) {

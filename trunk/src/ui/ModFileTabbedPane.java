@@ -44,6 +44,7 @@ import org.bounce.text.LineNumberMargin;
 import ui.dialogs.ReferenceUpdateDialog;
 import ui.frames.MainFrame;
 import ui.trees.ProjectTreeModel.ModFileNode;
+import ui.trees.ProjectTreeModel.ProjectNode;
 import util.unrealhex.HexSearchAndReplace;
 import util.unrealhex.HexSearchAndReplace.ApplyStatus;
 
@@ -635,6 +636,14 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		public void showReferenceUpdateDialog() {
 			new ReferenceUpdateDialog(modTree).setVisible(true);
 		}
+
+		/**
+		 * Returns the mod file tree associated with this tab.
+		 * @return the mod file tree
+		 */
+		public ModTree getModTree() {
+			return modTree;
+		}
 		
 		/**
 		 * Returns the mod file reference of this tab.
@@ -675,6 +684,21 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public void setUpkFile(UpkFile upkFile) {
 			this.modTree.setSourceUpk(upkFile);
+			// update project UPK file associations
+			if (this.modNode != null) {
+				ProjectNode project = this.modNode.getProject();
+				if (project != null) {
+					Path upkPath = upkFile.getPath();
+					Path prevPath = project.addUpkPath(this.modTree.getUpkName(), upkPath);
+					if (!upkPath.equals(prevPath)) {
+						// mapping has been changed, update all associations of
+						// other opened mod file tabs of the same project
+						// TODO: implement this
+						// TODO: also maybe find cases where it's necessary to remove mappings again
+						// TODO: maybe create a dialog for project nodes to manage associations directly instead of going through files separately (though typically there's only two major associations, at least for XCOM)
+					}
+				}
+			}
 		}
 		
 		/**

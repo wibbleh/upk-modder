@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,6 +32,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -264,6 +266,19 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			return this.getUserObject();
 		}
 		
+		/**
+		 * Returns the project node below which this file node resides (or the
+		 * node itself if it is a project node).
+		 * @return the parent project node or <code>null</code> if no such node exists
+		 */
+		public ProjectNode getProject() {
+			TreeNode[] path = this.getPath();
+			if ((path.length > 1) && (path[1] instanceof ProjectNode)) {
+				return (ProjectNode) path[1];
+			}
+			return null;
+		}
+		
 		@Override
 		public Path getUserObject() {
 			return (Path) super.getUserObject();
@@ -367,7 +382,67 @@ public class ProjectTreeModel extends DefaultTreeModel {
 					break;
 				}
 			}
-			System.out.println(this.upkAssociations);
+		}
+		
+		/**
+		 * Writes the project meta-information to a new XML file overwriting the
+		 * old project XML in the process.
+		 */
+		private void writeProjectXml() {
+			try {
+				// grab template file
+				File templateFile = Constants.TEMPLATE_PROJECT_FILE;
+	
+				// parse template XML into DOM structure
+				DocumentBuilder db;
+					db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+				Document doc = db.parse(templateFile);
+	
+				// set name of new project to selected directory name
+				doc.getElementsByTagName("name").item(0).setTextContent(projectName);
+				// insert project source path
+				doc.getElementsByTagName("source-root").item(0).setTextContent(userObject.toString());
+				
+				Node dataNode = doc.getElementsByTagName("data").item(0);
+				for (Entry<String, Path> entry : this.upkAssociations.entrySet()) {
+					Element upkElem = doc.createElement("upk-file");
+					upkElem.setAttribute("name", entry.getKey());
+					upkElem.setAttribute("path", entry.getValue().toString());
+					dataNode.appendChild(upkElem);
+				}
+	
+				// send DOM to file
+				Transformer tr = TransformerFactory.newInstance().newTransformer();
+				tr.setOutputProperties(Constants.PROJECT_XML_OUTPUT_PROPERTIES);
+				tr.transform(new DOMSource(doc), new StreamResult(new FileOutputStream(xmlPath.toFile())));
+			
+			} catch (Exception e) {
+				logger.log(Level.SEVERE, "Failed to save project file " + xmlPath, e);
+			}
+			
+		}
+		
+		/**
+		 * Returns the UPK file path mapped to the specified generic UPK file name.
+		 * @param upkName the generic UPK file name
+		 * @return the UPK file path
+		 */
+		public Path getUpkPath(String upkName) {
+			return this.upkAssociations.get(upkName);
+		}
+
+		/**
+		 * Adds a UPK file association mapping.
+		 * @param upkName the generic UPK file name
+		 * @param upkPath the UPK file path
+		 * @return the previous UPK file association mapping or
+		 *  <code>null</code> if no mapping existed before
+		 */
+		public Path addUpkPath(String upkName, Path upkPath) {
+			Path prevPath = this.upkAssociations.put(upkName, upkPath);
+			// re-create project XML using new associations
+			this.writeProjectXml();
+			return prevPath;
 		}
 
 		/**
@@ -390,6 +465,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		public String toString() {
 			return this.projectName;
 		}
+		
 	}
 	
 	/**
