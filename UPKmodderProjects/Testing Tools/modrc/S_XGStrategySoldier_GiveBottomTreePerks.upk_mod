@@ -1,0 +1,110 @@
+MODFILEVERSION=4
+UPKFILE=XComStrategyGame.upk
+GUID=31 9C 3B 3F 9C 5D E4 40 AB AF 92 8E 25 65 74 F2 // XComStrategyGame_EW_patch1.upk
+FUNCTION=GiveBottomTreePerks@XGStrategySoldier
+
+[BEFORE_HEX]
+[HEADER]
+38 01 00 00 E8 00 00 00 
+[/HEADER]
+[CODE]
+//iOption = 1
+0F 00 1F 53 00 00 26 
+
+//iBranch = 1
+0F 00 1E 53 00 00 26 
+
+//if(iBranch < 8)
+07 35 01 96 00 1E 53 00 00 2C 08 16 
+
+	//iPerk = PERKS().GetPerkInTree(GetClass(), iBranch, iOption)
+	0F 00 1D 53 00 00 38 3A 19 1B DA 27 00 00 00 00 00 00 16 27 00 1C FF FF FF 00 1B DD 12 00 00 00 00 00 00 1B 64 11 00 00 00 00 00 00 16 00 1E 53 00 00 00 1F 53 00 00 4A 16 
+
+	//kPerk = PERKS().GetPerk(iPerk)
+	0F 00 1C 53 00 00 19 1B DA 27 00 00 00 00 00 00 16 13 00 ED F8 FF FF 00 1B D7 12 00 00 00 00 00 00 00 1D 53 00 00 16 
+
+	//ePType = byte(kPerk.iCategory)
+	0F 00 1B 53 00 00 38 3D 35 CA FB FF FF D6 F9 FF FF 00 00 00 1C 53 00 00 
+
+	//if(bActiveOnly)
+	07 14 01 2D 00 20 53 00 00 
+
+		//if(ePType == 0)
+		07 11 01 9A 38 3A 00 1B 53 00 00 38 3A 24 00 16 
+
+			//if(iPerk == 16)
+			07 FE 00 9A 00 1D 53 00 00 2C 10 16 
+
+			//else
+			06 27 01 
+
+			//GivePerk(iPerk)
+			1B DB 13 00 00 00 00 00 00 00 1D 53 00 00 16 
+
+		//else
+		06 27 01 
+
+		//GivePerk(iPerk)
+		1B DB 13 00 00 00 00 00 00 00 1D 53 00 00 16 
+
+	//++ iBranch
+	A5 00 1E 53 00 00 16 
+
+	//while loop
+	06 16 00 
+
+//return
+04 0B 
+
+//EOS
+53 	
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+F4 00 00 00 E8 00 00 00 
+[/HEADER]
+[CODE]
+//if(GetStatus() == 0)
+07 28 00 9A 38 3A 1B 51 13 00 00 00 00 00 00 16 38 3A 24 00 16 
+
+	//self.Destroy()
+	19 17 03 00 B2 FF FF FF 00 61 17 16 
+
+//else
+06 F1 00 
+
+	//if(GetStatus() == 5)
+	07 6E 00 9A 38 3A 1B 51 13 00 00 00 00 00 00 16 38 3A 24 05 16 
+
+		//CYBERNETICSLAB().RemoveSoldierFromCyberneticsLab(self)
+		19 1B 9A 07 00 00 00 00 00 00 16 13 00 00 33 00 00 00 1B 36 29 00 00 00 00 00 00 17 16 
+
+		//DEMOUltimateSoldier(4, true)
+		1B E2 08 00 00 00 00 00 00 24 04 27 16 
+
+	//else
+	06 F1 00 
+
+		//if(GetStatus() == 4)
+		07 F1 00 9A 38 3A 1B 51 13 00 00 00 00 00 00 16 38 3A 24 04 16 
+
+			//GENELABS().RemoveSoldierFromGeneLabs(self)
+			19 1B F2 10 00 00 00 00 00 00 16 13 00 9A 35 00 00 00 1B 37 29 00 00 00 00 00 00 17 16 
+
+			//DemoUltimateSoldier(4, false)
+			1B E2 08 00 00 00 00 00 00 24 04 28 16 
+
+			//null ops
+			0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+//return
+04 0B 
+
+//EOS
+53 
+
+[/CODE]
+[/AFTER_HEX]

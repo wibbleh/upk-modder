@@ -14,6 +14,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -416,7 +418,7 @@ public class MainFrame extends JFrame {
 
 	/**
 	 * Creates a new project to be placed inside the specified project directory.
-	 * @param projectDir the project directory
+	 * @param projectPath the project directory
 	 */
 	public void createNewProject(Path projectPath) {
 		projectTree.createProject(projectPath);
@@ -424,7 +426,7 @@ public class MainFrame extends JFrame {
 
 	/**
 	 * Opens a project defined in the specified project XML file.
-	 * @param xmlFile the project XML
+	 * @param xmlPath the project XML
 	 */
 	public void openProject(Path xmlPath) {
 		projectTree.openProject(xmlPath);
@@ -515,10 +517,13 @@ public class MainFrame extends JFrame {
 			String res = JOptionPane.showInputDialog(this, "Enter Name of New Mod File",
 					"New Mod File", JOptionPane.INFORMATION_MESSAGE);
 			// check whether user aborted or entered invalid name
-			// TODO: implement enhanced error checking to prevent invalid file names
-			if ((res != null) && !res.isEmpty()) {
+			// TODO: verify enhanced error checking to prevent invalid file names
+			if ((res != null) && !res.isEmpty() && isValidName(res)) {
 				// create a new mod file node
 				// TODO: should always succeed if error checking is in place
+				if(!res.toLowerCase().endsWith(".upk_mod")) {
+					res += ".upk_mod";   // append file extention if user did not type it
+				}
 				ModFileNode node = projectTree.createModFile(dirNode, res);
 				if (node != null) {
 					// create a new mod file tab
@@ -546,6 +551,30 @@ public class MainFrame extends JFrame {
 		}
 	}
 
+	// TODO : move to utility function after validation -- we don't seem to have UI-related utilities yet...
+	// code from http://stackoverflow.com/questions/6730009/validate-a-file-name-on-windows
+	public static boolean isValidName(String text)
+	{
+		Pattern pattern = Pattern.compile(
+			"# Match a valid Windows filename (unspecified file system).          \n" +
+			"^                                # Anchor to start of string.        \n" +
+			"(?!                              # Assert filename is not: CON, PRN, \n" +
+			"  (?:                            # AUX, NUL, COM1, COM2, COM3, COM4, \n" +
+			"    CON|PRN|AUX|NUL|             # COM5, COM6, COM7, COM8, COM9,     \n" +
+			"    COM[1-9]|LPT[1-9]            # LPT1, LPT2, LPT3, LPT4, LPT5,     \n" +
+			"  )                              # LPT6, LPT7, LPT8, and LPT9...     \n" +
+			"  (?:\\.[^.]*)?                  # followed by optional extension    \n" +
+			"  $                              # and end of string                 \n" +
+			")                                # End negative lookahead assertion. \n" +
+			"[^<>:\"/\\\\|?*\\x00-\\x1F]*     # Zero or more valid filename chars.\n" +
+			"[^<>:\"/\\\\|?*\\x00-\\x1F\\ .]  # Last char is not a space or dot.  \n" +
+			"$                                # Anchor to end of string.            ", 
+			Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.COMMENTS);
+		Matcher matcher = pattern.matcher(text);
+		boolean isMatch = matcher.matches();
+		return isMatch;
+	}
+	
 	/**
 	 * Creates a new mod file tab containing the specified mod file contents.
 	 * @param modPath the mod file to open
