@@ -59,6 +59,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	/**
 	 * Creates a new project the the given name at the specified location
 	 * @param projectPath the directory the project will occupy
+	 * @return ?
 	 */
 	public boolean createProject(Path projectPath) {
 		try {
@@ -67,12 +68,12 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			
 			// create xml file and source directory descriptors
 			String projectName = projectPath.getFileName().toString();
-			Path xmlPath = Paths.get(projectName + ".xml").resolve(projectPath);
+			Path xmlPath = projectPath.resolve(projectName + ".xml");
 			if (Files.exists(xmlPath)) {
 				// abort if a project file already exists
 				throw new IOException("A project already exists in the specified directory.");
 			}
-			Path srcPath = Paths.get("modsrc").resolve(projectPath);
+			Path srcPath = projectPath.resolve("modrc");
 			Files.createDirectories(srcPath);
 
 			// parse template XML into DOM structure
@@ -282,6 +283,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			return this.getUserObject().getFileName().toString();
 		}
 
+		//TODO: NetBeans IDE report warning "Generate Missing hashCode()"
 		@Override
 		public boolean equals(Object obj) {
 			if (obj instanceof FileNode) {
@@ -385,4 +387,4 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		
 	}
 	
-}
+	}

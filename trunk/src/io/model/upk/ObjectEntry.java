@@ -18,6 +18,11 @@ public class ObjectEntry {
 	private int iType;
 
 	/**
+	 * The parent class of the object.
+	 */
+	private int iParent;
+	
+	/**
 	 * The outer (or owner) Object. Is reference to an ObjectEntry.
 	 */
 	private int iOuter;
@@ -26,6 +31,16 @@ public class ObjectEntry {
 	 * The name of this entry. Is reference to a NameEntry.
 	 */
 	private int iNamePtr;
+
+	/**
+	 * 32 bits of status flags.
+	 */
+	private int iHighFlags;
+
+	/**
+	 * Additional 32 bits of status flags.
+	 */
+	private int iLowFlags;
 
 	/**
 	 * The file position of the Entry. Measured in bytes.
@@ -58,8 +73,11 @@ public class ObjectEntry {
 	 */
 	private void parseData(int[] data) {
 		this.iType = data[0];
+		this.iParent = data[1];
         this.iOuter = data[2];
         this.iNamePtr = data[3];
+		this.iHighFlags = data[6];
+		this.iLowFlags = data[7];
         this.iUpkSize = data[8];
         this.iUpkPos = data[9];
 		// TODO: parse/store other values, create getters and other convenience methods (e.g. getNameListIndex(), etc.)

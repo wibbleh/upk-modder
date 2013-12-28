@@ -191,7 +191,6 @@ public class UpkModderProperties {
 			out.writeObject(openFiles);
 
 			out.flush();
-			out.close();
 			logger.log(Level.FINE, "Object written to file");
 		} catch(IOException ex) {
 			logger.log(Level.SEVERE, "IO Error", ex);
@@ -217,7 +216,6 @@ public class UpkModderProperties {
 			openProjects = (Set<String>) in.readObject();
 			openFiles = (Set<String>) in.readObject();
 
-				in.close();
 			logger.log(Level.FINE, "Object read from file");
 		} catch(IOException ex) {
 			logger.log(Level.SEVERE, "IO Error", ex);

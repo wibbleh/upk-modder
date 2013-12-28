@@ -1,0 +1,273 @@
+MODFILEVERSION=3
+UPKFILE=XComGame.upk 
+GUID=5B 06 B8 18 67 22 12 44 85 9B A8 5B 9D 57 1D 4B  // XComGame_EW_patch1.upk
+FUNCTION=GetPerkInTree@XComPerkManager
+
+// alters GetPerk in Tree to retrieve more perks from DGC.ini
+// GetPerkInTreePsi is no longer used -- instead Psi Perks are stored in class eSC_Psi
+
+[BEFORE_HEX]
+[HEADER]
+99 02 00 00 B9 01 00 00 
+[/HEADER]
+[CODE]
+//null op -- optional parameter
+0B 
+	
+//if(bIsPsiTree)
+07 2B 00 2D 00 02 71 00 00 
+
+	//return GetPerkInTreePsi(branch, Option)
+	04 1B 5F 3A 00 00 00 00 00 00 00 04 71 00 00 00 03 71 00 00 16 
+
+//bFound = false
+14 2D 00 FF 70 00 00 28 
+
+//foreach SoldierPerkTrees(kTree,)
+58 01 18 2B 00 00 00 00 71 00 00 00 4A 8C 00 
+
+	//if(kTree.SoldierType == soldierClass)
+	07 8B 00 9A 38 3A 35 0A 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 38 3A 00 05 71 00 00 16 
+
+		//bFound = true
+		14 2D 00 FF 70 00 00 27 
+
+		//break
+		06 8C 00 
+
+	//IN
+	31 
+		
+	//IP
+	30 
+	
+//if(bFound)
+07 8B 02 2D 00 FF 70 00 00 
+
+	//switch(branch)
+	05 04 71 00 00 00 00 04 71 00 00 
+
+		//case 1:
+		0A CE 00 26 
+
+			//return kTree.Squaddie
+			04 35 09 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 2:
+		0A 1F 01 2C 02 
+
+			//if(Option == 0)
+			07 02 01 9A 00 03 71 00 00 25 16 
+
+				//return kTree.Corporal1
+				04 35 08 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+			//else
+			06 1F 01 
+
+				//return kTree.Corporal2
+				04 35 07 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 3:
+		0A 70 01 2C 03 
+
+			//if(Option == 0)
+			07 53 01 9A 00 03 71 00 00 25 16 
+
+				//return kTree.Sergeant1
+				04 35 06 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+			//else
+			06 70 01 
+
+				//return kTree.Sergeant2
+				04 35 05 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 4:
+		0A C1 01 2C 04 
+
+			//if(Option == 0)
+			07 A4 01 9A 00 03 71 00 00 25 16 
+
+				//return kTree.Lieutenant1
+				04 35 04 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+			//else
+			06 C1 01 
+
+				//return kTree.Lieutenant2
+				04 35 03 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 5:
+		0A 12 02 2C 05 
+
+			//if(Option == 0)
+			07 F5 01 9A 00 03 71 00 00 25 16 
+
+				//return kTree.Captain1
+				04 35 02 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+			//else
+			06 12 02 
+
+				//return kTree.Captain2
+				04 35 01 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 6:
+		0A 34 02 2C 06 
+
+			//return kTree.Major
+			04 35 00 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 7:
+		0A 85 02 2C 07 
+
+			//if(Option == 0)
+			07 68 02 9A 00 03 71 00 00 25 16 
+
+				//return kTree.Colonel1
+				04 35 FF 2A 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+			//else
+			06 85 02 
+
+				//return kTree.Colonel2
+				04 35 FE 2A 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//default:
+		0A FF FF 
+
+			//break
+			06 8B 02 
+
+//return 0
+04 24 00 
+
+//return ReturnValue
+04 3A 01 71 00 00 
+
+//EOS
+53 
+	
+[/CODE]
+[/BEFORE_HEX]
+
+
+// snag int local variable from another function to store iteration count
+// 00 1E 71 00 00  -- iNumGeneMods from NumGeneMods@XComPerkManager
+
+[AFTER_HEX]
+[HEADER]
+55 02 00 00 B9 01 00 00 
+[/HEADER]
+[CODE]
+//null op -- optional parameter
+0B 
+
+//if(bIsPsiTree)
+07 1A 00 2D 00 02 71 00 00 
+
+	// soldierClass = eSC_Psi (5)
+	0F 00 05 71 00 00 24 05 
+
+//bFound = false
+14 2D 00 FF 70 00 00 28 
+
+// iNumGeneMods = 0
+0F 00 1E 71 00 00 2C 00 
+
+//foreach SoldierPerkTrees(kTree,)
+58 01 18 2B 00 00 00 00 71 00 00 00 4A A9 00 
+
+	//if(kTree.SoldierType == soldierClass)
+	07 A8 00 9A 38 3A 35 0A 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 38 3A 00 05 71 00 00 16 
+
+		// if(iNumGeneMods == Option)
+		07 9D 00 9A 00 1E 71 00 00 00 03 71 00 00 16 
+
+			//bFound = true
+			14 2D 00 FF 70 00 00 27 
+
+			//break
+			06 AA 00 
+
+		//iNumGeneMods++;
+		A3 00 1E 71 00 00 16 
+
+	//IN
+	31 
+		
+	//IP
+	30 
+
+//if(bFound)
+07 BD 01 2D 00 FF 70 00 00 
+
+	//switch(branch)
+	05 04 71 00 00 00 00 04 71 00 00 
+
+		//case 1:
+		0A EB 00 26 
+
+			//return kTree.Squaddie
+			04 35 09 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 2:
+		0A 0D 01 2C 02 
+
+			//return kTree.Corporal1
+			04 35 08 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 3:
+		0A 2F 01 2C 03 
+
+			//return kTree.Sergeant1
+			04 35 06 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 4:
+		0A 62 01 2C 04 
+
+			//return kTree.Lieutenant1
+			04 35 04 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 5:
+		0A 73 01 2C 05 
+
+			//return kTree.Captain1
+			04 35 02 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 6:
+		0A A6 01 2C 06 
+
+			//return kTree.Major
+			04 35 00 2B 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//case 7:
+		0A B7 01 2C 07 
+
+			//return kTree.Colonel1
+			04 35 FF 2A 00 00 0B 2B 00 00 00 00 00 00 71 00 00 
+
+		//default:
+		0A FF FF 
+
+			//break
+			06 BD 01 
+
+//return 0
+04 24 00 
+
+//return ReturnValue
+04 3A 01 71 00 00 
+
+//null-ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+/null-ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+//EOS
+53 
+
+[/CODE]
+[/AFTER_HEX]

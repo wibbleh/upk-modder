@@ -65,14 +65,16 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 
 	/**
 	 * Retrieves the tab associated with the provided mod file.
-	 * @param file the mod file path
+	 * @param modPath the mod file path
 	 * @return the tab or <code>null</code> if not found
 	 */
 	public ModFileTab getTab(Path modPath) {
 		for (int i = 0; i < this.getTabCount(); i++) {
 			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
-			if (tab.getModFile().equals(modPath)) {
-				return tab;
+			if (tab.getModFile() != null) {
+				if (tab.getModFile().equals(modPath)) {
+					return tab;
+				}
 			}
 		}
 		return null;
@@ -310,31 +312,31 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
 			HexSearchAndReplace.ApplyStatus status = tab.testStatusModFile();
-			
-			if (status == HexSearchAndReplace.ApplyStatus.AFTER_HEX_PRESENT) {
+	
+				if (status == HexSearchAndReplace.ApplyStatus.AFTER_HEX_PRESENT) {
 				this.setForegroundAt(selectedIndex,  new Color(0, 0, 230)); // blue indicates AFTER
-				this.setFontAt(selectedIndex, TAB_PANE_FONT_APPLIED);
-				this.setToolTipTextAt(selectedIndex, "Hex Applied");
-			} else if (status == HexSearchAndReplace.ApplyStatus.BEFORE_HEX_PRESENT) {
+					this.setFontAt(selectedIndex, TAB_PANE_FONT_APPLIED);
+					this.setToolTipTextAt(selectedIndex, "Hex Applied");
+				} else if (status == HexSearchAndReplace.ApplyStatus.BEFORE_HEX_PRESENT) {
 				this.setForegroundAt(selectedIndex,  new Color(0, 128, 0)); // green indicates BEFORE
-				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-				this.setToolTipTextAt(selectedIndex, "Original Hex");
-			} else if (status == HexSearchAndReplace.ApplyStatus.MIXED_STATUS) {
+					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+					this.setToolTipTextAt(selectedIndex, "Original Hex");
+				} else if (status == HexSearchAndReplace.ApplyStatus.MIXED_STATUS) {
 				this.setForegroundAt(selectedIndex,  new Color(232, 118, 0)); // orange indicates MIXED
-				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-				this.setToolTipTextAt(selectedIndex, "Mixed Status");
-			} else if (status == HexSearchAndReplace.ApplyStatus.APPLY_ERROR) {
+					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+					this.setToolTipTextAt(selectedIndex, "Mixed Status");
+				} else if (status == HexSearchAndReplace.ApplyStatus.APPLY_ERROR) {
 				this.setForegroundAt(selectedIndex,  new Color(255, 0, 0)); // red indicates ERROR
-				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-				this.setToolTipTextAt(selectedIndex, "ERROR");
-			} else if (status ==HexSearchAndReplace.ApplyStatus.NO_UPK) {
+					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+					this.setToolTipTextAt(selectedIndex, "ERROR");
+				} else if (status ==HexSearchAndReplace.ApplyStatus.NO_UPK) {
 				this.setForegroundAt(selectedIndex,  new Color(0, 0, 0)); // black indicates NOUPK
-				this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-				this.setToolTipTextAt(selectedIndex, "No target UPK");
+					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
+					this.setToolTipTextAt(selectedIndex, "No target UPK");
+				}
+				this.updateUI(); // needed to update tab 
 			}
-			this.updateUI(); // needed to update tab 
 		}
-	}
 
 	/**
 	 * Associates the provided UPK file with the currently active mod file tab.

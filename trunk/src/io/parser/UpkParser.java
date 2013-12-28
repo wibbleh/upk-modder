@@ -33,7 +33,7 @@ public class UpkParser {
 	/**
 	 * The byte channel used for reading.
 	 */
-	private SeekableByteChannel sbc;
+//	private SeekableByteChannel sbc;
 	
 	/**
 	 * The buffer size.
@@ -54,35 +54,39 @@ public class UpkParser {
 	 * @throws IOException if an I/O error occurs
 	 */
 	public UpkHeader parseHeader() throws IOException {
-		
-		sbc = Files.newByteChannel(upkPath);
-		sbc.position(0x19L);
-        
+		List<NameEntry> nameList;
+		List<ObjectEntry> objectList;
+		List<ImportEntry> importList;
 		int numInts = 6;
 		ByteBuffer byteBuf = ByteBuffer.allocate(numInts * 4);
 		byteBuf.order(ByteOrder.LITTLE_ENDIAN);
-		sbc.read(byteBuf);
-		byteBuf.rewind();
-
 		int[] ints = new int[numInts];
-		byteBuf.asIntBuffer().get(ints);
-		
-		long startTime = System.currentTimeMillis();
-		List<NameEntry> nameList = this.parseNameList(ints[1], ints[0]);
-		logger.log(Level.FINE, "Parsed name list, took " + (System.currentTimeMillis() - startTime) + "ms");
-		startTime = System.currentTimeMillis();
-		List<ObjectEntry> objectList = this.parseObjectList(ints[3], ints[2]);
-		logger.log(Level.FINE, "Parsed object list, took " + (System.currentTimeMillis() - startTime) + "ms");
-		startTime = System.currentTimeMillis();
-		List<ImportEntry> importList = this.parseImportList(ints[5], ints[4]);
-		logger.log(Level.FINE, "Parsed import list, took " + (System.currentTimeMillis() - startTime) + "ms");
-        
-		sbc.position(0x45L);
 		byte[] aGUID = new byte[16];
-		sbc.read(ByteBuffer.wrap(aGUID));
+
+		try (SeekableByteChannel sbc = Files.newByteChannel(upkPath)) {
+			sbc.position(0x19L);
+
+			sbc.read(byteBuf);
+			byteBuf.rewind();
+
+			byteBuf.asIntBuffer().get(ints);
+
+			long startTime = System.currentTimeMillis();
+			nameList = this.parseNameList(ints[1], ints[0], sbc);
+			logger.log(Level.FINE, "Parsed name list, took " + (System.currentTimeMillis() - startTime) + "ms");
+			startTime = System.currentTimeMillis();
+			objectList = this.parseObjectList(ints[3], ints[2], sbc);
+			logger.log(Level.FINE, "Parsed object list, took " + (System.currentTimeMillis() - startTime) + "ms");
+			startTime = System.currentTimeMillis();
+			importList = this.parseImportList(ints[5], ints[4], sbc);
+			logger.log(Level.FINE, "Parsed import list, took " + (System.currentTimeMillis() - startTime) + "ms");
+
+			sbc.position(0x45L);
+			sbc.read(ByteBuffer.wrap(aGUID));
+		}
 		
 //		this.raf.close();
-		sbc.close();
+//		sbc.close();
 
 		return new UpkHeader(nameList, ints[1], objectList, ints[3], importList, ints[5], aGUID);
 	}
@@ -94,7 +98,7 @@ public class UpkParser {
 	 * @return the namelist
 	 * @throws IOException if an I/O error occurs
 	 */
-	private List<NameEntry> parseNameList(int nameListPos, int nameListSize) throws IOException {
+	private List<NameEntry> parseNameList(int nameListPos, int nameListSize, SeekableByteChannel sbc) throws IOException {
 		// init namelist
 		List<NameEntry> entryList = new ArrayList<>(nameListSize);
 		
@@ -154,7 +158,7 @@ public class UpkParser {
 	 * @return the objectlist
 	 * @throws IOException if an I/O error occurs
 	 */
-	private List<ObjectEntry> parseObjectList(int objectListPos, int objectListSize) throws IOException {
+	private List<ObjectEntry> parseObjectList(int objectListPos, int objectListSize, SeekableByteChannel sbc) throws IOException {
 		// init objectlist
 		List<ObjectEntry> objectList = new ArrayList<>(objectListSize);
 		objectList.add(null);   // add dummy element so count starts at 1
@@ -211,7 +215,7 @@ public class UpkParser {
 		// manually move byte buffer position
 		byteBuf.position(byteBuf.position() + numInts * 4);
 		
-		return new ObjectEntry(ints, filePosition);
+		return new ObjectEntry(ints, (int) filePosition);
 	}
 
 	/**
@@ -221,7 +225,7 @@ public class UpkParser {
 	 * @return the importlist
 	 * @throws IOException if an I/O error occurs
 	 */
-	private List<ImportEntry> parseImportList(int importListPos, int importListSize) throws IOException {
+	private List<ImportEntry> parseImportList(int importListPos, int importListSize, SeekableByteChannel sbc) throws IOException {
 		// init importlist
 		List<ImportEntry> importList = new ArrayList<>(importListSize);
 		importList.add(null);  // add dummy element so count starts at 1
