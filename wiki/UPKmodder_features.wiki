@@ -69,3 +69,23 @@ Other actions :
   * View log
     * The log is accessed via the button in the lower right corner of the status bar
     * Provides additional information about actions performed, including errors and timing information
+
+= Installation =
+  * Install anywhere.
+
+  * Adjust the _UPKmodder v0.65\Config\upk_config.ini_ to reflect location and GUID of some local UPK's.
+
+  * Run *UPKmodder.jar* and to start a new Project.
+
+= Usage =
+Included are a few sample projects in the distribution (they should be in the _UPKmodderProjects_ subfolder within the decompressed folder).
+
+You should be able to open the project files (which are the *.xml* files in the projects' folder) -- for example _UPKmodderProjects\Expanded Perk Tree EW\*Expanded Perk Tree EW.xml*_. From there you can open individual modfiles by double-clicking on the file in the project pane. Alternatively you can directly open a sample modfile with the "*Open File...*" menu item.
+
+This will let you look at a variety of sample *upk_mod* files (most of which are full function replacements).
+
+There are some definite usability improvements we're still trying to make. The projects pane isn't as useful as it could be, for example. And associating target UPKs is still a file-by-file basis, which is a bit cumbersome.
+
+When I'm creating a new modfile, I typically start off by copying the header from another function and then modifying it as necessary. I then open the function I'm going to change in [http://eliotvu.com/portfolio/view/21/ue-explorer UE Explorer]'s Token view, copy the data into a temporary text editor document (I use [http://notepad-plus-plus.org/ Notepad++]) and use a macro to reformat it into something more readable by *UPKmodder* (stripping out the leading/trailing stuff around the hex, and the internal memory positions). I then copy the code into the _CODE_ block in the _BEFORE_ section. This triggers the limited parser in *UPKmodder*, which will color code the various hex parts accordingly, so I can double check that things are working as expected. I then fill out the memory/file positions (either directly from *UE Explore*'s buffer view or from the *UPKmodder* tree view)
+
+The next steps involve either doing another copy/paste of the hex into the _AFTER / CODE_ section (if I'm primarly making modifications), using updated code from a previous version mod that I'm trying to fix up, or writing entirely new code, depending on the particulars.
