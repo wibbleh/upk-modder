@@ -9,7 +9,7 @@ import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 
 import ui.Constants;
-import ui.MainFrame;
+import ui.frames.MainFrame;
 
 /**
  * Dialog implementation for the application's <i>About</i> dialog.

@@ -3,6 +3,8 @@ package util.unrealhex;
 import static model.modtree.ModTree.logger;
 import io.model.upk.ObjectEntry;
 
+import java.awt.Color;
+import java.awt.Font;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,6 +27,7 @@ import model.modtree.ModContext.ModContextType;
 import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
+import ui.Constants;
 
 /**
  * Utility class for consolidating hex and performing apply/revert operations to upks
@@ -32,12 +35,73 @@ import model.upk.UpkFile;
  */
 public class HexSearchAndReplace {
 	
+	/**
+	 * Enumeration holding hex replacement apply states and corresponding GUI constants.
+	 * @author Amineri, XMS
+	 */
 	public enum ApplyStatus {
-		NO_UPK,
-		APPLY_ERROR,
-		MIXED_STATUS,
-		BEFORE_HEX_PRESENT,
-		AFTER_HEX_PRESENT;
+		/** Indicates a missing UPK file association. */
+		NO_UPK(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "No target UPK"),
+		/** Indicates a non-applicable mod file. */
+		APPLY_ERROR(new Color(191, 0, 0), Constants.TAB_PANE_FONT_ERROR, "ERROR"),
+		/** TODO: @Amineri, what's 'mixed status'? Please fill in the blanks :) */
+		MIXED_STATUS(new Color(232, 118, 0), Constants.TAB_PANE_FONT_REVERTED, "Mixed Status"),
+		/** Indicates a mod file with applicable <i>BEFORE</i> blocks. */
+		BEFORE_HEX_PRESENT(new Color(0, 128, 0), Constants.TAB_PANE_FONT_REVERTED, "Original Hex"),
+		/** Indicates a mod file with revertable <i>AFTER</i> blocks. */
+		AFTER_HEX_PRESENT(new Color(0, 0, 230), Constants.TAB_PANE_FONT_APPLIED, "Hex Applied");
+
+		/**
+		 * The foreground color.
+		 */
+		private Color foreground;
+		
+		/**
+		 * The font.
+		 */
+		private Font font;
+		
+		/**
+		 * The tooltip text.
+		 */
+		private String tooltip;
+
+		/**
+		 * Constructs an apply status element from the specified foreground
+		 * color, font and tooltip text.
+		 * @param foreground the foreground color
+		 * @param font the font
+		 * @param tooltip the tooltip text
+		 */
+		private ApplyStatus(Color foreground, Font font, String tooltip) {
+			this.foreground = foreground;
+			this.font = font;
+			this.tooltip = tooltip;
+		}
+
+		/**
+		 * Returns the foreground color.
+		 * @return the foreground color
+		 */
+		public Color getForeground() {
+			return foreground;
+		}
+
+		/**
+		 * Returns the font.
+		 * @return the font
+		 */
+		public Font getFont() {
+			return font;
+		}
+
+		/**
+		 * Returns the tooltip text.
+		 * @return the tooltip text
+		 */
+		public String getToolTipText() {
+			return tooltip;
+		}
 	}
 	/**
 	 * Parses the tree and finds any hex that is part of a [BEFORE] block
@@ -62,7 +126,7 @@ public class HexSearchAndReplace {
 	}
 	
 	/**
-	 * Parses the tree and finds any hex that is part of any context block
+	 * Parses the tree and finds any hex that is part of any context block.
 	 * Each block is returned as a separate byte[] in the list
 	 * @param tree the tree to extract hex from
 	 * @param upk
@@ -71,7 +135,7 @@ public class HexSearchAndReplace {
 	 */
 	public static List<byte[]> consolidateHex(ModTree tree, UpkFile upk, ModContextType context) {
 		List<byte[]> hexBlocks = new ArrayList<>();
-		List<Integer> currentBlock = new ArrayList<>();
+		List<Byte> currentBlock = new ArrayList<>();
 		Enumeration<ModTreeNode> lines = tree.getRoot().children();
 		while (lines.hasMoreElements()) {
 			ModTreeNode line = lines.nextElement();
@@ -79,28 +143,24 @@ public class HexSearchAndReplace {
 				if (line.isValidHexLine()) {
 					String hex = line.toHexStringArray()[1];
 					String[] tokens = hex.split("\\s+");
+					// TODO: @Amineri, idea for further simplification, split at pipe character and parse non-reference token chains using HexStringLibrary.convertStringToByteArray()
 					for (String token : tokens) {
-						if (token.startsWith("{|") && (upk != null)) {
-							int value = upk.findRefByName(token.substring(2, token.length() - 2));
+//						if (token.startsWith("{|") && (upk != null)) {
+						if ((upk != null) && token.matches("^([{<]\\|)")) {
+							String contents = token.substring(2, token.length() - 2);
+							int value = token.startsWith("{|")
+									? upk.findRefByName(contents)
+									: upk.findVFRefByName(contents);
 							if (value == 0) {
 								return null;
 							}
-							String[] subtokens = HexStringLibrary.convertIntToHexString(value).split("\\s+");
-							for (String subtoken : subtokens) {
-								currentBlock.add(Integer.parseInt(subtoken, 16));
-							}
-						} else if (token.startsWith("<|") && (upk != null)) {
-							int value = upk.findVFRefByName(token.substring(2, token.length() - 2));
-							if (value < 0) {
-								return null;
-							}
-							String[] subtokens = HexStringLibrary.convertIntToHexString(value).split("\\s+");
-							for (String subtoken : subtokens) {
-								currentBlock.add(Integer.parseInt(subtoken, 16));
+							byte[] bytes = HexStringLibrary.convertIntToByteArray(value);
+							for (byte b : bytes) {
+								currentBlock.add(b);
 							}
 						} else {
 							try {
-								currentBlock.add(Integer.parseInt(token, 16));
+								currentBlock.add(Byte.parseByte(token, 16));
 							} catch (NumberFormatException x) {
 								return null;
 							}
@@ -110,9 +170,7 @@ public class HexSearchAndReplace {
 			} else { // found line without required context. if current block is
 						// non-empty stop adding to it and start a new block
 				if (!currentBlock.isEmpty()) {
-					hexBlocks
-							.add(HexStringLibrary
-									.convertIntArrayListToByteArray((ArrayList<Integer>) currentBlock));
+					hexBlocks.add(HexStringLibrary.convertByteListToByteArray(currentBlock));
 					currentBlock.clear();
 				}
 			}
@@ -198,6 +256,7 @@ public class HexSearchAndReplace {
 	
 	/**
 	 * Concatenates the contents of the byte arrays in the provided list into a single byte array.
+	 * @deprecated TODO: @Amineri because...? just remove it if it's not needed :]
 	 * @param bytesList the list of byte arrays to concatenate
 	 * @return a byte array containing all bytes of the list
 	 */

@@ -18,6 +18,8 @@ import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.plaf.nimbus.AbstractRegionPainter;
 
+import ui.frames.MainFrame;
+
 /**
  * Container class for storing application-wide actions, e.g. 'New', 'Open', 'Save', etc.
  * @author XMS

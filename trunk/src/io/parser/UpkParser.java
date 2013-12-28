@@ -84,9 +84,6 @@ public class UpkParser {
 			sbc.position(0x45L);
 			sbc.read(ByteBuffer.wrap(aGUID));
 		}
-		
-//		this.raf.close();
-//		sbc.close();
 
 		return new UpkHeader(nameList, ints[1], objectList, ints[3], importList, ints[5], aGUID);
 	}

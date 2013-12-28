@@ -19,71 +19,81 @@ package util.unrealhex;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.bind.DatatypeConverter;
 
 /**
  * Utility class for manipulating hexadecimal between various formats
  * @author Amineri
  */
-public class HexStringLibrary 
-{
+public class HexStringLibrary {
 
 	/**
 	 * Converts an array of 4 bytes into an integer. LITTLE_ENDIAN
 	 * @param b byte array of size 4
 	 * @return integer value
 	 */
-	public static int byteArrayToInt(byte[] b) {
-		return ((b[3]&0xff)<<24)+((b[2]&0xff)<<16)+((b[1]&0xff)<<8)+(b[0]&0xff);
+	public static int convertByteArrayToInt(byte[] b) {
+		if (b.length != 4) {
+			throw new IllegalArgumentException("Byte array length needs to be 4.");
+		}
+		int res = 0;
+		for (int i = 0; i < 4; i++) {
+			res += (b[i] & 0xFF) << (i * 8);
+		}
+		return res;
+	}
+	
+	/**
+	 * Converts the specified integer to a 4-element byte array using little endian order.
+	 * @param i the integer to convert
+	 * @return a 4-element byte array
+	 */
+	public static byte[] convertIntToByteArray(int i) {
+		return onvertIntToByteArray(i, ByteOrder.LITTLE_ENDIAN);
+	}
+
+	/**
+	 * Converts the specified integer to a 4-element byte array using the specified byte order.
+	 * @param i the integer to convert
+	 * @param bo the byte order to use
+	 * @return a 4-element byte array
+	 */
+	private static byte[] onvertIntToByteArray(int i, ByteOrder bo) {
+		return ByteBuffer.allocate(4).order(bo).putInt(i).array();
 	}
 
 	/**
 	 * Converts a single integer value into a string of four hex bytes.
 	 * LITTLE_ENDIAN
-	 * @param I integer to convert
+	 * @param i integer to convert
 	 * @return
 	 */
-	public static String convertIntToHexString(int I)
-    {
-        String sOutString = "";
-        ByteBuffer b = ByteBuffer.allocate(4);
-        b.order(ByteOrder.LITTLE_ENDIAN); 
-        b.putInt(I);
-
-        byte[] result = b.array();
-        for(int J = 0; J < 4 ; J++)
-        {
-            int temp = result[J] & 0xFF;
-            sOutString = sOutString + String.format("%2s", Integer.toHexString(temp)).replace(' ', '0').toUpperCase()+ " " ;
-        }
-        return sOutString;
+	public static String convertIntToHexString(int i) {
+		return convertByteArrayToHexString(convertIntToByteArray(i));
     }
 	
 	/**
 	 * Converts a variable length byte array into a hex string.
-	 * @param bytes
-	 * @return
+	 * @param bytes the byte array to convert
+	 * @return the hex string
 	 */
 	public static String convertByteArrayToHexString(byte[] bytes) {
-		StringBuilder sb = new StringBuilder();
-		for(byte b: bytes) {
-		   sb.append(String.format("%02x ", b&0xff));
-		}
-		return sb.toString().toUpperCase();
+		return DatatypeConverter.printHexBinary(bytes).replaceAll("(.{2})", "$1 ");
 	}
 
 	/**
-	 * Converts an array of Integers (each holding a single byte value) into a byte array.
-	 * @param list
-	 * @return
+	 * Converts a list of Byte objects into a byte array.
+	 * @param byteList the Byte list
+	 * @return a byte array containing the values of the Byte list
 	 */
-	public static byte[] convertIntArrayListToByteArray(ArrayList<Integer> list)
-    {
-        byte[] bytes = new byte[list.size()];
-        for(int i=0, len = list.size(); i < len; i++)
-           bytes[i] = (byte) (list.get(i) & 0xFF);
-        return bytes;
-    }
+	public static byte[] convertByteListToByteArray(List<Byte> byteList) {
+		byte[] bytes = new byte[byteList.size()];
+		for (int i = 0, len = byteList.size(); i < len; i++)
+			bytes[i] = byteList.get(i).byteValue();
+		return bytes;
+	}
 	
 	/**
 	 * Converts a provided hex string into a byte array.
@@ -91,17 +101,6 @@ public class HexStringLibrary
 	 * @return the byte array, or null if an invalid string
 	 */
 	public static byte[] convertStringToByteArray(String hex) {
-		String[] tokens = hex.split("\\s+");
-		byte[] returnArr = new byte[tokens.length];
-		int count = 0;
-		for(String token : tokens) {
-			if(token.matches("[0-9A-Fa-f][0-9A-Fa-f]")) {
-				returnArr[count] = (byte) (Integer.parseInt(token, 16));
-			} else {
-				return null;
-			}
-			
-		}
-		return returnArr;
+		return DatatypeConverter.parseHexBinary(hex.replace(" ", ""));
 	}
 }

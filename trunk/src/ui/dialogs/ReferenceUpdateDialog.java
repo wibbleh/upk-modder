@@ -33,7 +33,7 @@ import model.modtree.ModTree;
 import model.upk.UpkFile;
 import ui.BrowseActionListener;
 import ui.Constants;
-import ui.MainFrame;
+import ui.frames.MainFrame;
 import util.unrealhex.HexStringLibrary;
 import util.unrealhex.ReferenceUpdate;
 

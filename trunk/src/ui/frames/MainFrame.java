@@ -1,4 +1,4 @@
-package ui;
+package ui.frames;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -33,12 +33,17 @@ import javax.swing.event.ChangeListener;
 import javax.swing.plaf.InsetsUIResource;
 
 import model.upk.UpkFile;
+import ui.ActionCache;
+import ui.ApplicationState;
+import ui.Constants;
+import ui.ModFileTabbedPane;
+import ui.StatusBar;
 import ui.ModFileTabbedPane.ModFileTab;
 import ui.dialogs.AboutDialog;
-import ui.tree.ProjectTree;
-import ui.tree.ProjectTreeModel.FileNode;
-import ui.tree.ProjectTreeModel.ModFileNode;
-import ui.tree.ProjectTreeModel.ProjectNode;
+import ui.trees.ProjectTree;
+import ui.trees.ProjectTreeModel.FileNode;
+import ui.trees.ProjectTreeModel.ModFileNode;
+import ui.trees.ProjectTreeModel.ProjectNode;
 
 /**
  * The application's primary frame.
@@ -521,21 +526,19 @@ public class MainFrame extends JFrame {
 			if ((res != null) && !res.isEmpty() && isValidName(res)) {
 				// create a new mod file node
 				// TODO: should always succeed if error checking is in place
-				if(!res.toLowerCase().endsWith(".upk_mod")) {
-					res += ".upk_mod";   // append file extention if user did not type it
+				if (!res.toLowerCase().endsWith(".upk_mod")) {
+					res += ".upk_mod";   // append file extension if user did not type it
 				}
 				ModFileNode node = projectTree.createModFile(dirNode, res);
 				if (node != null) {
 					// create a new mod file tab
-					ModFileTab tab = this.openModFile(node.getFilePath());
+					ModFileTab tab = this.openModFile(node.getFilePath(), node);
 					if (tab == null) {
 						// tab creation failed, show error message
 						JOptionPane.showMessageDialog(this,
 								"Failed to create mod file tab, see message log for details.",
 								"Error", JOptionPane.ERROR_MESSAGE);
 						// TODO: perform clean-up?
-					} else {
-						// TODO: associate node with tab (or the other way round?)
 					}
 				} else {
 					// node creation failed, show error message
@@ -553,8 +556,8 @@ public class MainFrame extends JFrame {
 
 	// TODO : move to utility function after validation -- we don't seem to have UI-related utilities yet...
 	// code from http://stackoverflow.com/questions/6730009/validate-a-file-name-on-windows
-	public static boolean isValidName(String text)
-	{
+	// TODO´: @Amineri, that looks like a simpler (and platform-independent) way: http://stackoverflow.com/questions/893977/java-how-to-find-out-whether-a-file-name-is-valid
+	public static boolean isValidName(String text) {
 		Pattern pattern = Pattern.compile(
 			"# Match a valid Windows filename (unspecified file system).          \n" +
 			"^                                # Anchor to start of string.        \n" +
@@ -577,12 +580,22 @@ public class MainFrame extends JFrame {
 	
 	/**
 	 * Creates a new mod file tab containing the specified mod file contents.
-	 * @param modPath the mod file to open
+	 * @param modPath the path to the mod file to open
 	 * @return the newly created mod file tab or <code>null</code> if an error occurred
 	 */
 	public ModFileTab openModFile(Path modPath) {
-		ModFileTab newTab = modTabPane.openModFile(modPath);
-		this.setFileActionsEnabled(newTab != null);
+		return this.openModFile(modPath, null);
+	}
+	
+	/**
+	 * Creates a new mod file tab containing the specified mod file contents and
+	 * associates it with the specified mod file node of the project tree.
+	 * @param modPath the path to the mod file to open
+	 * @param modNode the mod file node of the project tree
+	 * @return the newly created mod file tab or <code>null</code> if an error occurred
+	 */
+	public ModFileTab openModFile(Path modPath, ModFileNode modNode) {
+		ModFileTab newTab = modTabPane.openModFile(modPath, modNode);
 		if (newTab != null) {
 			this.setFileActionsEnabled(true);
 			return newTab;
@@ -595,10 +608,10 @@ public class MainFrame extends JFrame {
 //				ModFileTab tab = modTabPane.getTab(modPath);
 //				setTargetUpk(tab, uFile.toPath());
 //			}
-			// TODO: associate mod file with active project
 		}
 		return null;
 	}
+	
 
 	/**
 	 * Closes the currently opened mod file tab.
