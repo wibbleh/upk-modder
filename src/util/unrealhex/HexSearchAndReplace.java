@@ -172,7 +172,7 @@ public class HexSearchAndReplace {
 		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
 		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.READ)) {
 			long endSearch = functPos + functLength - hex.length;
-			for (long currPos = functPos; currPos < endSearch; currPos++) {
+			for (long currPos = functPos; currPos <= endSearch; currPos++) {
 				
 				// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
 				// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?

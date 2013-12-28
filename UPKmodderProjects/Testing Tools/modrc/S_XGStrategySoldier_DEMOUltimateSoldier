@@ -1,0 +1,86 @@
+MODFILEVERSION=4
+UPKFILE=XComStrategyGame.upk
+GUID=31 9C 3B 3F 9C 5D E4 40 AB AF 92 8E 25 65 74 F2 // XComStrategyGame_EW_patch1.upk
+FUNCTION=DEMOUltimateSoldier@XGStrategySoldier
+
+[BEFORE_HEX]
+[HEADER]
+AE 00 00 00 7E 00 00 00 
+[/HEADER]
+[CODE]
+//null op for optional parameter
+0B 
+	
+//m_kSoldier.iRank = 7
+0F 35 DF FA FF FF C1 F9 FF FF 00 01 01 B2 52 00 00 2C 07 
+
+//if(bPsi)
+07 6B 00 2D 00 2D 53 00 00 
+
+	//m_kSoldier.iPsiRank = 4
+	0F 35 E1 FA FF FF C1 F9 FF FF 00 01 01 B2 52 00 00 2C 04 
+
+	//m_kChar.bHasPsiGift = true
+	14 2D 35 2F FF FF FF CB F9 FF FF 00 01 01 B3 52 00 00 27 
+
+//SetSoldierClass(eClass)
+1B BC 2A 00 00 00 00 00 00 00 2E 53 00 00 16 
+
+//GiveTopTreePerks(true)
+1B E1 13 00 00 00 00 00 00 27 16 
+
+//GiveBottomTreePerks(true)
+1B D1 13 00 00 00 00 00 00 27 16 
+
+//if(bPsi)
+07 AB 00 2D 00 2D 53 00 00 
+
+	//GivePsiPerks()
+	1B DE 13 00 00 00 00 00 00 16 
+
+//return
+04 0B 
+
+//EOS
+53 	
+[/CODE]
+[/BEFORE_HEX]
+
+
+[AFTER_HEX]
+[HEADER]
+9E 00 00 00 7E 00 00 00 
+[/HEADER]
+[CODE]
+//if (bPsi)
+07 5D 00 2D 00 2D 53 00 00 
+
+	//m_kChar.aStats[7] -= 6
+	A2 1A 2C 07 35 17 FB FF FF CB F9 FF FF 00 01 01 B3 52 00 00 2C 06 16 
+
+	//m_kChar.aStats[1] -= 3
+	A2 1A 2C 01 35 17 FB FF FF CB F9 FF FF 00 01 01 B3 52 00 00 2C 03 16 
+
+	//AssignRandomPerks()
+	1B 1B 03 00 00 00 00 00 00 16 
+
+//ClearPerks(false)
+1B B6 06 00 00 00 00 00 00 28 16 
+
+//m_iTurnsOut = 14*24
+0F 01 AC 52 00 00 90 2C 0E 2C 18 16 
+
+//SetStatus(6)
+1B C1 2A 00 00 00 00 00 00 24 06 4A 16 
+
+//null-ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+//return
+04 0B 
+
+//EOS
+53 
+
+[/CODE]
+[/AFTER_HEX]

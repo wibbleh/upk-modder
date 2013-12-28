@@ -1,0 +1,111 @@
+MODFILEVERSION=4
+UPKFILE=XComStrategyGame.upk
+GUID=31 9C 3B 3F 9C 5D E4 40 AB AF 92 8E 25 65 74 F2 // XComStrategyGame_EW_patch1.upk
+FUNCTION=PreviousPerksToAssign@XGSoldierUI
+
+// altered to check for 3 perks per rank
+
+[BEFORE_HEX]
+[HEADER]
+34 01 00 00 E4 00 00 00 
+[/HEADER]
+[CODE]
+//if((GetAbilityTreeBranch()) > 0)
+07 27 01 97 1B 1D 11 00 00 00 00 00 00 16 25 16 
+
+	//iBranch = 1
+	0F 00 B1 4C 00 00 26 
+
+	//if(iBranch < (GetAbilityTreeBranch()))
+	07 27 01 96 00 B1 4C 00 00 1B 1D 11 00 00 00 00 00 00 16 16 
+
+		//perkA = m_kSoldier.HasPerk(m_kSoldier.GetPerkInClassTree(iBranch, 0, m_iCurrentView == 2))
+		14 2D 00 B0 4C 00 00 19 01 78 4C 00 00 42 00 8B 53 00 00 00 1B 28 14 00 00 00 00 00 00 38 3A 19 01 78 4C 00 00 21 00 E4 52 00 00 00 1B DB 12 00 00 00 00 00 00 00 B1 4C 00 00 25 9A 01 1C 09 00 00 2C 02 16 16 16 
+
+		//perkB = m_kSoldier.HasPerk(m_kSoldier.GetPerkInClassTree(iBranch, 1, m_iCurrentView == 2))
+		14 2D 00 AF 4C 00 00 19 01 78 4C 00 00 42 00 8B 53 00 00 00 1B 28 14 00 00 00 00 00 00 38 3A 19 01 78 4C 00 00 21 00 E4 52 00 00 00 1B DB 12 00 00 00 00 00 00 00 B1 4C 00 00 26 9A 01 1C 09 00 00 2C 02 16 16 16 
+
+		//if(!perkA && !perkB)
+		07 19 01 82 81 2D 00 B0 4C 00 00 16 18 0D 00 81 2D 00 AF 4C 00 00 16 16 
+
+			//return true
+			04 27 
+
+		//++ iBranch
+		A5 00 B1 4C 00 00 16 
+
+	//while loop
+	06 1B 00 
+
+//return false
+04 28 
+
+//return ReturnValue
+04 3A B2 4C 00 00 
+
+//EOS
+53 
+[/CODE]
+[/BEFORE_HEX]
+
+// uses local int iMedalIndex from XGSoldierUI.GetMedalName 	00 0D 4D 00 00 
+[AFTER_HEX]
+[HEADER]
+34 01 00 00 E4 00 00 00 
+[/HEADER]
+[CODE]
+//if((GetAbilityTreeBranch()) > 0)
+07 15 01 97 1B 1D 11 00 00 00 00 00 00 16 25 16 
+
+	//iBranch = 1
+	0F 00 B1 4C 00 00 26 
+
+	//if(iBranch < (GetAbilityTreeBranch()))
+	07 15 01 96 00 B1 4C 00 00 1B 1D 11 00 00 00 00 00 00 16 16 
+
+		// perkB = false
+		14 2D 00 AF 4C 00 00 28 
+
+		//iMedalIndex = 0
+		0F 00 0D 4D 00 00 26 
+
+		//if (iMedalIndex < 3)
+		07 F6 00 96 00 0D 4D 00 00 2C 03 16 
+
+			//perkA = m_kSoldier.HasPerk(m_kSoldier.GetPerkInClassTree(iBranch, iMedalIndex, m_iCurrentView == 2))
+			14 2D 00 B0 4C 00 00 19 01 78 4C 00 00 4A 00 8B 53 00 00 00 1B 28 14 00 00 00 00 00 00 38 3A 19 01 78 4C 00 00 29 00 E4 52 00 00 00 1B DB 12 00 00 00 00 00 00 00 B1 4C 00 00 00 0D 4D 00 00 9A 01 1C 09 00 00 2C 02 16 16 16 
+
+			// perkB = perkB || perkA
+			14 2D 00 AF 4C 00 00 84 2D 00 AF 4C 00 00 18 0B 00 2D 00 B0 4C 00 00 16 
+
+			// ++ iMedalIndex
+			A5 00 0D 4D 00 00 16 
+
+			// while loop
+			06 4A 00 
+
+		//if(!perkB)
+		07 07 01 81 2D 00 AF 4C 00 00 16 
+
+			//return true
+			04 27 
+
+		//++ iBranch
+		A5 00 B1 4C 00 00 16 
+
+		//while loop
+		06 1B 00 
+
+//return false
+04 28 
+
+//return ReturnValue
+04 3A B2 4C 00 00 
+
+//null ops
+0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 0B 
+
+//EOS
+53 
+[/CODE]
+[/AFTER_HEX]

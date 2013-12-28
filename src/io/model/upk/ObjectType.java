@@ -10,9 +10,11 @@ package io.model.upk;
 // however the "function" is an import table entry so its value changes from upk to upk
 public enum ObjectType {
 	
-	CLASS(0),
-	FUNCTION(-387),
-	INTEGER(9001);
+	CLASS(0), // "Core:ClassProperty@Core"
+	FUNCTION(-387), // "Core:Function@Core"
+	INTEGER(9001);  // "Core:IntProperty@Core"
+					// "Core:FloatProperty@Core"
+					// "Core:BoolProperty@Core" 
 	// TODO: add other object types, correct type identifier of INTEGER member
 	
 	/**
