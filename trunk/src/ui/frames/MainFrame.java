@@ -605,7 +605,7 @@ public class MainFrame extends JFrame {
 						this.associateUpk(upkPath);
 					}
 				}
-				setEditActionsEnabled((newTab.getModTree().getUpkName() != null));
+				setEditActionsEnabled((newTab.getModTree().getSourceUpk() != null));
 			}
 		} else {
 			// tab creation failed, show error message

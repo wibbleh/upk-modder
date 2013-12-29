@@ -1,5 +1,4 @@
-v0.66 (current)
-
+v0.70 (current)
 Removing the RESIZE= command line should now allow for non-resize apply/revert operations without app restart
 Fixed Search error that occurred if searching to the end of an object
 0B and 0b tokens should now display in non-bold blue
