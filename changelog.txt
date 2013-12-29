@@ -1,4 +1,9 @@
-v0.70 (current)
+v 0.71 (r118)
+Fixed bug causing incorrect file and memory sizes reported in tree view
+Fixed bug causing "test file status" to fail when AFTER hex was installed
+Fixed graphical bug that caused last hex token to not be fully highlighted
+
+v0.70 (r117)
 Removing the RESIZE= command line should now allow for non-resize apply/revert operations without app restart
 Fixed Search error that occurred if searching to the end of an object
 0B and 0b tokens should now display in non-bold blue
@@ -13,7 +18,6 @@ Altered tab and font styles / sizes (r106)
 Fixed bug that would cause a name reference in the last position of a line to cause the parser to fail
 Fixed format so that Operand 0x0C not parsing correctly
 Fixed crash bug when KEYWORD= token was used
-
 
 v 0.65 (r96)
 Fixed "sticky" formatting, strikethrough and comment styling not being reverted (r96)

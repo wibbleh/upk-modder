@@ -327,7 +327,7 @@ public class HexSearchAndReplace {
 
 			if((beforePos < 0) && (afterPos >= 0)) { // found after block and not before
 				foundSomeAfter = true;
-				missingSomeAfter = true;
+				missingSomeBefore = true;
 			}
 
 			if((beforePos >= 0) && (afterPos >= 0)) { // matched both before and after blocks... this is probably an error
