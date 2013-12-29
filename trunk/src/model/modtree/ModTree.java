@@ -394,13 +394,11 @@ public class ModTree implements TreeModel {
 					StyleConstants.setForeground((MutableAttributeSet) as, new Color(220, 180, 50)); //Color.ORANGE);
 					StyleConstants.setUnderline((MutableAttributeSet) as, true);
 				}
-				end--;
 			}
 			// invalid code
 			if ((node.getContextFlag(HEX_CODE) &&  ! node.getContextFlag(VALID_CODE))) {
 				StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
 				StyleConstants.setStrikeThrough((MutableAttributeSet) as, replace);
-				end--;
 			}
 			if(node.getName().equals("OperandToken")) {
 				if(node.getFullText().toUpperCase().startsWith("0B")) {
@@ -410,15 +408,17 @@ public class ModTree implements TreeModel {
 					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
 					StyleConstants.setBold((MutableAttributeSet) as, true);
 				}
-				end--;
 			}
 			if (node instanceof ModOffsetLeaf) {
 				if(((ModOffsetLeaf)node).getOperand() == null) { // is absolute jump offset
 					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
 				} else { // is relative jump offset
 					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 255, 180));  // yellow
-				}end--;
+				}
 			}
+		}
+		if(node.getFullText().endsWith(" ")) {
+			end--;
 		}
 		
 		((StyledDocument) this.getDocument()).setCharacterAttributes(start, end-start, as, replace);

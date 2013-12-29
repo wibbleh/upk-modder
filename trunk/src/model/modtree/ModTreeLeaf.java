@@ -93,7 +93,7 @@ public class ModTreeLeaf extends ModTreeNode {
 		if (this.isPlainText()) {
 			return 0;
 		} else {
-			return text.length() / 3;
+			return (text.length()+1) / 3;
 		}
 	}
 
@@ -106,7 +106,7 @@ public class ModTreeLeaf extends ModTreeNode {
 		if (this.isPlainText()) {
 			return 0;
 		} else {
-			return text.length() / 3;
+			return (text.length()+1) / 3;
 		}
 	}
 
