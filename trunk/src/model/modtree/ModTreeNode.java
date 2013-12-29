@@ -330,6 +330,7 @@ public class ModTreeNode implements TreeNode {
 				outString[1] += token + " ";
 			}
 		}
+		outString[1] = outString[1].trim();
 
 		// extract prefix string
 		int count = 0;
@@ -341,10 +342,11 @@ public class ModTreeNode implements TreeNode {
 			outString[0] = "";
 		}
 		// extract suffix string
-		int last = in.lastIndexOf(tokens[tokens.length - 1]);
-		if ((last + tokens[tokens.length - 1].length()+1) < in.length()) {
-			outString[2] = in.substring(last + tokens[tokens.length - 1].length()+1, in.length());
-		}
+		outString[2] = in.replaceFirst(outString[0], "").replaceFirst(outString[1], "");
+//		int last = in.lastIndexOf(tokens[tokens.length - 1]);
+//		if ((last + tokens[tokens.length - 1].length()+1) < in.length()) {
+//			outString[2] = in.substring(last + tokens[tokens.length - 1].length()+1, in.length());
+//		}
 		if((outString[0] + outString[1] + outString[2]).equals(in)) {
 			return outString;
 		} else { 

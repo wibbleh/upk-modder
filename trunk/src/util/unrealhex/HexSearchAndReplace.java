@@ -5,7 +5,6 @@ import io.model.upk.ObjectEntry;
 
 import java.awt.Color;
 import java.awt.Font;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -160,7 +159,7 @@ public class HexSearchAndReplace {
 							}
 						} else {
 							try {
-								currentBlock.add(Byte.parseByte(token, 16));
+								currentBlock.add((byte) Integer.parseInt(token, 16));
 							} catch (NumberFormatException x) {
 								return null;
 							}
@@ -288,6 +287,11 @@ public class HexSearchAndReplace {
 	}
 	
 	public static ApplyStatus testFileStatus(ModTree tree) {
+		
+		// TODO: test install status for mods that alter Table Entries (as opposed to objects)
+		if(!tree.getAction().isEmpty()) {
+			return ApplyStatus.NO_UPK;
+		}
 		// consolidate BEFORE hex
 		List<byte[]> beforeHex = consolidateBeforeHex(tree, tree.getSourceUpk());
 		
@@ -431,12 +435,12 @@ public class HexSearchAndReplace {
 		long startTime = System.currentTimeMillis();
 		
 		// Invoke copyAndReplace function
-		File newFile = copyAndReplaceUpk((int) filePosition, findHex, replaceHex , upk);
-		if(newFile == null) {
+		Path newPath = copyAndReplaceUpk((int) filePosition, findHex, replaceHex , upk);
+		if(!Files.exists(newPath)){
 			logger.log(Level.INFO, "Failure during copyAndReplace");
 			return false;
 		}
-		logger.log(Level.FINE, "Resize: inserted new hex, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.INFO, "Resize: inserted new hex, took " + (System.currentTimeMillis() - startTime) + "ms");
 
 
 		startTime = System.currentTimeMillis();
@@ -483,7 +487,7 @@ public class HexSearchAndReplace {
 			return false;
 		}
 		
-		logger.log(Level.FINE, "Resize: rewrote object table, took " + (System.currentTimeMillis() - startTime) + "ms");
+		logger.log(Level.INFO, "Resize: rewrote object table, took " + (System.currentTimeMillis() - startTime) + "ms");
 		return success;
 	}
 	
@@ -502,13 +506,13 @@ public class HexSearchAndReplace {
 	 * @param upk the upk file to make the modification to
 	 * @return The newly created File, or null if the operation failed
 	 */
-	public static File copyAndReplaceUpk(int filePosition, byte[] findHex, byte[] replaceHex , UpkFile upk) {
+	public static Path copyAndReplaceUpk(int filePosition, byte[] findHex, byte[] replaceHex , UpkFile upk) {
 		
-		Path origFile = upk.getPath();
+		Path origPath = upk.getPath();
 		
 		// verify that oldHex is at FilePosition 
 		ByteBuffer fileBuf = ByteBuffer.allocate(findHex.length);
-		try (SeekableByteChannel sbc = Files.newByteChannel(origFile, StandardOpenOption.READ)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(origPath, StandardOpenOption.READ)) {
 			sbc.position(filePosition);
 			sbc.read(fileBuf);
 		} catch(IOException ex) {
@@ -519,11 +523,10 @@ public class HexSearchAndReplace {
 			logger.log(Level.INFO, "Find hex not found");
 			return null;
 		}
-//		long endFindHexPosition = filePosition + findHex.length;
 		
 		// Rename upk to .bak version
 		// verify that filename ends with ".upk"
-		String origFilename = origFile.toAbsolutePath().toString();
+		String origFilename = origPath.toAbsolutePath().toString();
 		if (!origFilename.endsWith(".upk")) {
 			logger.log(Level.INFO, "Target file not valid upk");
 			return null;
@@ -531,48 +534,24 @@ public class HexSearchAndReplace {
 		String backupFileName = origFilename.replace(".upk", ".bak");
 		Path backupPath = Paths.get(backupFileName);
 		
-//		File backupFile = new File(backupFileName);
-		// delete old backup if it exists
-//		try {
-//			Files.deleteIfExists(backupFilePath); 
-//		} catch(IOException ex) {
-//			Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Unable to delete old backup file", ex);
-//		}
-		
-		// wait until file is delete so can rename .upk to .bak
-//		if(new File(backupFileName).exists()) {
-//			try {
-//				TimeUnit.MILLISECONDS.sleep(50);
-//			} catch(InterruptedException ex) {
-//				Logger.getLogger(HexSearchAndReplace.class.getName()).log(Level.SEVERE, "Error while sleeping", ex);
-//			}
-//		}
-		
-//		File backupFile = new File(backupFileName);
-		Path newPath;
 		try {
-			newPath = Files.move(origFile, backupPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			Files.move(origPath, backupPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch(IOException ex) {
 			logger.log(Level.INFO, "Failed to create backup file", ex);
 			return null;
 		}
-//		File backupFile = newPath.toFile();
-		
-		// create new file with same name as original upk
-		File newFile = new File(origFilename);
-		if (!newFile.exists()) {
-			try {
-				newFile.createNewFile();
-			} catch (IOException ex) {
-				logger.log(Level.SEVERE, "Could not create new upk file", ex);
-				return null;
-			}
+		try {
+			// create new file with same name as original upk
+			Files.createFile(origPath);
+		} catch(IOException ex) {
+			logger.log(Level.SEVERE, "Could not create new upk file", ex);
+			return null;
 		}
 		
 		// benchmark comparisons : http://java.dzone.com/articles/file-copy-java-%E2%80%93-benchmark
 		// NIO copy method
 		try (FileChannel source = FileChannel.open(backupPath, StandardOpenOption.READ);
-				FileChannel destination = FileChannel.open(newPath, StandardOpenOption.WRITE)) {
+				FileChannel destination = FileChannel.open(origPath, StandardOpenOption.WRITE)) {
 
 			// copy all hex from start to filePosition from backup file to new file
 			destination.transferFrom(source, 0, filePosition);
@@ -585,7 +564,7 @@ public class HexSearchAndReplace {
 
 			// Copy remaining bytes from backup file to new file
 			source.position(filePosition);
-			destination.transferFrom(source, filePosition, Long.MAX_VALUE);
+			destination.transferFrom(source, destination.size(), Long.MAX_VALUE);
 			
 		} catch (FileNotFoundException ex) {
 			logger.log(Level.SEVERE, "File not found during copy", ex);
@@ -595,7 +574,7 @@ public class HexSearchAndReplace {
 			return null;
 		}
 
-		return newFile;
+		return origPath;
 	}
 
 	/**

@@ -144,11 +144,12 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			if (modTab == null) {
 				modTab = new ModFileTab(modPath, modNode);
 				this.addTab(modPath.getFileName().toString(), modTab);
-				this.setSelectedComponent(modTab);
+			}
+			this.setSelectedComponent(modTab);
 				// FIXME
 //				UpkModderProperties.addOpenModFile(path);
-				return modTab;
-			}
+			return modTab;
+			
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Failed to load mod file \'" + modPath.getFileName() + "\'", e);
 		}

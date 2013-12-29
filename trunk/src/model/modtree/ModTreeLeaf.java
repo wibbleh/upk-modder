@@ -65,9 +65,15 @@ public class ModTreeLeaf extends ModTreeNode {
 	public String parseUnrealHex(String s, int num) {
 		int endOffset = this.getEndOffset();
 		for (int i = 0; i < num; i++) {
-			endOffset += 3;
-			text += s.split("\\s", 2)[0] + " ";
-			s = s.split("\\s", 2)[1];
+			if(s.contains(" ")) {
+				endOffset += 3;
+				text += s.split("\\s", 2)[0] + " ";
+				s = s.split("\\s", 2)[1];
+			} else {
+				endOffset += 2;
+				text += s;
+				s = "";
+			}
 		}
 		this.setRange(this.getStartOffset(), endOffset);
 		return s;
