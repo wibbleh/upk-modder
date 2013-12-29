@@ -1,4 +1,16 @@
 v0.66 (current)
+
+Removing the RESIZE= command line should now allow for non-resize apply/revert operations without app restart
+Fixed Search error that occurred if searching to the end of an object
+0B and 0b tokens should now display in non-bold blue
+Fixed hex parser to handle hex without a trailing space
+Displays warning dialogue if attempt to close tab without saving (does currently not display on application exit)
+Display '*' character to left of file name if file has been edited since last save
+Target upk associations are stored in the project xml file, and are common across all modfiles with the same UPKFILE= header entry
+Added "Test Install Status" command to Menu -- checks install status of active modfile
+Added "Delete Project" command to Menu
+Added pop-up menu commands to Project Pane - current commands are (New Project, Remove Project, Create New File)
+Altered tab and font styles / sizes (r106)
 Fixed bug that would cause a name reference in the last position of a line to cause the parser to fail
 Fixed format so that Operand 0x0C not parsing correctly
 Fixed crash bug when KEYWORD= token was used

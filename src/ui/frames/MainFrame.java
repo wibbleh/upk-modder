@@ -549,7 +549,7 @@ public class MainFrame extends JFrame {
 
 	// TODO : move to utility function after validation -- we don't seem to have UI-related utilities yet...
 	// code from http://stackoverflow.com/questions/6730009/validate-a-file-name-on-windows
-	// TODO´: @Amineri, that looks like a simpler (and platform-independent) way: http://stackoverflow.com/questions/893977/java-how-to-find-out-whether-a-file-name-is-valid
+	// TODOï¿½: @Amineri, that looks like a simpler (and platform-independent) way: http://stackoverflow.com/questions/893977/java-how-to-find-out-whether-a-file-name-is-valid
 	public static boolean isValidName(String text) {
 		Pattern pattern = Pattern.compile(
 			"# Match a valid Windows filename (unspecified file system).          \n" +
@@ -605,6 +605,7 @@ public class MainFrame extends JFrame {
 						this.associateUpk(upkPath);
 					}
 				}
+				setEditActionsEnabled((newTab.getModTree().getUpkName() != null));
 			}
 		} else {
 			// tab creation failed, show error message

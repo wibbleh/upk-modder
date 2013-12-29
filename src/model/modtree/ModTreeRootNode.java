@@ -205,6 +205,7 @@ public class ModTreeRootNode extends ModTreeNode {
 			aTree.setUpkName("");
 			aTree.setGuid("");
 			aTree.setFunctionName("");
+			aTree.setResizeAmount(0);
 		}
 	}
 

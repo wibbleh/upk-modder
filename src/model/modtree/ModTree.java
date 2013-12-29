@@ -403,8 +403,8 @@ public class ModTree implements TreeModel {
 				end--;
 			}
 			if(node.getName().equals("OperandToken")) {
-				if(node.getFullText().startsWith("0B")) {
-					StyleConstants.setForeground((MutableAttributeSet) as, Color.DARK_GRAY);
+				if(node.getFullText().toUpperCase().startsWith("0B")) {
+					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
 					StyleConstants.setBold((MutableAttributeSet) as, false);
 				} else {
 					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
