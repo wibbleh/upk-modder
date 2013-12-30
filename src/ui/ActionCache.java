@@ -253,11 +253,11 @@ public class ActionCache {
 				mainFrame.testStatusModFile();
 			}
 		};
-		testApplyStatusAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+		testApplyStatusAction.putValue(Action.SMALL_ICON, Constants.MOD_UNKNOWN_ICON);
 		testApplyStatusAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
 		testApplyStatusAction.putValue(Action.MNEMONIC_KEY, (int) 't');
 		testApplyStatusAction.putValue(Action.SHORT_DESCRIPTION, "Test File Status");
-		testApplyStatusAction.setEnabled(false);
+//		testApplyStatusAction.setEnabled(false);
 		
 		/* Help menu actions */
 		// create help and about icons

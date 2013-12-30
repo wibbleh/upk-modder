@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -43,6 +42,9 @@ public class ModTree implements TreeModel {
 	 * The logger.
 	 */
 	public static final Logger logger = Logger.getLogger(ModTree.class.getName());
+	{
+		logger.setLevel(Level.ALL);
+	}
 	
 	/**
 	 * The tree's DocumentListener implementation.
@@ -58,11 +60,6 @@ public class ModTree implements TreeModel {
 	 * The tree's document it is listening to.
 	 */
 	protected Document doc = null;
-	
-	/**
-	 * Currently registered 
-	 */
-	private JTree treeViewer;
 	
 	/**
 	 * The tree's root nodes.
@@ -176,14 +173,6 @@ public class ModTree implements TreeModel {
 				listener.treeStructureChanged(evt);
 			}
 		}
-	}
-	
-	/**
-	 * Stores the supplied JTree with the ModTree
-	 * @param viewer
-	 */
-	public void setTreeViewer(JTree viewer) {
-		this.treeViewer = viewer;
 	}
 	
 	/**
