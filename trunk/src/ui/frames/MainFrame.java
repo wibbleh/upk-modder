@@ -311,6 +311,7 @@ public class MainFrame extends JFrame {
 		toolBar.addSeparator();
 		toolBar.add(ActionCache.getAction("refUpdate"));
 		toolBar.addSeparator();
+		toolBar.add(ActionCache.getAction("testFile"));
 		toolBar.add(ActionCache.getAction("hexApply"));
 		toolBar.add(ActionCache.getAction("hexRevert"));
 		
@@ -390,7 +391,7 @@ public class MainFrame extends JFrame {
 	public void setEditActionsEnabled(boolean enabled) {
 		ActionCache.getAction("hexApply").setEnabled(enabled);
 		ActionCache.getAction("hexRevert").setEnabled(enabled);
-		ActionCache.getAction("testFile").setEnabled(enabled);
+//		ActionCache.getAction("testFile").setEnabled(enabled);
 	}
 
 	/**

@@ -1,12 +1,5 @@
 package ui;
 
-import static ui.Constants.TAB_PANE_FONT_APPLIED;
-import static ui.Constants.TAB_PANE_FONT_REVERTED;
-import static ui.Constants.TEXT_PANE_FONT;
-import static ui.Constants.TREE_PANE_FONT;
-import static util.unrealhex.HexSearchAndReplace.testFileStatus;
-
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.io.IOException;
@@ -18,6 +11,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.Icon;
 import javax.swing.JEditorPane;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
@@ -59,6 +53,9 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * The logger.
 	 */
 	public static final Logger logger = Logger.getLogger(ModFileTabbedPane.class.getName());
+	{
+		logger.setLevel(Level.ALL);
+	}
 
 	/**
 	 * Constructs a mod file tabbed pane. 
@@ -66,20 +63,14 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	public ModFileTabbedPane() {
 		super(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
 	}
-
-	/**
-	 * Retrieves the tab associated with the provided mod file.
-	 * @param modPath the mod file path
-	 * @return the tab or <code>null</code> if not found
-	 */
-	public ModFileTab getTab(Path modPath) {
-		for (int i = 0; i < this.getTabCount(); i++) {
-			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
-			if (modPath.equals(tab.getModFilePath())) {
-				return tab;
-			}
-		}
-		return null;
+	
+	@Override
+	public void insertTab(String title, Icon icon, Component component,
+			String tip, int index) {
+		super.insertTab(title, icon, component, tip, index);
+		
+		this.setFontAt(index, Constants.TAB_PANE_FONT_UNKNOWN);
+		this.setIconAt(index, Constants.MOD_UNKNOWN_ICON);
 	}
 	
 	@Override
@@ -123,7 +114,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		}
 		// FIXME
 //		UpkModderProperties.removeOpenModFile(thisTab.getModFile());
-//		filenameToTabMap.remove(thisTab.getModFile());
 		super.removeTabAt(index);
 	}
 	
@@ -131,6 +121,22 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	public void setTitleAt(int index, String title) {
 		super.setTitleAt(index, title);
 		this.updateUI();
+	}
+
+	/**
+	 * Retrieves the tab associated with the provided mod file.
+	 * @param modPath the mod file path
+	 * @return the tab or <code>null</code> if not found
+	 */
+	public ModFileTab getTab(Path modPath) {
+		for (int i = 0; i < this.getTabCount(); i++) {
+			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
+//			if (modPath.equals(tab.getModFilePath())) {
+			if (tab.getModFilePath().equals(modPath)) {
+				return tab;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -146,10 +152,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				this.addTab(modPath.getFileName().toString(), modTab);
 			}
 			this.setSelectedComponent(modTab);
-				// FIXME
-//				UpkModderProperties.addOpenModFile(path);
 			return modTab;
-			
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Failed to load mod file \'" + modPath.getFileName() + "\'", e);
 		}
@@ -271,18 +274,12 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			if (apply) {
 				if (tab.applyChanges()) {
 					// set Tab color/font/tooltip style to indicate apply/revert status
-					this.setForegroundAt(selectedIndex,  new Color(0, 0, 230)); // blue indicates AFTER
-					this.setFontAt(selectedIndex, TAB_PANE_FONT_APPLIED);
-					this.setToolTipTextAt(selectedIndex, "Hex Applied");
-					this.updateUI(); // needed to update tab with
+					this.setApplyStatusAt(selectedIndex, ApplyStatus.AFTER_HEX_PRESENT);
 				}
 			} else {
 				if (tab.revertChanges()) {
 					// set Tab color/font/tooltip style to indicate apply/revert status
-					this.setForegroundAt(selectedIndex,  new Color(0, 128, 0)); // green indicates BEFORE
-					this.setFontAt(selectedIndex, TAB_PANE_FONT_REVERTED);
-					this.setToolTipTextAt(selectedIndex, "Original Hex");
-					this.updateUI(); // needed to update tab 
+					this.setApplyStatusAt(selectedIndex, ApplyStatus.BEFORE_HEX_PRESENT);
 				}
 			}
 		}
@@ -297,13 +294,26 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
 			ApplyStatus status = tab.testStatusModFile();
-
-			this.setForegroundAt(selectedIndex,  status.getForeground());
-			this.setFontAt(selectedIndex, status.getFont());
-			this.setToolTipTextAt(selectedIndex, status.getToolTipText());
 			
-			this.updateUI(); // needed to update tab 
+			this.setApplyStatusAt(selectedIndex, status);
 		}
+	}
+	
+	/**
+	 * Sets the mod file apply state of the specified tab to the specified status.
+	 * @param index the tab index
+	 * @param status the apply status
+	 */
+	public void setApplyStatusAt(int index, ApplyStatus status) {
+		ModFileTab tab = (ModFileTab) this.getComponentAt(index);
+		tab.setApplyStatus(status);
+
+		this.setForegroundAt(index,  status.getForeground());
+		this.setFontAt(index, status.getFont());
+		this.setToolTipTextAt(index, status.getToolTipText());
+		this.setIconAt(index, status.getIcon());
+		
+		this.updateUI(); // needed to update tab 
 	}
 
 	/**
@@ -354,6 +364,11 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		private ModFileNode modNode;
 		
 		/**
+		 * The mod file apply state.
+		 */
+		private ApplyStatus status;
+		
+		/**
 		 * Creates a new tab from the specified mod file path and mod file node
 		 * from the project tree.
 		 * @param modFile the path to the mod file to parse
@@ -376,7 +391,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		private void initComponents() throws Exception {
 			// create right-hand editor pane
 			modEditor = new JEditorPane();
-			modEditor.setFont(TEXT_PANE_FONT);
+			modEditor.setFont(Constants.TEXT_PANE_FONT);
 			
 			// install editor kit
 			modEditor.setEditorKit(new ModStyledEditorKit());
@@ -443,7 +458,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					}
 					Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded,
 							leaf, row, hasFocus);
-					comp.setFont(TREE_PANE_FONT);
+					comp.setFont(Constants.TREE_PANE_FONT);
 					return comp;
 				}
 			};
@@ -494,8 +509,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						// basic search and replace without file backup
 						if (this.searchAndReplace(
 								HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
-								HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))
-								) {
+								HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))) {
 							ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
 							return true;
 						}
@@ -531,32 +545,31 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		public boolean revertChanges() {
 			try {
 				if(this.modTree.getAction().equals("")) { // default action of making changes to object
-					if(this.modTree.getResizeAmount() == 0) {
+					if (this.modTree.getResizeAmount() == 0) {
 						// basic search and replace without file backup
-						if(this.searchAndReplace(
+						if (this.searchAndReplace(
 								HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
-								HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))
-								) {
+								HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))) {
 							ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
 							return true;
 						}
 					} else {
 						// advanced search and replace resizing function (many changes to upk)
-						if(HexSearchAndReplace.resizeAndReplace(false, this.modTree, this.getUpkFile())) {
+						if (HexSearchAndReplace.resizeAndReplace(false, this.modTree, this.getUpkFile())) {
 							ModTab.logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
 							return true;
 						}
 					}
 				} else { // perform special action
 					// TODO: replace within enumeration?
-					if(this.modTree.getAction().equalsIgnoreCase("typechange")) {
+					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
 						if (HexSearchAndReplace.changeObjectType(false, modTree)) {
 							ModTab.logger.log(Level.INFO, "Variable type reverted to BEFORE");
 							return true;
 						}
 					}
 				}
-			} catch(IOException ex) {
+			} catch (IOException ex) {
 				ModTab.logger.log(Level.SEVERE, "File error", ex);
 			}
 			return false;
@@ -626,8 +639,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * Tests this tab's apply status and updates tab coloring
 		 * @return the result of the test
 		 */
-		public HexSearchAndReplace.ApplyStatus testStatusModFile() {
-			return testFileStatus(modTree);
+		public ApplyStatus testStatusModFile() {
+			return HexSearchAndReplace.testFileStatus(modTree);
 		}
 		
 		/**
@@ -723,6 +736,22 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				tabPane.setTitleAt(index, "*" + tabPane.getTitleAt(index));
 				this.modified = modified;
 			}
+		}
+		
+		/**
+		 * Returns the apply state.
+		 * @return the apply state
+		 */
+		public ApplyStatus getApplyStatus() {
+			return status;
+		}
+
+		/**
+		 * Sets the apply state.
+		 * @param status the status
+		 */
+		public void setApplyStatus(ApplyStatus status) {
+			this.status = status;
 		}
 
 	}

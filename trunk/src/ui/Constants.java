@@ -50,6 +50,17 @@ public class Constants {
 	public static final Icon HEX_SMALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex16.png"));
 	/** <img src="../ui/resources/icons/hex32.png"/> */
 	public static final Icon HEX_LARGE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex32.png"));
+
+	/** <img src="../ui/resources/icons/unknown16.png"/> */
+	public static final Icon MOD_UNKNOWN_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/unknown16.png"));
+	/** <img src="../ui/resources/icons/applied16.png"/> */
+	public static final Icon MOD_APPLIED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/applied16.png"));
+	/** <img src="../ui/resources/icons/applied_dim16.png"/> */
+	public static final Icon MOD_APPLIED_DIMMED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/applied_dim16.png"));
+	/** <img src="../ui/resources/icons/warn16.png"/> */
+	public static final Icon MOD_WARNING_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/warn16.png"));
+	/** <img src="../ui/resources/icons/stop16.png"/> */
+	public static final Icon MOD_ERROR_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/stop16.png"));
 	
 	// TODO: Make the font sizes, etc user-configurable
 	/**

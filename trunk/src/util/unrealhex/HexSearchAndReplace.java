@@ -22,6 +22,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 
+import javax.swing.Icon;
+
 import model.modtree.ModContext.ModContextType;
 import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
@@ -34,21 +36,23 @@ import ui.Constants;
  */
 public class HexSearchAndReplace {
 	
+	// TODO: wrong logger is used here (statically imported from ModTree), create own logger instance
+	
 	/**
 	 * Enumeration holding hex replacement apply states and corresponding GUI constants.
 	 * @author Amineri, XMS
 	 */
 	public enum ApplyStatus {
 		/** Indicates a missing UPK file association. */
-		NO_UPK(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "No target UPK"),
+		NO_UPK(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "No target UPK", Constants.MOD_UNKNOWN_ICON),
 		/** Indicates a non-applicable mod file. */
-		APPLY_ERROR(new Color(191, 0, 0), Constants.TAB_PANE_FONT_ERROR, "ERROR"),
+		APPLY_ERROR(new Color(191, 0, 0), Constants.TAB_PANE_FONT_ERROR, "ERROR", Constants.MOD_ERROR_ICON),
 		/** TODO: @Amineri, what's 'mixed status'? Please fill in the blanks :) */
-		MIXED_STATUS(new Color(232, 118, 0), Constants.TAB_PANE_FONT_REVERTED, "Mixed Status"),
+		MIXED_STATUS(new Color(232, 118, 0), Constants.TAB_PANE_FONT_REVERTED, "Mixed Status", Constants.MOD_WARNING_ICON),
 		/** Indicates a mod file with applicable <i>BEFORE</i> blocks. */
-		BEFORE_HEX_PRESENT(new Color(0, 128, 0), Constants.TAB_PANE_FONT_REVERTED, "Original Hex"),
+		BEFORE_HEX_PRESENT(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "Original Hex", Constants.MOD_APPLIED_DIMMED_ICON),
 		/** Indicates a mod file with revertable <i>AFTER</i> blocks. */
-		AFTER_HEX_PRESENT(new Color(0, 0, 230), Constants.TAB_PANE_FONT_APPLIED, "Hex Applied");
+		AFTER_HEX_PRESENT(Color.BLACK, Constants.TAB_PANE_FONT_APPLIED, "Hex Applied", Constants.MOD_APPLIED_ICON);
 
 		/**
 		 * The foreground color.
@@ -64,6 +68,11 @@ public class HexSearchAndReplace {
 		 * The tooltip text.
 		 */
 		private String tooltip;
+		
+		/**
+		 * The icon.
+		 */
+		private Icon icon;
 
 		/**
 		 * Constructs an apply status element from the specified foreground
@@ -72,10 +81,11 @@ public class HexSearchAndReplace {
 		 * @param font the font
 		 * @param tooltip the tooltip text
 		 */
-		private ApplyStatus(Color foreground, Font font, String tooltip) {
+		private ApplyStatus(Color foreground, Font font, String tooltip, Icon icon) {
 			this.foreground = foreground;
 			this.font = font;
 			this.tooltip = tooltip;
+			this.icon = icon;
 		}
 
 		/**
@@ -100,6 +110,14 @@ public class HexSearchAndReplace {
 		 */
 		public String getToolTipText() {
 			return tooltip;
+		}
+
+		/**
+		 * Returns the icon.
+		 * @return the icon
+		 */
+		public Icon getIcon() {
+			return icon;
 		}
 	}
 	/**
@@ -297,8 +315,8 @@ public class HexSearchAndReplace {
 		
 		//consolidate AFTER hex
 		List<byte[]> afterHex = consolidateAfterHex(tree, tree.getSourceUpk());
-		
-		if(beforeHex.size() != afterHex.size()) {
+
+		if (beforeHex.size() != afterHex.size()) {
 			return ApplyStatus.APPLY_ERROR;
 		}
 		
@@ -311,40 +329,43 @@ public class HexSearchAndReplace {
 			try {
 				beforePos = findFilePosition(beforeHex.get(i), tree.getSourceUpk(), tree);
 				afterPos = findFilePosition(afterHex.get(i), tree.getSourceUpk(), tree);
-			}
-			catch (IOException ex) {
+			} catch (IOException ex) {
 				logger.log(Level.SEVERE, "IO Exception: ", ex);
 				return ApplyStatus.APPLY_ERROR;
 			}
 			
-			if((beforePos < 0) && (afterPos < 0)) { // both blocks not found return error
+			if ((beforePos < 0) && (afterPos < 0)) {
+				// both blocks not found, return error
 				return ApplyStatus.APPLY_ERROR;
 			}
-			if((beforePos >=0) && (afterPos < 0)) { // found before block and not after
+			if ((beforePos >= 0) && (afterPos < 0)) {
+				// found before block and not after
 				foundSomeBefore = true;
 				missingSomeAfter = true;
 			}
 
-			if((beforePos < 0) && (afterPos >= 0)) { // found after block and not before
+			if ((beforePos < 0) && (afterPos >= 0)) {
+				// found after block and not before
 				foundSomeAfter = true;
 				missingSomeBefore = true;
 			}
 
-			if((beforePos >= 0) && (afterPos >= 0)) { // matched both before and after blocks... this is probably an error
+			if ((beforePos >= 0) && (afterPos >= 0)) {
+				// matched both before and after blocks... this is probably an error
 				foundSomeAfter = true;
 				foundSomeBefore = true;
 			}
 		}
 
-		if(foundSomeBefore && foundSomeAfter) {
+		if (foundSomeBefore && foundSomeAfter) {
 			return ApplyStatus.MIXED_STATUS;
 		}
-		
-		if(foundSomeBefore && !missingSomeBefore && !foundSomeAfter) {
+
+		if (foundSomeBefore && !missingSomeBefore && !foundSomeAfter) {
 			return ApplyStatus.BEFORE_HEX_PRESENT;
 		}
-		
-		if(foundSomeAfter && !missingSomeAfter && !foundSomeBefore) {
+
+		if (foundSomeAfter && !missingSomeAfter && !foundSomeBefore) {
 			return ApplyStatus.AFTER_HEX_PRESENT;
 		}
 				
@@ -587,14 +608,14 @@ public class HexSearchAndReplace {
 
 		ModContextType findContext;
 		ModContextType replaceContext;
-		if(apply) {
+		if (apply) {
 			findContext = ModContextType.BEFORE_HEX;
 			replaceContext = ModContextType.AFTER_HEX;
 		} else {
 			findContext = ModContextType.AFTER_HEX;
 			replaceContext = ModContextType.BEFORE_HEX;
 		}
-		
+
 		int findSize, replaceSize;
 		
 		//retrieve type change properties from tree
@@ -714,9 +735,10 @@ public class HexSearchAndReplace {
 			ModTreeNode line = lines.nextElement();
 			if (line.getContextFlag(context)) {
 				String lineString = line.getFullText().trim();
-				if(lineString.startsWith(keyword)) {
-					if(lineString.contains("=")) {
-						return lineString.split("//")[0].trim().split("=")[1].trim();
+				if (lineString.startsWith(keyword)) {
+					if (lineString.contains("=")) {
+						return lineString.split("//")[0].trim().split("=")[1]
+								.trim();
 					}
 				}
 			}

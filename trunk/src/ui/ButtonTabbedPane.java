@@ -11,12 +11,12 @@ import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JToolBar;
-import static ui.Constants.*;
 
 /**
  * Custom tabbed pane featuring a 'Close' button in its tabs.
@@ -37,23 +37,39 @@ public class ButtonTabbedPane extends JTabbedPane {
 	}
 	
 	@Override
-	public void addTab(String title, Component component) {
-		super.addTab(title, component);
+	public ButtonTabComponent getTabComponentAt(int index) {
+		return (ButtonTabComponent) super.getTabComponentAt(index);
+	}
+	
+	@Override
+	public void insertTab(String title, Icon icon, Component component,
+			String tip, int index) {
+		super.insertTab(title, icon, component, tip, index);
+		
 		// add 'Close' button to new tab
 		ButtonTabComponent buttonTabComponent = new ButtonTabComponent(this);
-		this.setTabComponentAt(this.getTabCount() - 1, buttonTabComponent);
-		buttonTabComponent.getComponent(0).setFont(TAB_PANE_FONT_UNKNOWN);
+		this.setTabComponentAt(index, buttonTabComponent);
 	}
 	
 	@Override
 	public void setForegroundAt(int index, Color color) {
-		ButtonTabComponent comp = (ButtonTabComponent) this.getTabComponentAt(index);
-		comp.getComponent(0).setForeground(color);
+		this.getTabComponentAt(index).getLabel().setForeground(color);
 	}
 	
+	@Override
+	public void setIconAt(int index, Icon icon) {
+		this.getTabComponentAt(index).getLabel().setIcon(icon);
+	}
+
+	/**
+	 * Sets the font at <code>index</code> to <code>font</code> which can be
+	 * <code>null</code>, in which case the tab's font will default to the font
+	 * of this <code>tabbedpane</code>.
+	 * @param index the tab index where the foreground should be set
+	 * @param font the font to be used in the tab
+	 */
 	public void setFontAt(int index, Font font) {
-		ButtonTabComponent comp = (ButtonTabComponent) this.getTabComponentAt(index);
-		comp.getComponent(0).setFont(font);
+		this.getTabComponentAt(index).getLabel().setFont(font);
 	}
 	
 	/**
@@ -73,10 +89,17 @@ public class ButtonTabbedPane extends JTabbedPane {
 	     * @param tabPane the reference to the parent tabbed pane
 	     */
 	    public ButtonTabComponent(final JTabbedPane tabPane) {
-	        super(new BorderLayout(0, 0));
+	        super(new BorderLayout());
 	        
 	        this.tabPane = tabPane;
-
+	        
+	        this.initComponents();
+		}
+	    
+	    /**
+	     * Creates and lays out this component's sub-components.
+	     */
+	    private void initComponents() {
 			// make component transparent
 			this.setOpaque(false);
 			
@@ -101,6 +124,14 @@ public class ButtonTabbedPane extends JTabbedPane {
 			
 			this.add(tabButton, BorderLayout.EAST);
 		}
+
+		/**
+	     * Returns the label of this button tab.
+	     * @return the button tab label
+	     */
+	    public JLabel getLabel() {
+	    	return (JLabel) this.getComponent(0);
+	    }
 
 	    /**
 	     * 'Close' button for tabs.
