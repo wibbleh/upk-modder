@@ -227,7 +227,7 @@ public class ActionCache {
 				mainFrame.applyModFile();
 			}
 		}; 
-		hexApplyAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+		hexApplyAction.putValue(Action.SMALL_ICON, Constants.APPLY_ACTION_ICON);
 		hexApplyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
 		hexApplyAction.putValue(Action.MNEMONIC_KEY, (int) 'a');
 		hexApplyAction.putValue(Action.SHORT_DESCRIPTION, "Apply Hex Changes");
@@ -240,7 +240,7 @@ public class ActionCache {
 				mainFrame.revertModFile();
 			}
 		};
-		hexRevertAction.putValue(Action.SMALL_ICON, Constants.HEX_SMALL_ICON);
+		hexRevertAction.putValue(Action.SMALL_ICON, Constants.REVERT_ACTION_ICON);
 		hexRevertAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
 		hexRevertAction.putValue(Action.MNEMONIC_KEY, (int) 'r');
 		hexRevertAction.putValue(Action.SHORT_DESCRIPTION, "Revert Hex Changes");

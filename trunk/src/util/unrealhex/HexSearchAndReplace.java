@@ -29,6 +29,7 @@ import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 import ui.Constants;
+import ui.OverlayIcon;
 
 /**
  * Utility class for consolidating hex and performing apply/revert operations to upks
@@ -38,21 +39,35 @@ public class HexSearchAndReplace {
 	
 	// TODO: wrong logger is used here (statically imported from ModTree), create own logger instance
 	
+	
+	// TODO: move this enum object to a separate file, as it's more UI-related than utility function-related
 	/**
 	 * Enumeration holding hex replacement apply states and corresponding GUI constants.
 	 * @author Amineri, XMS
 	 */
 	public enum ApplyStatus {
-		/** Indicates a missing UPK file association. */
-		NO_UPK(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "No target UPK", Constants.MOD_UNKNOWN_ICON),
-		/** Indicates a non-applicable mod file. */
-		APPLY_ERROR(new Color(191, 0, 0), Constants.TAB_PANE_FONT_ERROR, "ERROR", Constants.MOD_ERROR_ICON),
-		/** TODO: @Amineri, what's 'mixed status'? Please fill in the blanks :) */
-		MIXED_STATUS(new Color(232, 118, 0), Constants.TAB_PANE_FONT_REVERTED, "Mixed Status", Constants.MOD_WARNING_ICON),
-		/** Indicates a mod file with applicable <i>BEFORE</i> blocks. */
-		BEFORE_HEX_PRESENT(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "Original Hex", Constants.MOD_APPLIED_DIMMED_ICON),
-		/** Indicates a mod file with revertable <i>AFTER</i> blocks. */
-		AFTER_HEX_PRESENT(Color.BLACK, Constants.TAB_PANE_FONT_APPLIED, "Hex Applied", Constants.MOD_APPLIED_ICON);
+		/** Status applies recursively to both projects, project folders, and modfiles. */
+
+		/** Precedence 1: Indicates an error when testing/applying. Error status superceded others. 
+		 * If one file in a project has an error, then the project inherits ERROR*/
+		APPLY_ERROR(new Color(191, 0, 0), Constants.TAB_PANE_FONT_ERROR, "ERROR", Constants.RED_CIRCLE),
+
+		/** Precedence 2: Mixed status can occur in the following situations: 
+		 *  A single file with multiple BEFORE/AFTER blocks has some blocks before and some after (but none are missing entirely)
+		 *  A project/folder has some childen with different statuses, or any child with MIXED status */
+		MIXED_STATUS(new Color(232, 118, 0), Constants.TAB_PANE_FONT_REVERTED, "Mixed Status", Constants.YELLOW_CIRCLE),
+
+		/** Indicates a missing UPK file association or unknown status. 
+		  *  Also indicates a project / folder in which all files have the UNKNOWN status */
+		UNKNOWN(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "Unknown", Constants.GREY_CIRCLE),
+				
+		/** Indicates a mod file with applicable <i>BEFORE</i> blocks. 
+		  *  Also indicates a project / folder in which all files have the BEFORE status */
+		BEFORE_HEX_PRESENT(Color.BLACK, Constants.TAB_PANE_FONT_REVERTED, "Original Hex", Constants.GREEN_CIRCLE),
+		
+		/** Indicates a mod file with revertable <i>AFTER</i> blocks. 
+		  *  Also indicates a project / folder in which all files have the AFTER status */
+		AFTER_HEX_PRESENT(Color.BLACK, Constants.TAB_PANE_FONT_APPLIED, "Hex Applied", Constants.ORANGE_CIRCLE);
 
 		/**
 		 * The foreground color.
@@ -119,38 +134,45 @@ public class HexSearchAndReplace {
 		public Icon getIcon() {
 			return icon;
 		}
+		
+		/**
+		 * Returns the supplied icon overlaid with the status icon
+		 * @param baseIcon the base icon
+		 * @return the icon with status overlay
+		 */
+		public Icon getIcon(Icon baseIcon) {
+			return new OverlayIcon(baseIcon, this.icon);
+		}
 	}
 	/**
 	 * Parses the tree and finds any hex that is part of a [BEFORE] block
 	 * Each block is returned as a separate byte[] in the list
 	 * @param tree the tree to extract hex from
-	 * @param upk used to convert name references into hex references
 	 * @return List of byte arrays containing hex, or null if there is none
 	 */
-	public static List<byte[]> consolidateBeforeHex(ModTree tree, UpkFile upk) {
-		return consolidateHex(tree, upk, ModContextType.BEFORE_HEX);
+	public static List<byte[]> consolidateBeforeHex(ModTree tree) {
+		return consolidateHex(tree, ModContextType.BEFORE_HEX);
 	}
 	
 	/**
 	 * Parses the tree and finds any hex that is part of an [AFTER] block
 	 * Each block is returned as a separate byte[] in the list
 	 * @param tree the tree to extract hex from
-	 * @param upk used to convert name references into hex references
 	 * @return List of byte arrays containing hex, or null if there is none
 	 */
-	public static List<byte[]> consolidateAfterHex(ModTree tree, UpkFile upk) {
-		return consolidateHex(tree, upk, ModContextType.AFTER_HEX);
+	public static List<byte[]> consolidateAfterHex(ModTree tree) {
+		return consolidateHex(tree, ModContextType.AFTER_HEX);
 	}
 	
 	/**
 	 * Parses the tree and finds any hex that is part of any context block.
+	 * Can perform "on the fly" replacement of reference names into reference values using the current target upk within the supplied tree.
 	 * Each block is returned as a separate byte[] in the list
 	 * @param tree the tree to extract hex from
-	 * @param upk
 	 * @param context the context to search for
 	 * @return List of byte arrays containing hex, or null if there is none
 	 */
-	public static List<byte[]> consolidateHex(ModTree tree, UpkFile upk, ModContextType context) {
+	protected static List<byte[]> consolidateHex(ModTree tree, ModContextType context) {
 		List<byte[]> hexBlocks = new ArrayList<>();
 		List<Byte> currentBlock = new ArrayList<>();
 		Enumeration<ModTreeNode> lines = tree.getRoot().children();
@@ -163,11 +185,11 @@ public class HexSearchAndReplace {
 					// TODO: @Amineri, idea for further simplification, split at pipe character and parse non-reference token chains using HexStringLibrary.convertStringToByteArray()
 					for (String token : tokens) {
 //						if (token.startsWith("{|") && (upk != null)) {
-						if ((upk != null) && token.matches("^([{<]\\|)")) {
+						if ((tree.getTargetUpk() != null) && token.matches("^([{<]\\|)")) {
 							String contents = token.substring(2, token.length() - 2);
 							int value = token.startsWith("{|")
-									? upk.findRefByName(contents)
-									: upk.findVFRefByName(contents);
+									? tree.getTargetUpk().findRefByName(contents)
+									: tree.getTargetUpk().findVFRefByName(contents);
 							if (value == 0) {
 								return null;
 							}
@@ -196,15 +218,14 @@ public class HexSearchAndReplace {
 	}
 
 	/**
-	 * Finds the specified hex within the given upk.
+	 * Finds the specified hex within the target upk stored within the given tree.
 	 * Scope of the search is limited to the function in the associated tree.
 	 * @param hex hex to search for
-	 * @param upk upk to search for hex within
 	 * @param tree provides function to limit scope of search
 	 * @return file offset of found hex, or -1 if not found
 	 * @throws IOException
 	 */
-	public static long findFilePosition(byte[] hex, UpkFile upk, ModTree tree)
+	public static long findFilePosition(byte[] hex, ModTree tree)
 			throws IOException {
         long replaceOffset = -1;
         
@@ -214,12 +235,12 @@ public class HexSearchAndReplace {
 		String targetFunction = tree.getFunctionName().trim();
 		
 		// retrieve objectlist index from upk -- this is the same as references but is not named such here
-		int objectIndex = upk.findRefByName(targetFunction);
+		int objectIndex = tree.getTargetUpk().findRefByName(targetFunction);
 		if(objectIndex == 0)
 			return -1;
 		
 		// retrieve object entry
-		ObjectEntry functionEntry = upk.getHeader().getObjectList().get(objectIndex);
+		ObjectEntry functionEntry = tree.getTargetUpk().getHeader().getObjectList().get(objectIndex);
 		
 		// retrieve file position/length of function hex in upk
 		long functPos = functionEntry.getUpkPos();
@@ -245,7 +266,7 @@ public class HexSearchAndReplace {
 		
 		//allocate buffer as large as we need
 		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.READ)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getTargetUpk().getPath(), StandardOpenOption.READ)) {
 			long endSearch = functPos + functLength - hex.length;
 			for (long currPos = functPos; currPos <= endSearch; currPos++) {
 				
@@ -272,30 +293,143 @@ public class HexSearchAndReplace {
 	}
 	
 	/**
-	 * Concatenates the contents of the byte arrays in the provided list into a single byte array.
-	 * @deprecated TODO: @Amineri because...? just remove it if it's not needed :]
-	 * @param bytesList the list of byte arrays to concatenate
-	 * @return a byte array containing all bytes of the list
+	 * Branches on the three current type of apply operations (stored in the currTree)
+	 * 1) Basic same-size search and replace
+	 * 2) Resize object and search and replace
+	 * 3) Change to Header Table Entry (currently only variable type change supported)
+	 * @param apply true to attempt to apply changes, false to revert
+	 * @param currTree the tree on which to attempt to apply/revert
+	 * @return true if changes applied successfully, false if not
+	 * @XTMS -- the key here is that there can be multiple non-adjacent before/after blocks
+	 * see AIAddNewObjectives@XGStrategyAI.upk_mod in the sample project
+	 *      -- a few lines at the end of the function are changed, as well as the header
 	 */
-	@Deprecated
-	public static byte[] concatenate(List<byte[]> bytesList) {
-		int size = 0;
-		for (byte[] bytes : bytesList) {
-			size += bytes.length;
+	public static boolean applyRevertChanges(boolean apply, ModTree currTree) {
+		try {
+			if (currTree.getAction().equals("")) {
+				// default action of making changes to object
+				if (currTree.getResizeAmount() == 0) {
+					// basic search and replace without file backup
+					if (HexSearchAndReplace.searchAndReplace(apply, currTree)) {
+						if(apply) {
+							logger.log(Level.INFO, "AFTER Hex Installed");
+						} else {
+							logger.log(Level.INFO, "BEFORE Hex Installed");
+						}
+						return true;
+					}
+				} else {
+					// advanced search and replace resizing function (many changes to upk)
+					if (resizeAndReplace(apply, currTree)) {
+						if(apply) {
+							logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
+						} else {
+							logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
+						}
+						return true;
+					}
+				}
+			} else {
+				// perform special action
+				// TODO: replace within enumeration?
+				if (currTree.getAction().equalsIgnoreCase("typechange")) {
+					if (changeObjectType(apply, currTree)) {
+						if (apply) {
+							logger.log(Level.INFO, "Variable type changed to AFTER");
+						} else {
+							logger.log(Level.INFO, "Variable type changed to BEFORE");
+						}
+						return true;
+					}
+				}
+			}
+		} catch (IOException ex) {
+			logger.log(Level.SEVERE, "File error", ex);
 		}
-		
-		byte[] res = new byte[size];
-		int index = 0;
-		for (byte[] bytes : bytesList) {
-			int len = bytes.length;
-			System.arraycopy(bytes, 0, res, index, len);
-			index += len;
-		}
-		
-		return res;
+		return false;
 	}
 
-	public static void applyHexChange(byte[] hex, UpkFile upk, long filePos) throws IOException {
+	/**
+	 * Searches the associated UPK file for the byte data of the <code>BEFORE</code> or AFTER
+	 * block(s) and overwrites it using the byte data of the <code>AFTER</code> or BEFORE block(s).
+	 * @param apply true if applying (BEFORE->AFTER), false if reverting (AFTER->BEFORE)
+	 * @param currTree the tree to which the changes are made
+	 * @return true if S&R was successful, false otherwise
+	 * @throws java.io.IOException
+	 */
+	protected static boolean searchAndReplace(boolean apply, ModTree currTree) throws IOException {
+		List<byte[]> patterns;
+		List<byte[]> replacements;
+		if(apply) {
+			patterns = consolidateHex(currTree, ModContextType.BEFORE_HEX);
+			replacements = consolidateHex(currTree, ModContextType.AFTER_HEX);
+		} else {
+			patterns = consolidateHex(currTree, ModContextType.AFTER_HEX);
+			replacements = consolidateHex(currTree, ModContextType.BEFORE_HEX);
+		}
+		// perform error checking first
+		long[] filePositions = testBeforeAndAfterBlocks(patterns, replacements, currTree);
+		if (filePositions == null) {
+			return false;
+		}
+
+		// everything matches, time to make the change(s)
+		for(int i = 0 ; i < filePositions.length; i++) {
+			HexSearchAndReplace.applyHexChange(replacements.get(i), currTree.getTargetUpk(), filePositions[i]);
+		}
+		return true;
+	}
+
+	/**
+	 * Sequence of tests on the supplied list of patterns and replacements.
+	 * Does error checking to determine if there are any expected problems with the apply/revert operation being requested.
+	 * Performs tests under the assumption of same-size apply/revert operation.
+	 * @param patterns List of byte arrays that are expected to be found in the file
+	 * @param replacements List of byte arrays that are expected to be written to the file
+	 * @param currTree the current tree model of the modfile
+	 * @return an array of absolute file positions found, or null if any error occurred
+	 * @throws IOException
+	 */
+	protected static long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements, ModTree currTree) throws IOException {
+		// TODO: move to HexSearchAndReplace class
+		// perform simple error checking first
+		// check for same number of blocks
+		if (patterns.size() != replacements.size()) {
+			logger.log(Level.INFO, "Block count mismatch");
+			return null;
+		}
+		// check each block has same number of bytes
+		long[] filePositions = new long[patterns.size()];
+		for (int i = 0; i < patterns.size() ; i++) {
+			if (patterns.get(i).length != replacements.get(i).length) {
+				logger.log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
+					+ patterns.get(i).length + ", REPLACE = " 
+					+ replacements.get(i).length);
+				return null;
+			}
+		}
+		// try and find each pattern blocks position
+		for (int j = 0; j < patterns.size(); j++) {
+			long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), currTree);
+			if (filePos == -1) {
+				logger.log(Level.INFO, "Block " + j + " FIND not found");
+				return null;
+			} else {
+				filePositions[j]= filePos;
+			}
+		}
+		return filePositions;
+	}
+
+	/**
+	 * Unchecked primitive write operation that writes changes to target upk.
+	 * Should only be called after other error-checking operations have taken place.
+	 * @param hex the byte array to be written 
+	 * @param upk the file to be written to
+	 * @param filePos the absolute file position within the file to write to
+	 * @throws IOException
+	 */
+	private static void applyHexChange(byte[] hex, UpkFile upk, long filePos) throws IOException {
 		// allocate buffer as large as we need and wrap the hex to write
 		ByteBuffer fileBuf = ByteBuffer.wrap(hex);
 		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.WRITE)) {
@@ -304,17 +438,28 @@ public class HexSearchAndReplace {
 		}
 	}
 	
+	/**
+	 * Performs non-destructive testing on the supplied tree to determine its current application status.
+	 * Measured relative to its associated target upk (stored internally to the tree)
+	 * @param tree The tree model of the modfile to test
+	 * @return ApplyStatus enum indicating test result
+	 */
 	public static ApplyStatus testFileStatus(ModTree tree) {
 		
 		// TODO: test install status for mods that alter Table Entries (as opposed to objects)
 		if(!tree.getAction().isEmpty()) {
-			return ApplyStatus.NO_UPK;
+			return ApplyStatus.UNKNOWN;
 		}
+		
+		if (tree.getTargetUpk() == null) {
+			return ApplyStatus.UNKNOWN;
+		}
+		
 		// consolidate BEFORE hex
-		List<byte[]> beforeHex = consolidateBeforeHex(tree, tree.getSourceUpk());
+		List<byte[]> beforeHex = consolidateBeforeHex(tree);
 		
 		//consolidate AFTER hex
-		List<byte[]> afterHex = consolidateAfterHex(tree, tree.getSourceUpk());
+		List<byte[]> afterHex = consolidateAfterHex(tree);
 
 		if (beforeHex.size() != afterHex.size()) {
 			return ApplyStatus.APPLY_ERROR;
@@ -327,8 +472,8 @@ public class HexSearchAndReplace {
 		long beforePos, afterPos;
 		for (int i = 0 ; i < beforeHex.size() ; i ++ ) {
 			try {
-				beforePos = findFilePosition(beforeHex.get(i), tree.getSourceUpk(), tree);
-				afterPos = findFilePosition(afterHex.get(i), tree.getSourceUpk(), tree);
+				beforePos = findFilePosition(beforeHex.get(i), tree);
+				afterPos = findFilePosition(afterHex.get(i), tree);
 			} catch (IOException ex) {
 				logger.log(Level.SEVERE, "IO Exception: ", ex);
 				return ApplyStatus.APPLY_ERROR;
@@ -382,10 +527,9 @@ public class HexSearchAndReplace {
 	 * If size altered, adjusts object list positions in new upk file
 	 * @param apply flag indicating apply or revert. true if apply, false if revert
 	 * @param tree model of the function to be replaced/resized
-	 * @param upk the target upkfile
 	 * @return
 	 */
-	public static boolean resizeAndReplace(boolean apply, ModTree tree, UpkFile upk) {
+	public static boolean resizeAndReplace(boolean apply, ModTree tree) {
 		boolean success = true;
 		
 		if(tree.getFileVersion() < 4) {
@@ -393,7 +537,7 @@ public class HexSearchAndReplace {
 			return false;
 		}
 		
-		int currentObjectIndex = upk.findRefByName(tree.getFunctionName());
+		int currentObjectIndex = tree.getTargetUpk().findRefByName(tree.getFunctionName());
 		if(currentObjectIndex < 0) {
 			logger.log(Level.INFO, "Cannot resize import objects");
 			return false;
@@ -413,11 +557,11 @@ public class HexSearchAndReplace {
 		List<byte[]> findHexList;
 		List<byte[]> replaceHexList;
 		if(apply) {
-			findHexList = consolidateHex(tree, upk, ModContextType.BEFORE_HEX);
-			replaceHexList = consolidateHex(tree, upk, ModContextType.AFTER_HEX);
+			findHexList = consolidateHex(tree, ModContextType.BEFORE_HEX);
+			replaceHexList = consolidateHex(tree, ModContextType.AFTER_HEX);
 		} else {
-			findHexList = consolidateHex(tree, upk, ModContextType.AFTER_HEX);
-			replaceHexList = consolidateHex(tree, upk, ModContextType.BEFORE_HEX);
+			findHexList = consolidateHex(tree, ModContextType.AFTER_HEX);
+			replaceHexList = consolidateHex(tree, ModContextType.BEFORE_HEX);
 		}
 		
 		// Verify that tree has only one replacement block
@@ -441,7 +585,7 @@ public class HexSearchAndReplace {
 		// Find file position for change
 		long filePosition;
 		try {
-			filePosition = findFilePosition(findHex, upk,  tree);
+			filePosition = findFilePosition(findHex, tree);
 		} catch(IOException ex) {
 			logger.log(Level.SEVERE, "IO Error finding file position", ex);
 			return false;
@@ -456,7 +600,7 @@ public class HexSearchAndReplace {
 		long startTime = System.currentTimeMillis();
 		
 		// Invoke copyAndReplace function
-		Path newPath = copyAndReplaceUpk((int) filePosition, findHex, replaceHex , upk);
+		Path newPath = copyAndReplaceUpk((int) filePosition, findHex, replaceHex , tree.getTargetUpk());
 		if(!Files.exists(newPath)){
 			logger.log(Level.INFO, "Failure during copyAndReplace");
 			return false;
@@ -467,12 +611,12 @@ public class HexSearchAndReplace {
 		startTime = System.currentTimeMillis();
 
 		
-		try (SeekableByteChannel sbc = Files.newByteChannel(upk.getPath(), StandardOpenOption.WRITE)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getTargetUpk().getPath(), StandardOpenOption.WRITE)) {
 			ByteBuffer intBuf = ByteBuffer.allocate(4);
 			intBuf.order(ByteOrder.LITTLE_ENDIAN);
 			
 			// update changed object/function's ObjectEntry size in file
-			ObjectEntry currObjectEntry = upk.getHeader().getObjectList().get(currentObjectIndex);
+			ObjectEntry currObjectEntry = tree.getTargetUpk().getHeader().getObjectList().get(currentObjectIndex);
 			long objectListPos = currObjectEntry.getObjectEntryPos();
 			int objectSize = currObjectEntry.getUpkSize();
 			intBuf.putInt(objectSize + resizeAmount);
@@ -485,9 +629,9 @@ public class HexSearchAndReplace {
 		
 			// If size altered, adjusts object list positions in new upk file
 			if(resizeAmount != 0) {
-				for(int i = 1 ; i < upk.getHeader().getObjectListSize() ; i++) { // for every object in the object list
+				for(int i = 1 ; i < tree.getTargetUpk().getHeader().getObjectListSize() ; i++) { // for every object in the object list
 
-					currObjectEntry = upk.getHeader().getObjectList().get(i);
+					currObjectEntry = tree.getTargetUpk().getHeader().getObjectList().get(i);
 					// check if object is after the inserted file position 
 					if(currObjectEntry.getUpkPos() > filePosition) {
 						// update Object Entry's position in file
@@ -527,7 +671,7 @@ public class HexSearchAndReplace {
 	 * @param upk the upk file to make the modification to
 	 * @return The newly created File, or null if the operation failed
 	 */
-	public static Path copyAndReplaceUpk(int filePosition, byte[] findHex, byte[] replaceHex , UpkFile upk) {
+	private static Path copyAndReplaceUpk(int filePosition, byte[] findHex, byte[] replaceHex , UpkFile upk) {
 		
 		Path origPath = upk.getPath();
 		
@@ -656,7 +800,7 @@ public class HexSearchAndReplace {
 		}
 		
 		// retrieve import table references for types
-		int findTypeIdx = tree.getSourceUpk().findRefByName(findType);
+		int findTypeIdx = tree.getTargetUpk().findRefByName(findType);
 		if(findTypeIdx == 0) {
 			logger.log(Level.INFO, "No match for FIND type in Import Table");
 			return false;
@@ -666,7 +810,7 @@ public class HexSearchAndReplace {
 			return false;
 		}
 		
-		int replaceTypeIdx = tree.getSourceUpk().findRefByName(replaceType);
+		int replaceTypeIdx = tree.getTargetUpk().findRefByName(replaceType);
 		if(replaceTypeIdx == 0) {
 			logger.log(Level.INFO, "No match for REPLACE type in Import Table");
 			return false;
@@ -677,7 +821,7 @@ public class HexSearchAndReplace {
 		}
 		
 		// attempt to find object
-		int objectIdx = tree.getSourceUpk().findRefByName(tree.getFunctionName());
+		int objectIdx = tree.getTargetUpk().findRefByName(tree.getFunctionName());
 		if(objectIdx == 0) {
 			logger.log(Level.INFO, "Object not found");
 			return false;
@@ -687,7 +831,7 @@ public class HexSearchAndReplace {
 			return false;
 		}
 		
-		ObjectEntry currentObjEntry = tree.getSourceUpk().getHeader().getObjectList().get(objectIdx);
+		ObjectEntry currentObjEntry = tree.getTargetUpk().getHeader().getObjectList().get(objectIdx);
 		
 		// verify that old values are there.
 		if(currentObjEntry.getType() != findTypeIdx) {
@@ -700,7 +844,7 @@ public class HexSearchAndReplace {
 		}
 		
 		// change the file entries
-		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getSourceUpk().getPath(), StandardOpenOption.WRITE)) {
+		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getTargetUpk().getPath(), StandardOpenOption.WRITE)) {
 			ByteBuffer intBuf = ByteBuffer.allocate(4);
 			intBuf.order(ByteOrder.LITTLE_ENDIAN);
 			long objectListPos = currentObjEntry.getObjectEntryPos();
@@ -747,6 +891,7 @@ public class HexSearchAndReplace {
 	}
 	/**
 	 * Copies and appends a given function block to the end of the supplied upk
+	 * Currently not implemented through UI
 	 * @param bytesToAdd the number of bytes to add to the function
 	 * @param targetFunction the name of the function to relocate
 	 * @param upk the upk file to make the modification to

@@ -11,6 +11,7 @@ import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
@@ -19,6 +20,7 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeCellRenderer;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
@@ -28,6 +30,7 @@ import ui.frames.MainFrame;
 import ui.trees.ProjectTreeModel.FileNode;
 import ui.trees.ProjectTreeModel.ModFileNode;
 import ui.trees.ProjectTreeModel.ProjectNode;
+import util.unrealhex.HexSearchAndReplace.ApplyStatus;
 
 /**
  * Tree view implementation for the application's project pane.
@@ -60,7 +63,8 @@ public class ProjectTree extends JTree {
 		// hide root node
 		this.setRootVisible(false);
 		
-		// TODO: maybe use custom icons for projects/modpackages/modfiles
+		// TODO: maybe use better custom icons for projects/modpackages/modfiles
+		// @XMTS: I think I've made a bit of a mess of this because of my inability to use the Nimbus icons for overlay
 		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
 			/** The renderer delegate. */
 			private TreeCellRenderer delegate = ProjectTree.this.getCellRenderer();
@@ -79,19 +83,40 @@ public class ProjectTree extends JTree {
 					FileNode fileNode = (FileNode) value;
 					if (value instanceof ProjectNode) {
 						rendererLbl.setFont(Constants.PROJECT_NAME_FONT);
-						if (leaf) {
-							// change icon for empty projects
-							rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));
+						ApplyStatus currStatus = ((FileNode) value).getStatus();
+						if(currStatus != null) {
+							rendererLbl.setIcon(currStatus.getIcon(Constants.HEX_SMALL_ICON));
+						} else {
+							rendererLbl.setIcon(Constants.HEX_SMALL_ICON);
 						}
 					} else {
 						rendererLbl.setFont(Constants.PROJECT_ENTRY_FONT);
+						ApplyStatus currStatus = ((FileNode) value).getStatus();
+						if(currStatus != null) {
+							rendererLbl.setIcon(((FileNode) value).getStatus().getIcon(Constants.FOLDER_ICON));
+						} else {
+							if(Files.isDirectory(fileNode.getFilePath())) {
+								rendererLbl.setIcon(Constants.FOLDER_ICON);
+							} else {
+								rendererLbl.setIcon(UIManager.getIcon("Tree.leafIcon"));
+							}
+						}
 						if (leaf && Files.isDirectory(fileNode.getFilePath())) {
 							// change icon for empty directories
-							rendererLbl.setIcon(UIManager.getIcon("Tree.closedIcon"));
+							rendererLbl.setIcon(Constants.FOLDER_ICON);
 						}
 					}
 				}
-				
+				if (value instanceof ModFileNode) {
+					// set icon based on lastknown apply/revert status
+					ApplyStatus currStatus = ((ModFileNode) value).getStatus();
+					if (currStatus != null) {
+						rendererLbl.setIcon(((ModFileNode) value).getStatus().getIcon((ImageIcon) Constants.HEX_DOC_ICON));
+					} else {
+						rendererLbl.setIcon(UIManager.getIcon("Tree.leafIcon"));
+					}
+					
+				}
 				return rendererLbl;
 			}
 		};
@@ -255,6 +280,7 @@ public class ProjectTree extends JTree {
 	
 	/**
 	 * Returns the underlying project tree model.
+	 * @return 
 	 */
 	@Override
 	public ProjectTreeModel getModel() {
@@ -308,10 +334,34 @@ public class ProjectTree extends JTree {
 				}
 			};
 
+			Action testModFileAction = new AbstractAction("Test Status") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					testAllChildren((TreeNode) target);
+				}
+			};
+
 			localActions.put("removeProject", removeProjectAction);
 			localActions.put("newModFile", newModFileAction);
+			localActions.put("testModFile", testModFileAction);
 		}
 
+		/**
+		 * Recursive performs testStatusModfile on every eligible descendent of the node.
+		 * @param node the root tree node
+		 */
+		private void testAllChildren(TreeNode node) {
+			if (node.isLeaf()) {
+				if (node instanceof ModFileNode) {
+					MainFrame.getInstance().testStatusModFile((ModFileNode) node);
+				}
+			} else {
+				for (int i = 0; i < node.getChildCount(); i++) {
+					testAllChildren(node.getChildAt(i));
+				}
+			}
+		}
+					
 		/**
 		 * Creates the context menu's entries.
 		 */
@@ -320,7 +370,10 @@ public class ProjectTree extends JTree {
 			this.add(localActions.get("removeProject"));
 			this.addSeparator();
 			this.add(localActions.get("newModFile"));
+			this.addSeparator();
+			this.add(localActions.get("testModFile"));
 		}
+		
 		
 		/**
 		 * Configures the available actions depending on the context established
@@ -342,7 +395,7 @@ public class ProjectTree extends JTree {
 					} else {
 						localActions.get("removeProject").setEnabled(false);
 						if (node instanceof ModFileNode) {
-
+							localActions.get("testModFile").setEnabled(true);
 						} else {
 							// either a directory or a non-mod file node has been targeted
 							if (Files.isRegularFile(((FileNode) node).getFilePath())) {
@@ -357,7 +410,7 @@ public class ProjectTree extends JTree {
 				}
 			} else {
 				// empty space has been targeted
-				
+				localActions.get("testModFile").setEnabled(false);
 			}
 		}
 		

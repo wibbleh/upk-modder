@@ -7,11 +7,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JEditorPane;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
@@ -70,7 +70,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		super.insertTab(title, icon, component, tip, index);
 		
 		this.setFontAt(index, Constants.TAB_PANE_FONT_UNKNOWN);
-		this.setIconAt(index, Constants.MOD_UNKNOWN_ICON);
+		this.setIconAt(index, Constants.GREY_CIRCLE);
 	}
 	
 	@Override
@@ -142,6 +142,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	/**
 	 * Creates a new tab containing the specified mod file.
 	 * @param modPath the mod file path
+	 * @param modNode The Project tree node of the file being opened
 	 * @return the newly created tab or <code>null</code> if an error occurred
 	 */
 	public ModFileTab openModFile(Path modPath, ModFileNode modNode) {
@@ -152,6 +153,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				this.addTab(modPath.getFileName().toString(), modTab);
 			}
 			this.setSelectedComponent(modTab);
+			this.setApplyStatusAt(getSelectedIndex(), modNode.getStatus());
 			return modTab;
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Failed to load mod file \'" + modPath.getFileName() + "\'", e);
@@ -286,16 +288,42 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	}
 
 	/**
-	 * Tests current active modfile apply status and sets tab coloring accordingly
+	 * Tests current active modfile's apply status and sets tab coloring accordingly
 	 */
 	public void testStatusModFile() {
 		int selectedIndex = this.getSelectedIndex();
+		if(selectedIndex < 0) {
+			return;
+		}
 		Component selComp = this.getComponentAt(selectedIndex);
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
 			ApplyStatus status = tab.testStatusModFile();
 			
 			this.setApplyStatusAt(selectedIndex, status);
+		}
+	}
+	
+	/**
+	 * Tests a specified modfile's apply status and sets tab coloring accordingly
+	 * @param modFilePath
+	 */
+	public void testStatusModFile(Path modFilePath) {
+		int tabIndex = -1;
+		for (int i = 0; i < this.getTabCount(); i++) {
+			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
+//			if (modPath.equals(tab.getModFilePath())) {
+			if (tab.getModFilePath().equals(modFilePath)) {
+				tabIndex = i;
+			}
+		}
+		if (tabIndex >= 0) {
+			ModFileTab tab = this.getTab(modFilePath);
+			if (tab != null) {
+
+				ApplyStatus status = tab.testStatusModFile();
+				setApplyStatusAt(tabIndex, status);
+			}
 		}
 	}
 	
@@ -311,7 +339,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		this.setForegroundAt(index,  status.getForeground());
 		this.setFontAt(index, status.getFont());
 		this.setToolTipTextAt(index, status.getToolTipText());
-		this.setIconAt(index, status.getIcon());
+		this.setIconAt(index, status.getIcon((ImageIcon) Constants.HEX_DOC_ICON));
 		
 		this.updateUI(); // needed to update tab 
 	}
@@ -502,39 +530,40 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 *      -- a few lines at the end of the function are changed, as well as the header
 		 */
 		public boolean applyChanges() {
-			try {
-				if (this.modTree.getAction().equals("")) {
-					// default action of making changes to object
-					if (this.modTree.getResizeAmount() == 0) {
-						// basic search and replace without file backup
-						if (this.searchAndReplace(
-								HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()),
-								HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()))) {
-							ModTab.logger.log(Level.INFO, "AFTER Hex Installed");
-							return true;
-						}
-					} else {
-						// advanced search and replace resizing function (many changes to upk)
-						if (HexSearchAndReplace.resizeAndReplace(
-								true, this.modTree, this.getUpkFile())) {
-							ModTab.logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
-							return true;
-						}
-					}
-				} else {
-					// perform special action
-					// TODO: replace within enumeration?
-					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
-						if (HexSearchAndReplace.changeObjectType(true, modTree)) {
-							ModTab.logger.log(Level.INFO, "Variable type changed to AFTER");
-							return true;
-						}
-					}
-				}
-			} catch (IOException ex) {
-				ModTab.logger.log(Level.SEVERE, "File error", ex);
-			}
-			return false;
+			return HexSearchAndReplace.applyRevertChanges(true, this.modTree);
+//			try {
+//				if (this.modTree.getAction().equals("")) {
+//					// default action of making changes to object
+//					if (this.modTree.getResizeAmount() == 0) {
+//						// basic search and replace without file backup
+//						if (HexSearchAndReplace.searchAndReplace(
+//								HexSearchAndReplace.consolidateBeforeHex(this.modTree),
+//								HexSearchAndReplace.consolidateAfterHex(this.modTree),
+//								this.modTree)) {
+//							ModFileTabbedPane.logger.log(Level.INFO, "AFTER Hex Installed");
+//							return true;
+//						}
+//					} else {
+//						// advanced search and replace resizing function (many changes to upk)
+//						if (HexSearchAndReplace.resizeAndReplace(true, this.modTree)) {
+//							ModFileTabbedPane.logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
+//							return true;
+//						}
+//					}
+//				} else {
+//					// perform special action
+//					// TODO: replace within enumeration?
+//					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
+//						if (HexSearchAndReplace.changeObjectType(true, modTree)) {
+//							ModFileTabbedPane.logger.log(Level.INFO, "Variable type changed to AFTER");
+//							return true;
+//						}
+//					}
+//				}
+//			} catch (IOException ex) {
+//				ModFileTabbedPane.logger.log(Level.SEVERE, "File error", ex);
+//			}
+//			return false;
 		}
 
 		/**
@@ -543,104 +572,109 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @return true if changes reverted successfully, false otherwise
 		 */
 		public boolean revertChanges() {
-			try {
-				if(this.modTree.getAction().equals("")) { // default action of making changes to object
-					if (this.modTree.getResizeAmount() == 0) {
-						// basic search and replace without file backup
-						if (this.searchAndReplace(
-								HexSearchAndReplace.consolidateAfterHex(this.modTree, this.getUpkFile()),
-								HexSearchAndReplace.consolidateBeforeHex(this.modTree, this.getUpkFile()))) {
-							ModTab.logger.log(Level.INFO, "BEFORE Hex Installed");
-							return true;
-						}
-					} else {
-						// advanced search and replace resizing function (many changes to upk)
-						if (HexSearchAndReplace.resizeAndReplace(false, this.modTree, this.getUpkFile())) {
-							ModTab.logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
-							return true;
-						}
-					}
-				} else { // perform special action
-					// TODO: replace within enumeration?
-					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
-						if (HexSearchAndReplace.changeObjectType(false, modTree)) {
-							ModTab.logger.log(Level.INFO, "Variable type reverted to BEFORE");
-							return true;
-						}
-					}
-				}
-			} catch (IOException ex) {
-				ModTab.logger.log(Level.SEVERE, "File error", ex);
-			}
-			return false;
+			return HexSearchAndReplace.applyRevertChanges(false, this.modTree);
+//			try {
+//				if(this.modTree.getAction().equals("")) { // default action of making changes to object
+//					if (this.modTree.getResizeAmount() == 0) {
+//						// basic search and replace without file backup
+//						if (HexSearchAndReplace.searchAndReplace(
+//								HexSearchAndReplace.consolidateAfterHex(this.modTree),
+//								HexSearchAndReplace.consolidateBeforeHex(this.modTree),
+//								this.modTree)) {
+//							ModFileTabbedPane.logger.log(Level.INFO, "BEFORE Hex Installed");
+//							return true;
+//						}
+//					} else {
+//						// advanced search and replace resizing function (many changes to upk)
+//						if (HexSearchAndReplace.resizeAndReplace(false, this.modTree)) {
+//							ModFileTabbedPane.logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
+//							return true;
+//						}
+//					}
+//				} else { // perform special action
+//					// TODO: replace within enumeration?
+//					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
+//						if (HexSearchAndReplace.changeObjectType(false, modTree)) {
+//							ModFileTabbedPane.logger.log(Level.INFO, "Variable type reverted to BEFORE");
+//							return true;
+//						}
+//					}
+//				}
+//			} catch (IOException ex) {
+//				ModFileTabbedPane.logger.log(Level.SEVERE, "File error", ex);
+//			}
+//			return false;
 		}
 		
-		/**
-		 * Searches the associated UPK file for the provided byte pattern and
-		 * overwrites it using the provided replacement bytes.
-		 * @param patterns the byte pattern to search for
-		 * @param replacements the bytes to replace the search pattern with
-		 * @Return true if S&R was successful, false otherwise
-		 */
-		private boolean searchAndReplace(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
-			// TODO: move to HexSearchAndReplace class
-			// perform error checking first
-			long[] filePositions = this.testBeforeAndAfterBlocks(patterns, replacements);
-			if (filePositions == null) {
-				return false;
-			}
-
-			// everything matches, time to make the change(s)
-			for(int i = 0 ; i < filePositions.length; i++) {
-				HexSearchAndReplace.applyHexChange(replacements.get(i), this.getUpkFile(), filePositions[i]);
-			}
-			return true;
-		}
+//		/**
+//		 * Searches the associated UPK file for the provided byte pattern and
+//		 * overwrites it using the provided replacement bytes.
+//		 * @param patterns the byte pattern to search for
+//		 * @param replacements the bytes to replace the search pattern with
+//		 * @Return true if S&R was successful, false otherwise
+//		 */
+//		private boolean searchAndReplace(List<byte[]> patterns, List<byte[]> replacements, ModTree currTree) throws IOException {
+//			// TODO: move to HexSearchAndReplace class
+//			// perform error checking first
+//			long[] filePositions = testBeforeAndAfterBlocks(patterns, replacements, currTree);
+//			if (filePositions == null) {
+//				return false;
+//			}
+//
+//			// everything matches, time to make the change(s)
+//			for(int i = 0 ; i < filePositions.length; i++) {
+//				HexSearchAndReplace.applyHexChange(replacements.get(i), currTree.getTargetUpk(), filePositions[i]);
+//			}
+//			return true;
+//		}
 		
-		/**
-		 * TODO: API
-		 * @param patterns
-		 * @param replacements
-		 * @return
-		 * @throws IOException
-		 */
-		private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements) throws IOException {
-			// TODO: move to HexSearchAndReplace class
-			// perform simple error checking first
-			// check for same number of blocks
-			if (patterns.size() != replacements.size()) {
-				ModFileTabbedPane.logger.log(Level.INFO, "Block count mismatch");
-				return null;
-			}
-			// check each block has same number of bytes
-			long[] filePositions = new long[patterns.size()];
-			for (int i = 0; i < patterns.size() ; i++) {
-				if (patterns.get(i).length != replacements.get(i).length) {
-					ModFileTabbedPane.logger.log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
-						+ patterns.get(i).length + ", REPLACE = " 
-						+ replacements.get(i).length);
-					return null;
-				}
-			}
-			// try and find each pattern blocks position
-			for (int j = 0; j < patterns.size(); j++) {
-				long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), this.getUpkFile(), this.modTree);
-				if (filePos == -1) {
-					ModFileTabbedPane.logger.log(Level.INFO, "Block " + j + " FIND not found");
-					return null;
-				} else {
-					filePositions[j]= filePos;
-				}
-			}
-			return filePositions;
-		}
+//		/**
+//		 * TODO: API
+//		 * @param patterns
+//		 * @param replacements
+//		 * @return
+//		 * @throws IOException
+//		 */
+//		private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements, ModTree currTree) throws IOException {
+//			// TODO: move to HexSearchAndReplace class
+//			// perform simple error checking first
+//			// check for same number of blocks
+//			if (patterns.size() != replacements.size()) {
+//				ModFileTabbedPane.logger.log(Level.INFO, "Block count mismatch");
+//				return null;
+//			}
+//			// check each block has same number of bytes
+//			long[] filePositions = new long[patterns.size()];
+//			for (int i = 0; i < patterns.size() ; i++) {
+//				if (patterns.get(i).length != replacements.get(i).length) {
+//					ModFileTabbedPane.logger.log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
+//						+ patterns.get(i).length + ", REPLACE = " 
+//						+ replacements.get(i).length);
+//					return null;
+//				}
+//			}
+//			// try and find each pattern blocks position
+//			for (int j = 0; j < patterns.size(); j++) {
+//				long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), currTree);
+//				if (filePos == -1) {
+//					ModFileTabbedPane.logger.log(Level.INFO, "Block " + j + " FIND not found");
+//					return null;
+//				} else {
+//					filePositions[j]= filePos;
+//				}
+//			}
+//			return filePositions;
+//		}
 
 		/**
 		 * Tests this tab's apply status and updates tab coloring
 		 * @return the result of the test
 		 */
 		public ApplyStatus testStatusModFile() {
-			return HexSearchAndReplace.testFileStatus(modTree);
+			ApplyStatus testFileStatus = HexSearchAndReplace.testFileStatus(modTree);
+			this.modNode.setStatus(testFileStatus);
+			MainFrame.getInstance().refreshProjectUI();
+			return testFileStatus;
 		}
 		
 		/**
@@ -689,7 +723,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @return the UPK file
 		 */
 		public UpkFile getUpkFile() {
-			return modTree.getSourceUpk();
+			return modTree.getTargetUpk();
 		}
 
 		/**
@@ -697,7 +731,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @param upkFile the upk file to set
 		 */
 		public void setUpkFile(UpkFile upkFile) {
-			this.modTree.setSourceUpk(upkFile);
+			this.modTree.setTargetUpk(upkFile);
 			// update project UPK file associations
 			if (this.modNode != null) {
 				ProjectNode project = this.modNode.getProject();

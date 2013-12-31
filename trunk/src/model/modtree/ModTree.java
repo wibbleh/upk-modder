@@ -8,7 +8,10 @@ import static model.modtree.ModContext.ModContextType.HEX_HEADER;
 import static model.modtree.ModContext.ModContextType.VALID_CODE;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -110,9 +113,10 @@ public class ModTree implements TreeModel {
 	private String action = "";
 	
 	/**
-	 * The source UpkFile to use to generate reference mouse-over tips and name references
+	 * The target UpkFile to use to generate reference mouse-over tips and name references.
+	 * Also is the upk to which apply/revert changes are made, as well as the upk that is tested.
 	 */
-	private UpkFile sourceUpk = null;
+	private UpkFile targetUpk = null;
 	
 	/**
 	 * Flag indicating whether the tree is listening to document updates
@@ -142,6 +146,28 @@ public class ModTree implements TreeModel {
 		this.setDocument(document);
 	}
 
+	/**
+	 * Alternative ModTree constructor for direct initialization.
+	 * This is used when the document is not to be displayed.
+	 * Directly reads the supplied text file and parses it.
+	 * @param modFilePath Path to the .upk_mod file to use to initialize the ModTree
+	 */
+	public ModTree(Path modFilePath) {
+		docEvents = null;
+		this.listeners = null;
+		try {
+			long startTime = System.currentTimeMillis();
+			String s = new String(Files.readAllBytes(modFilePath));
+			ModTreeRootNode root = this.getRoot();
+			root.insertString(0, s, null);
+			root.reorganizeAfterInsertion();
+			logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
+		} catch(IOException ex) {
+			logger.log(Level.SEVERE, "Error when reading modfile", ex);
+		}
+		
+	}
+	
 	/**
 	 * Associates a default document with the ModTree.
 	 * Only used for testing purposes.
@@ -176,19 +202,19 @@ public class ModTree implements TreeModel {
 	}
 	
 	/**
-	 * Sets the source upk to use for hex ref lookups
+	 * Sets the target upk to use for apply/revert operations.
 	 * @param upk
 	 */
-	public void setSourceUpk(UpkFile upk) {
-		this.sourceUpk = upk;
+	public void setTargetUpk(UpkFile upk) {
+		this.targetUpk = upk;
 	}
 	
 	/**
-	 * Gets the source upk to use for hex ref lookups
+	 * Gets the target upk to use for apply/revert operations.
 	 * @return 
 	 */
-	public UpkFile getSourceUpk() {
-		return this.sourceUpk;
+	public UpkFile getTargetUpk() {
+		return this.targetUpk;
 	}
 	
 	public void forceRefreshFromDocument() {

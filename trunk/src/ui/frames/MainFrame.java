@@ -31,6 +31,7 @@ import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.InsetsUIResource;
+import model.modtree.ModTree;
 
 import model.upk.UpkFile;
 import ui.ActionCache;
@@ -44,6 +45,7 @@ import ui.trees.ProjectTree;
 import ui.trees.ProjectTreeModel.FileNode;
 import ui.trees.ProjectTreeModel.ModFileNode;
 import ui.trees.ProjectTreeModel.ProjectNode;
+import util.unrealhex.HexSearchAndReplace;
 
 /**
  * The application's primary frame.
@@ -431,6 +433,13 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
+	 * Performs refresh of project tree UI
+	 * Created to allow test action routed to ModFileTabbedPane to refresh the project pane.
+	 */
+	public void refreshProjectUI() {
+		projectTree.updateUI();
+	}
+	/**
 	 * Opens a project defined in the specified project XML file.
 	 * @param xmlPath the project XML
 	 */
@@ -550,7 +559,8 @@ public class MainFrame extends JFrame {
 
 	// TODO : move to utility function after validation -- we don't seem to have UI-related utilities yet...
 	// code from http://stackoverflow.com/questions/6730009/validate-a-file-name-on-windows
-	// TODO�: @Amineri, that looks like a simpler (and platform-independent) way: http://stackoverflow.com/questions/893977/java-how-to-find-out-whether-a-file-name-is-valid
+	// TODO: @Amineri, that looks like a simpler (and platform-independent) way: http://stackoverflow.com/questions/893977/java-how-to-find-out-whether-a-file-name-is-valid
+	// TODO: @XMTS, my thinking is to employ more restrictive naming so that file names will be more cross platform compatible 
 	public static boolean isValidName(String text) {
 		Pattern pattern = Pattern.compile(
 			"# Match a valid Windows filename (unspecified file system).          \n" +
@@ -575,7 +585,6 @@ public class MainFrame extends JFrame {
 	/**
 	 * Creates a new mod file tab containing the specified mod file contents.
 	 * @param modPath the path to the mod file to open
-	 * @return the newly created mod file tab or <code>null</code> if an error occurred
 	 */
 	public void openModFile(Path modPath) {
 		this.openModFile(modPath, null);
@@ -586,7 +595,6 @@ public class MainFrame extends JFrame {
 	 * associates it with the specified mod file node of the project tree.
 	 * @param modPath the path to the mod file to open
 	 * @param modNode the mod file node of the project tree
-	 * @return the newly created mod file tab or <code>null</code> if an error occurred
 	 */
 	public void openModFile(Path modPath, ModFileNode modNode) {
 		ModFileTab newTab = modTabPane.openModFile(modPath, modNode);
@@ -606,7 +614,7 @@ public class MainFrame extends JFrame {
 						this.associateUpk(upkPath);
 					}
 				}
-				setEditActionsEnabled((newTab.getModTree().getSourceUpk() != null));
+				setEditActionsEnabled((newTab.getModTree().getTargetUpk() != null));
 			}
 		} else {
 			// tab creation failed, show error message
@@ -677,12 +685,63 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
-	 * Tests whether a modfile is applied or not
+	 * Tests whether the current active pane's modfile's apply/revert status
 	 */
 	public void testStatusModFile() {
 		modTabPane.testStatusModFile();
 	}
 
+	/** 
+	 * Tests whether a path-specified (possibly not opened) modfile is applied to its target upk.
+	 * @param modNode
+	 */
+	public void testStatusModFile(ModFileNode modNode) {
+		if (modNode == null) {
+			return;
+		}
+		Path modFilePath = modNode.getFilePath();
+
+		if(modFilePath == null) {
+			return;
+		}
+
+		// test if the modfile is in an opened pane
+		if (modTabPane.getTab(modFilePath) != null) {
+			modTabPane.testStatusModFile(modFilePath);
+			return;
+		} 
+				
+		// if not opened, created create a temporary ModTree for testing
+		// this modTree is not hooked up to a document and so cannot be updated
+		// create parsed ModTree directly from supplied path
+		ModTree modTree = new ModTree(modFilePath);
+
+		//TODO: combine duplicate code for association of upks with tabs
+		// find upk for tree, if possible
+		ProjectNode project = modNode.getProject();
+		if (project != null) {
+			// get targeted generic UPK file name
+			String upkName = modTree.getUpkName();
+			// look up path in project's UPK file associations
+			Path upkPath = project.getUpkPath(upkName);
+			if (upkPath != null) {
+				// find upk in cache if possible
+				UpkFile upkFile = upkCache.get(upkPath);
+				// create new UpkFile if needed
+				if (upkFile == null) {
+					upkFile = new UpkFile(upkPath);
+					upkCache.put(upkPath, upkFile);
+				}
+				//set the target upk in the ModTree
+				modTree.setTargetUpk(upkFile);
+			}
+		}
+
+		// perform the test on the file
+		modNode.setStatus(HexSearchAndReplace.testFileStatus(modTree));
+		refreshProjectUI();
+	}
+	
 	/**
 	 * Associates the specified UPK file with the currently active mod file tab.
 	 * @param upkPath the path to the UPK file to associate
