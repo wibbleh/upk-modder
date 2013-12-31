@@ -4,7 +4,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import io.upk.UpkFileLoader;
 
-import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +20,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import ui.ModTab;
 
 /**
  * Test suite for HexSearchAndReplace utilities
@@ -135,7 +133,8 @@ public class HexSearchAndReplaceTest {
 		};
 		expResult.add(array2);
 		UpkFile upk = upks.getUpk(upkSrcName, srcGuid);
-		List<byte[]> result = HexSearchAndReplace.consolidateBeforeHex(tree, upk);
+		tree.setTargetUpk(upk);
+		List<byte[]> result = HexSearchAndReplace.consolidateBeforeHex(tree);
 		assertEquals(2, result.size());
 		assertArrayEquals(expResult.get(0), result.get(0));
 		assertArrayEquals(expResult.get(1), result.get(1));
@@ -182,7 +181,8 @@ public class HexSearchAndReplaceTest {
 		};
 		expResult.add(array2);
 		UpkFile upk = upks.getUpk(upkSrcName, srcGuid);
-		List<byte[]> result = HexSearchAndReplace.consolidateAfterHex(tree, upk);
+		tree.setTargetUpk(upk);
+		List<byte[]> result = HexSearchAndReplace.consolidateAfterHex(tree);
 		assertEquals(2, result.size());
 		assertArrayEquals(expResult.get(0), result.get(0));
 		assertArrayEquals(expResult.get(1), result.get(1));
@@ -195,11 +195,12 @@ public class HexSearchAndReplaceTest {
 	public void testFindFilePosition() throws Exception {
 		System.out.println("findFilePosition");
 		UpkFile upk = upks.getUpk(upkSrcName, srcGuid);
-		List<byte[]> hex = HexSearchAndReplace.consolidateBeforeHex(tree, upk);
-		long result1 = HexSearchAndReplace.findFilePosition(hex.get(0), upk, tree);
+		tree.setTargetUpk(upk);
+		List<byte[]> hex = HexSearchAndReplace.consolidateBeforeHex(tree);
+		long result1 = HexSearchAndReplace.findFilePosition(hex.get(0), tree);
 		assertEquals(-1, result1);
 
-		long result2 = HexSearchAndReplace.findFilePosition(hex.get(1), upk, tree);
+		long result2 = HexSearchAndReplace.findFilePosition(hex.get(1), tree);
 		assertEquals(0x7913BB, result2);
 	}
 
@@ -211,12 +212,11 @@ public class HexSearchAndReplaceTest {
 	@Test
 	public void testResizeAndReplace() {
 		System.out.println("resizeAndReplace");
-		ModTab tab = new ModTab(new File("test/resources/testResize.upk_mod"));
 		UpkFile upk = new UpkFile(Paths.get("test/resources/XComGame_EW_patch1_test_resize.upk"));
 		boolean expResult = true;
-		boolean result = HexSearchAndReplace.resizeAndReplace(true, tab.getTree(), upk);
+		boolean result = HexSearchAndReplace.resizeAndReplace(true, tree);
 		assertEquals(expResult, result);
-		boolean result2 = HexSearchAndReplace.resizeAndReplace(false, tab.getTree(), upk);
+		boolean result2 = HexSearchAndReplace.resizeAndReplace(false, tree);
 		assertEquals(expResult, result2);
 	}
 	

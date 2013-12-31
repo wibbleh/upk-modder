@@ -39,6 +39,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import ui.Constants;
+import util.unrealhex.HexSearchAndReplace;
+import util.unrealhex.HexSearchAndReplace.ApplyStatus;
 
 /**
  * A hybrid tree model combining a tree node-based setup with a file tree model.
@@ -308,7 +310,53 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			return this.getFilePath().compareTo(that.getFilePath());
 		}
 		
+		//TODO: move to more appropriate location ??
+		/**
+		 * Determines the apply status of a node in the project tree.
+		 * @return
+		 */
+		public ApplyStatus getStatus() {
+			if (this.isLeaf() || this.toString().startsWith("__")) {
+				return null;
+			} else {
+				boolean beforeTest = true;
+				boolean afterTest = true;
+				boolean unknownTest = true;
+				boolean hasError = false;
+				for (int i = 0 ; i < this.getChildCount() ; i++) {
+					FileNode child = (FileNode) this.getChildAt(i);
+					if(!child.toString().startsWith("__")) {
+						ApplyStatus currStatus = child.getStatus();
+						if (currStatus != null) {
+							beforeTest = beforeTest && (currStatus == ApplyStatus.BEFORE_HEX_PRESENT);
+							afterTest = afterTest && (currStatus == ApplyStatus.AFTER_HEX_PRESENT);
+							unknownTest = unknownTest && (currStatus == ApplyStatus.UNKNOWN);
+							hasError = hasError || (currStatus == ApplyStatus.APPLY_ERROR);
+						}
+					}
+				}
+				if (hasError) {
+					return ApplyStatus.APPLY_ERROR;
+				}
+				// test if two or more are true
+				if (beforeTest ? (afterTest || unknownTest) : (afterTest && unknownTest)) {
+					return ApplyStatus.MIXED_STATUS;
+				}
+				if (beforeTest) {
+					return ApplyStatus.BEFORE_HEX_PRESENT;
+				}
+				if (afterTest) {
+					return ApplyStatus.AFTER_HEX_PRESENT;
+				}
+				if (unknownTest) {
+					return ApplyStatus.UNKNOWN;
+				} else {
+					return ApplyStatus.MIXED_STATUS;
+				}
+			}
+		}
 	}
+	
 	
 	/**
 	 * Custom tree node representing a project in the project tree. Serves
@@ -474,12 +522,32 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	 */
 	public class ModFileNode extends FileNode {
 		
+		/** 
+		 * The last known status of the modfile. Used for display purposes.
+		 */
+		private HexSearchAndReplace.ApplyStatus fileStatus = HexSearchAndReplace.ApplyStatus.UNKNOWN;
+		
 		/**
 		 * Constructs a mod file node from the specified mod file path.
 		 * @param modPath the mod file path
 		 */
 		public ModFileNode(Path modPath) {
 			super(modPath);
+		}
+		
+		@Override
+		public HexSearchAndReplace.ApplyStatus getStatus() {
+			// TODO: turn into constant? Plan to use same key to ignore for bulk apply/convert operations.
+			// double leading underscore is key to ignore 
+			if (this.toString().startsWith("__")) {
+				return null;
+			}
+			return fileStatus;
+		}
+		
+		// TODO: set status of file when test or apply/revert action performed
+		public void setStatus(HexSearchAndReplace.ApplyStatus newStatus) {
+			this.fileStatus = newStatus;
 		}
 		
 	}
