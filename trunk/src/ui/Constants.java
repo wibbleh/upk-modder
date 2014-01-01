@@ -1,7 +1,6 @@
 package ui;
 
 import java.awt.Font;
-import java.awt.Image;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,6 +9,7 @@ import java.util.Properties;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.UIManager;
 import javax.swing.filechooser.FileFilter;
 import javax.xml.transform.OutputKeys;
 
@@ -51,40 +51,38 @@ public class Constants {
 	public static final Icon HEX_SMALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex16.png"));
 	/** <img src="../ui/resources/icons/hex32.png"/> */
 	public static final Icon HEX_LARGE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex32.png"));
+	
+	public static final Icon FILE_ICON = UIManager.getIcon("FileView.fileIcon");
+	public static final Icon DIRECTORY_ICON = UIManager.getIcon("FileView.directoryIcon");
+
+	/** <img src="../ui/resources/icons/bullet_before16.png"/> */
+	public static final Icon BULLET_BEFORE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_before16.png"));
+	/** <img src="../ui/resources/icons/bullet_after16.png"/> */
+	public static final Icon BULLET_AFTER_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_after16.png"));
+	/** <img src="../ui/resources/icons/bullet_mixed16.png"/> */
+	public static final Icon BULLET_MIXED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_mixed16.png"));
+	/** <img src="../ui/resources/icons/bullet_error16.png"/> */
+	public static final Icon BULLET_ERROR_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_error16.png"));
+	/** <img src="../ui/resources/icons/bullet_unknown16.png"/> */
+	public static final Icon BULLET_UNKNOWN_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_unknown16.png"));
 
 	/** <img src="../ui/resources/icons/unknown16.png"/> */
-	public static final Icon MOD_UNKNOWN_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/unknown16.png"));
-	/** <img src="../ui/resources/icons/applied16.png"/> */
-	public static final Icon MOD_APPLIED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/applied16.png"));
-	/** <img src="../ui/resources/icons/applied_dim16.png"/> */
-	public static final Icon MOD_APPLIED_DIMMED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/applied_dim16.png"));
-	/** <img src="../ui/resources/icons/warn16.png"/> */
-	public static final Icon MOD_WARNING_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/warn16.png"));
-	/** <img src="../ui/resources/icons/stop16.png"/> */
-	public static final Icon MOD_ERROR_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/stop16.png"));
-	
-	// some icons for testing from http://openiconlibrary.sourceforge.net/gallery2/?./Icons/others
-	public static final Icon APPLY_ACTION_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/apply16.png"));
-	public static final Icon REVERT_ACTION_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/revert16.png"));
-	public static final Icon HEX_DOC_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/hex_doc16.png"));
-	// TODO: Amineri: I don't like this folder icon, but I couldn't get the Nimbus folder icon to work with overlays
-	public static final Icon FOLDER_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/open_folder16.png"));
-	
-	//basic color-coded status circles
-	public static final Icon GREEN_CIRCLE = getResizedIcon("/ui/resources/icons/basicCircles/circle_green32.png", 10, 10);
-	public static final Icon ORANGE_CIRCLE = getResizedIcon("/ui/resources/icons/basicCircles/circle_orange32.png", 10, 10);
-	public static final Icon RED_CIRCLE = getResizedIcon("/ui/resources/icons/basicCircles/circle_red32.png", 10, 10);
-	public static final Icon GREY_CIRCLE = getResizedIcon("/ui/resources/icons/basicCircles/circle_grey32.png", 10, 10);
-	public static final Icon YELLOW_CIRCLE = getResizedIcon("/ui/resources/icons/basicCircles/circle_yellow32.png", 10, 10);
+	public static final Icon TEST_MOD_STATUS_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/unknown16.png"));
 
+	// some icons for testing from http://openiconlibrary.sourceforge.net/gallery2/?./Icons/others
+	/** <img src="../ui/resources/icons/apply16.png"/> */
+	public static final Icon APPLY_ACTION_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/apply16.png"));
+	/** <img src="../ui/resources/icons/revert16.png"/> */
+	public static final Icon REVERT_ACTION_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/revert16.png"));
+	
 	// TODO: Make the font sizes, etc user-configurable
 	/**
 	 * Text Pane Tab fonts
 	 */
-	public static final Font TAB_PANE_FONT_UNKNOWN = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
-	public static final Font TAB_PANE_FONT_APPLIED = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
-	public static final Font TAB_PANE_FONT_REVERTED = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
-	public static final Font TAB_PANE_FONT_ERROR = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+	public static final Font TAB_PANE_FONT_UNKNOWN = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+	public static final Font TAB_PANE_FONT_APPLIED = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+	public static final Font TAB_PANE_FONT_REVERTED = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+	public static final Font TAB_PANE_FONT_ERROR = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
 	/**
 	 * Text Pane font 
@@ -99,12 +97,12 @@ public class Constants {
 	/**
 	 * Status Message font 
 	 */
-	public static final Font STATUS_MSG_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 11);
+	public static final Font STATUS_MSG_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
 	/**
 	 * Logger Frame font 
 	 */
-	public static final Font LOGGER_FRAME_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 11);
+	public static final Font LOGGER_FRAME_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
 
 	/**
 	 * Project Name font 
@@ -114,7 +112,7 @@ public class Constants {
 	/**
 	 * Project Entry font 
 	 */
-	public static final Font PROJECT_ENTRY_FONT = new Font(Font.DIALOG, Font.PLAIN, 11);
+	public static final Font PROJECT_ENTRY_FONT = new Font(Font.DIALOG, Font.PLAIN, 12);
 	
 	/**
 	 * Reference Update font 
@@ -124,7 +122,7 @@ public class Constants {
 	/**
 	 * Target UPK Panel font 
 	 */
-	public static final Font TARGET_UPK_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+	public static final Font TARGET_UPK_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
 	/**
 	 * Tab size 
@@ -162,22 +160,6 @@ public class Constants {
 		props.setProperty(OutputKeys.ENCODING, "UTF-8");
 		props.setProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 		PROJECT_XML_OUTPUT_PROPERTIES = props;
-	}
-	
-
-	/**
-	 *Creates and resizes an image icon
-	 * resizing code based on : http://stackoverflow.com/questions/2856480/resizing-a-imageicon-in-a-jbutton
-	 * @param uriPath directory path to image icon
-	 * @param NEW_WIDTH in pixels
-	 * @param NEW_HEIGHT in pixels
-	 * @return
-	 */
-		public static final Icon getResizedIcon(String uriPath, int NEW_WIDTH, int NEW_HEIGHT) {
-		ImageIcon icon = new ImageIcon(Constants.class.getResource(uriPath));
-		Image img = icon.getImage() ;  
-		Image newimg = img.getScaledInstance( NEW_WIDTH, NEW_HEIGHT,  java.awt.Image.SCALE_SMOOTH ) ;  
-		return new ImageIcon(newimg);
 	}
 	
 	/**

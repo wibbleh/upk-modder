@@ -11,7 +11,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.Icon;
-import javax.swing.ImageIcon;
 import javax.swing.JEditorPane;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
@@ -40,7 +39,6 @@ import ui.frames.MainFrame;
 import ui.trees.ProjectTreeModel.ModFileNode;
 import ui.trees.ProjectTreeModel.ProjectNode;
 import util.unrealhex.HexSearchAndReplace;
-import util.unrealhex.HexSearchAndReplace.ApplyStatus;
 
 /**
  * Tabbed pane implementation for the application's mod file editor.
@@ -70,7 +68,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		super.insertTab(title, icon, component, tip, index);
 		
 		this.setFontAt(index, Constants.TAB_PANE_FONT_UNKNOWN);
-		this.setIconAt(index, Constants.GREY_CIRCLE);
+		this.setIconAt(index, Constants.FILE_ICON);
 	}
 	
 	@Override
@@ -249,16 +247,18 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 
 	/**
 	 * Applies the currently selected tab's mod file hex changes.
+	 * @return the apply state (may be <code>APPLY_ERROR</code> if something goes wrong
 	 */
-	public void applyModFile() {
-		this.applyRevertModFile(true);
+	public ApplyStatus applyModFile() {
+		return this.applyRevertModFile(true);
 	}
 
 	/**
 	 * Reverts the currently selected tab's mod file hex changes.
+	 * @return the apply state (may be <code>APPLY_ERROR</code> if something goes wrong
 	 */
-	public void revertModFile() {
-		this.applyRevertModFile(false);
+	public ApplyStatus revertModFile() {
+		return this.applyRevertModFile(false);
 	}
 	
 	/**
@@ -267,64 +267,69 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	 * @param apply <code>true</code> if the <code>BEFORE</code> block contents
 	 *  shall be replaced with the <code>AFTER</code> block contents,
 	 *  <code>false</code> if it's the other way round
+	 * @return returns the apply state (may be <code>APPLY_ERROR</code> if something goes wrong
 	 */
-	private void applyRevertModFile(boolean apply) {
+	private ApplyStatus applyRevertModFile(boolean apply) {
+		ApplyStatus status = ApplyStatus.APPLY_ERROR;
 		int selectedIndex = this.getSelectedIndex();
 		Component selComp = this.getComponentAt(selectedIndex);
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
 			if (apply) {
 				if (tab.applyChanges()) {
-					// set Tab color/font/tooltip style to indicate apply/revert status
-					this.setApplyStatusAt(selectedIndex, ApplyStatus.AFTER_HEX_PRESENT);
+					status = ApplyStatus.AFTER_HEX_PRESENT;
 				}
 			} else {
 				if (tab.revertChanges()) {
-					// set Tab color/font/tooltip style to indicate apply/revert status
-					this.setApplyStatusAt(selectedIndex, ApplyStatus.BEFORE_HEX_PRESENT);
+					status = ApplyStatus.BEFORE_HEX_PRESENT;
 				}
 			}
 		}
+		// TODO: here would be a good place to show an error message if (status == ApplyStatus.APPLY_ERROR)
+		this.setApplyStatusAt(selectedIndex, status);
+		return status;
 	}
 
 	/**
-	 * Tests current active modfile's apply status and sets tab coloring accordingly
+	 * Tests the currently active mod file's apply status and sets tab visuals
+	 * accordingly
 	 */
-	public void testStatusModFile() {
-		int selectedIndex = this.getSelectedIndex();
-		if(selectedIndex < 0) {
-			return;
-		}
-		Component selComp = this.getComponentAt(selectedIndex);
-		if (selComp != null) {
-			ModFileTab tab = (ModFileTab) selComp;
-			ApplyStatus status = tab.testStatusModFile();
-			
-			this.setApplyStatusAt(selectedIndex, status);
-		}
+	public ApplyStatus testModFileStatus() {
+		return this.testModFileStatus(null);
 	}
 	
 	/**
 	 * Tests a specified modfile's apply status and sets tab coloring accordingly
-	 * @param modFilePath
+	 * @param modFilePath the path to the mod file to test
 	 */
-	public void testStatusModFile(Path modFilePath) {
-		int tabIndex = -1;
-		for (int i = 0; i < this.getTabCount(); i++) {
-			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
-//			if (modPath.equals(tab.getModFilePath())) {
-			if (tab.getModFilePath().equals(modFilePath)) {
-				tabIndex = i;
+	public ApplyStatus testModFileStatus(Path modFilePath) {
+		ModFileTab tab = null;
+		int index = -1;
+		if (modFilePath == null) {
+			index = this.getSelectedIndex();
+			if (index >= 0) {
+				tab = (ModFileTab) this.getComponentAt(index);
 			}
+		} else {
+			tab = this.getTab(modFilePath);
+			index = this.indexOfComponent(tab);
 		}
-		if (tabIndex >= 0) {
-			ModFileTab tab = this.getTab(modFilePath);
-			if (tab != null) {
-
-				ApplyStatus status = tab.testStatusModFile();
-				setApplyStatusAt(tabIndex, status);
-			}
+		
+		if (tab != null) {
+			ApplyStatus status = this.testApplyStatus(tab);
+			this.setApplyStatusAt(index, status);
+			return status;
 		}
+		return null;
+	}
+	
+	/**
+	 * Tests the specified tab's apply status.
+	 * @param tab the tab to test
+	 * @return the result of the test
+	 */
+	private ApplyStatus testApplyStatus(ModFileTab tab) {
+		return HexSearchAndReplace.testFileStatus(tab.getModTree());
 	}
 	
 	/**
@@ -339,9 +344,9 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		this.setForegroundAt(index,  status.getForeground());
 		this.setFontAt(index, status.getFont());
 		this.setToolTipTextAt(index, status.getToolTipText());
-		this.setIconAt(index, status.getIcon((ImageIcon) Constants.HEX_DOC_ICON));
+		this.setIconAt(index, new CompoundIcon(Constants.FILE_ICON, status.getIcon()));
 		
-		this.updateUI(); // needed to update tab 
+//		this.updateUI(); // needed to update tab 
 	}
 
 	/**
@@ -531,39 +536,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public boolean applyChanges() {
 			return HexSearchAndReplace.applyRevertChanges(true, this.modTree);
-//			try {
-//				if (this.modTree.getAction().equals("")) {
-//					// default action of making changes to object
-//					if (this.modTree.getResizeAmount() == 0) {
-//						// basic search and replace without file backup
-//						if (HexSearchAndReplace.searchAndReplace(
-//								HexSearchAndReplace.consolidateBeforeHex(this.modTree),
-//								HexSearchAndReplace.consolidateAfterHex(this.modTree),
-//								this.modTree)) {
-//							ModFileTabbedPane.logger.log(Level.INFO, "AFTER Hex Installed");
-//							return true;
-//						}
-//					} else {
-//						// advanced search and replace resizing function (many changes to upk)
-//						if (HexSearchAndReplace.resizeAndReplace(true, this.modTree)) {
-//							ModFileTabbedPane.logger.log(Level.INFO, "Function resized and AFTER Hex Installed");
-//							return true;
-//						}
-//					}
-//				} else {
-//					// perform special action
-//					// TODO: replace within enumeration?
-//					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
-//						if (HexSearchAndReplace.changeObjectType(true, modTree)) {
-//							ModFileTabbedPane.logger.log(Level.INFO, "Variable type changed to AFTER");
-//							return true;
-//						}
-//					}
-//				}
-//			} catch (IOException ex) {
-//				ModFileTabbedPane.logger.log(Level.SEVERE, "File error", ex);
-//			}
-//			return false;
 		}
 
 		/**
@@ -573,108 +545,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public boolean revertChanges() {
 			return HexSearchAndReplace.applyRevertChanges(false, this.modTree);
-//			try {
-//				if(this.modTree.getAction().equals("")) { // default action of making changes to object
-//					if (this.modTree.getResizeAmount() == 0) {
-//						// basic search and replace without file backup
-//						if (HexSearchAndReplace.searchAndReplace(
-//								HexSearchAndReplace.consolidateAfterHex(this.modTree),
-//								HexSearchAndReplace.consolidateBeforeHex(this.modTree),
-//								this.modTree)) {
-//							ModFileTabbedPane.logger.log(Level.INFO, "BEFORE Hex Installed");
-//							return true;
-//						}
-//					} else {
-//						// advanced search and replace resizing function (many changes to upk)
-//						if (HexSearchAndReplace.resizeAndReplace(false, this.modTree)) {
-//							ModFileTabbedPane.logger.log(Level.INFO, "Function resized and BEFORE Hex Installed");
-//							return true;
-//						}
-//					}
-//				} else { // perform special action
-//					// TODO: replace within enumeration?
-//					if (this.modTree.getAction().equalsIgnoreCase("typechange")) {
-//						if (HexSearchAndReplace.changeObjectType(false, modTree)) {
-//							ModFileTabbedPane.logger.log(Level.INFO, "Variable type reverted to BEFORE");
-//							return true;
-//						}
-//					}
-//				}
-//			} catch (IOException ex) {
-//				ModFileTabbedPane.logger.log(Level.SEVERE, "File error", ex);
-//			}
-//			return false;
-		}
-		
-//		/**
-//		 * Searches the associated UPK file for the provided byte pattern and
-//		 * overwrites it using the provided replacement bytes.
-//		 * @param patterns the byte pattern to search for
-//		 * @param replacements the bytes to replace the search pattern with
-//		 * @Return true if S&R was successful, false otherwise
-//		 */
-//		private boolean searchAndReplace(List<byte[]> patterns, List<byte[]> replacements, ModTree currTree) throws IOException {
-//			// TODO: move to HexSearchAndReplace class
-//			// perform error checking first
-//			long[] filePositions = testBeforeAndAfterBlocks(patterns, replacements, currTree);
-//			if (filePositions == null) {
-//				return false;
-//			}
-//
-//			// everything matches, time to make the change(s)
-//			for(int i = 0 ; i < filePositions.length; i++) {
-//				HexSearchAndReplace.applyHexChange(replacements.get(i), currTree.getTargetUpk(), filePositions[i]);
-//			}
-//			return true;
-//		}
-		
-//		/**
-//		 * TODO: API
-//		 * @param patterns
-//		 * @param replacements
-//		 * @return
-//		 * @throws IOException
-//		 */
-//		private long[] testBeforeAndAfterBlocks(List<byte[]> patterns, List<byte[]> replacements, ModTree currTree) throws IOException {
-//			// TODO: move to HexSearchAndReplace class
-//			// perform simple error checking first
-//			// check for same number of blocks
-//			if (patterns.size() != replacements.size()) {
-//				ModFileTabbedPane.logger.log(Level.INFO, "Block count mismatch");
-//				return null;
-//			}
-//			// check each block has same number of bytes
-//			long[] filePositions = new long[patterns.size()];
-//			for (int i = 0; i < patterns.size() ; i++) {
-//				if (patterns.get(i).length != replacements.get(i).length) {
-//					ModFileTabbedPane.logger.log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
-//						+ patterns.get(i).length + ", REPLACE = " 
-//						+ replacements.get(i).length);
-//					return null;
-//				}
-//			}
-//			// try and find each pattern blocks position
-//			for (int j = 0; j < patterns.size(); j++) {
-//				long filePos = HexSearchAndReplace.findFilePosition(patterns.get(j), currTree);
-//				if (filePos == -1) {
-//					ModFileTabbedPane.logger.log(Level.INFO, "Block " + j + " FIND not found");
-//					return null;
-//				} else {
-//					filePositions[j]= filePos;
-//				}
-//			}
-//			return filePositions;
-//		}
-
-		/**
-		 * Tests this tab's apply status and updates tab coloring
-		 * @return the result of the test
-		 */
-		public ApplyStatus testStatusModFile() {
-			ApplyStatus testFileStatus = HexSearchAndReplace.testFileStatus(modTree);
-			this.modNode.setStatus(testFileStatus);
-			MainFrame.getInstance().refreshProjectUI();
-			return testFileStatus;
 		}
 		
 		/**
@@ -786,6 +656,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public void setApplyStatus(ApplyStatus status) {
 			this.status = status;
+			modNode.setStatus(status);
 		}
 
 	}

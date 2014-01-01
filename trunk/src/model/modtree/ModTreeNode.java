@@ -17,6 +17,7 @@ import javax.swing.text.AttributeSet;
 import javax.swing.tree.TreeNode;
 
 import model.modtree.ModContext.ModContextType;
+import ui.editor.ModDocument;
 
 /**
  * Basic <code>TreeNode</code> implementation used in structuring modfile contents.

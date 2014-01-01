@@ -1,36 +1,40 @@
 package ui.trees;
 
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.ImageIcon;
+import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
-import javax.swing.UIManager;
+import javax.swing.SwingWorker;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeCellRenderer;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 import ui.ActionCache;
+import ui.ApplyStatus;
+import ui.CompoundIcon;
 import ui.Constants;
 import ui.frames.MainFrame;
 import ui.trees.ProjectTreeModel.FileNode;
 import ui.trees.ProjectTreeModel.ModFileNode;
 import ui.trees.ProjectTreeModel.ProjectNode;
-import util.unrealhex.HexSearchAndReplace.ApplyStatus;
 
 /**
  * Tree view implementation for the application's project pane.
@@ -81,41 +85,23 @@ public class ProjectTree extends JTree {
 				// modify renderer component depending on context
 				if (value instanceof FileNode) {
 					FileNode fileNode = (FileNode) value;
-					if (value instanceof ProjectNode) {
-						rendererLbl.setFont(Constants.PROJECT_NAME_FONT);
-						ApplyStatus currStatus = ((FileNode) value).getStatus();
-						if(currStatus != null) {
-							rendererLbl.setIcon(currStatus.getIcon(Constants.HEX_SMALL_ICON));
-						} else {
-							rendererLbl.setIcon(Constants.HEX_SMALL_ICON);
-						}
-					} else {
-						rendererLbl.setFont(Constants.PROJECT_ENTRY_FONT);
-						ApplyStatus currStatus = ((FileNode) value).getStatus();
-						if(currStatus != null) {
-							rendererLbl.setIcon(((FileNode) value).getStatus().getIcon(Constants.FOLDER_ICON));
-						} else {
-							if(Files.isDirectory(fileNode.getFilePath())) {
-								rendererLbl.setIcon(Constants.FOLDER_ICON);
-							} else {
-								rendererLbl.setIcon(UIManager.getIcon("Tree.leafIcon"));
-							}
-						}
-						if (leaf && Files.isDirectory(fileNode.getFilePath())) {
-							// change icon for empty directories
-							rendererLbl.setIcon(Constants.FOLDER_ICON);
-						}
-					}
-				}
-				if (value instanceof ModFileNode) {
-					// set icon based on lastknown apply/revert status
-					ApplyStatus currStatus = ((ModFileNode) value).getStatus();
-					if (currStatus != null) {
-						rendererLbl.setIcon(((ModFileNode) value).getStatus().getIcon((ImageIcon) Constants.HEX_DOC_ICON));
-					} else {
-						rendererLbl.setIcon(UIManager.getIcon("Tree.leafIcon"));
-					}
+					// extract status
+					ApplyStatus status = fileNode.getStatus();
 					
+					// set up visual parameters
+					Icon statusIcon = (status != null) ? status.getIcon() : null;
+					Icon baseIcon = null;
+					Font font = null;
+					if (fileNode instanceof ProjectNode) {
+						font = Constants.PROJECT_NAME_FONT;
+						baseIcon = Constants.HEX_SMALL_ICON;
+					} else {
+						font = Constants.PROJECT_ENTRY_FONT;
+						baseIcon = (leaf && !Files.isDirectory(fileNode.getFilePath()))
+								? Constants.FILE_ICON : Constants.DIRECTORY_ICON;
+					}
+					rendererLbl.setIcon(new CompoundIcon(baseIcon, statusIcon));
+					rendererLbl.setFont(font);
 				}
 				return rendererLbl;
 			}
@@ -337,29 +323,25 @@ public class ProjectTree extends JTree {
 			Action testModFileAction = new AbstractAction("Test Status") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-					testAllChildren((TreeNode) target);
+
+					ModFileStatusWorker worker = new ModFileStatusWorker((FileNode) target);
+					worker.addPropertyChangeListener(new PropertyChangeListener() {
+						@Override
+						public void propertyChange(PropertyChangeEvent evt) {
+							if ("progress".equals(evt.getPropertyName())) {
+								// forward to main frame
+								MainFrame.getInstance().setProgress(
+										(Integer) evt.getNewValue());
+							}
+						}
+					});
+					worker.execute();
 				}
 			};
 
 			localActions.put("removeProject", removeProjectAction);
 			localActions.put("newModFile", newModFileAction);
 			localActions.put("testModFile", testModFileAction);
-		}
-
-		/**
-		 * Recursive performs testStatusModfile on every eligible descendent of the node.
-		 * @param node the root tree node
-		 */
-		private void testAllChildren(TreeNode node) {
-			if (node.isLeaf()) {
-				if (node instanceof ModFileNode) {
-					MainFrame.getInstance().testStatusModFile((ModFileNode) node);
-				}
-			} else {
-				for (int i = 0; i < node.getChildCount(); i++) {
-					testAllChildren(node.getChildAt(i));
-				}
-			}
 		}
 					
 		/**
@@ -420,6 +402,109 @@ public class ProjectTree extends JTree {
 			this.configureTargetContext(treePath);
 			
 			super.show(invoker, x, y);
+		}
+		
+	}
+
+	@SuppressWarnings("unchecked")
+	public class ModFileStatusWorker extends SwingWorker<Object, Object> {
+		
+		private FileNode parentNode;
+
+		public ModFileStatusWorker(FileNode parentNode) {
+			super();
+			this.parentNode = parentNode;
+		}
+
+		@Override
+		protected Object doInBackground() throws Exception {
+			// TODO: make application appear busy
+			this.setProgress(0);
+			
+			// determine total mod file count
+			double total = 0.0;
+			Enumeration<FileNode> dfe = parentNode.depthFirstEnumeration();
+			while (dfe.hasMoreElements()) {
+				FileNode fileNode = (FileNode) dfe.nextElement();
+				if (fileNode instanceof ModFileNode) {
+					total++;
+				}
+			}
+			
+			// update mod file status and fire progress events
+			int current = 0;
+			dfe = parentNode.depthFirstEnumeration();
+			while (dfe.hasMoreElements()) {
+				FileNode fileNode = (FileNode) dfe.nextElement();
+				if (fileNode instanceof ModFileNode) {
+					MainFrame.getInstance().testModFileStatus((ModFileNode) fileNode);
+					this.setProgress((int) (++current / total * 100.0));
+				} else {
+					if (!fileNode.isLeaf()) {
+						try {
+							fileNode.setStatus(this.determineStatus(fileNode));
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+			
+			return null;
+		}
+		
+		/**
+		 * Helper method to determine the apply state of a file node by checking
+		 * the states of its child nodes.
+		 * @param fileNode the file node to check
+		 * @return the apply state
+		 */
+		private ApplyStatus determineStatus(FileNode fileNode) {
+			if (fileNode.isExcluded()) {
+				return null;
+			} else {
+				ApplyStatus res = ApplyStatus.UNKNOWN;
+				// init running variables
+				boolean allBefore = true;
+				boolean allAfter = true;
+				boolean allUnknown = true;
+				// iterate child nodes
+				for (int i = 0; i < fileNode.getChildCount(); i++) {
+					FileNode child = (FileNode) fileNode.getChildAt(i);
+					// check status
+					res = child.getStatus();
+					// check for exclusion conditions
+					if ((res != null) && !child.isExcluded()) {
+						
+						if (res == ApplyStatus.APPLY_ERROR) {
+							// break out of loop, no need to check further on error
+							break;
+						}
+						// skip if mixed status, cannot get any better, but
+						// continue to look for errors
+						if (res != ApplyStatus.MIXED_STATUS) {
+							// update running variables
+							allBefore &= (res == ApplyStatus.BEFORE_HEX_PRESENT);
+							allAfter &= (res == ApplyStatus.AFTER_HEX_PRESENT);
+							allUnknown &= (res == ApplyStatus.UNKNOWN);
+							
+							// we have mixed state if all running variables turn
+							// out to be the same (i.e. false)
+							if (!allBefore && !allAfter && !allUnknown) {
+								res = ApplyStatus.MIXED_STATUS;
+								continue;
+							}
+						}
+					}
+				}
+				return res;
+			}
+		}
+
+		@Override
+		protected void done() {
+			// TODO: make application stop appearing busy
+			this.setProgress(100);
 		}
 		
 	}

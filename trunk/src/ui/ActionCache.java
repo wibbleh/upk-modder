@@ -219,6 +219,19 @@ public class ActionCache {
 		refUpdateAction.putValue(Action.MNEMONIC_KEY, (int) 'u');
 		refUpdateAction.putValue(Action.SHORT_DESCRIPTION, "Update References...");
 		refUpdateAction.setEnabled(false);
+		
+		// test mod file status
+		Action testApplyStatusAction = new AbstractAction("Test Apply State") {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				mainFrame.testModFileStatus();
+			}
+		};
+		testApplyStatusAction.putValue(Action.SMALL_ICON, Constants.TEST_MOD_STATUS_ICON);
+		testApplyStatusAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
+		testApplyStatusAction.putValue(Action.MNEMONIC_KEY, (int) 't');
+		testApplyStatusAction.putValue(Action.SHORT_DESCRIPTION, "Test Apply State");
+		testApplyStatusAction.setEnabled(false);
 				
 		// apply hex
 		Action hexApplyAction = new AbstractAction("Apply Hex Changes") {
@@ -245,19 +258,6 @@ public class ActionCache {
 		hexRevertAction.putValue(Action.MNEMONIC_KEY, (int) 'r');
 		hexRevertAction.putValue(Action.SHORT_DESCRIPTION, "Revert Hex Changes");
 		hexRevertAction.setEnabled(false);
-		
-		// revert hex
-		Action testApplyStatusAction = new AbstractAction("Test File Status") {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				mainFrame.testStatusModFile();
-			}
-		};
-		testApplyStatusAction.putValue(Action.SMALL_ICON, Constants.MOD_UNKNOWN_ICON);
-		testApplyStatusAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
-		testApplyStatusAction.putValue(Action.MNEMONIC_KEY, (int) 't');
-		testApplyStatusAction.putValue(Action.SHORT_DESCRIPTION, "Test File Status");
-//		testApplyStatusAction.setEnabled(false);
 		
 		/* Help menu actions */
 		// create help and about icons

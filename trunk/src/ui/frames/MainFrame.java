@@ -31,15 +31,16 @@ import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.InsetsUIResource;
-import model.modtree.ModTree;
 
+import model.modtree.ModTree;
 import model.upk.UpkFile;
 import ui.ActionCache;
 import ui.ApplicationState;
+import ui.ApplyStatus;
 import ui.Constants;
 import ui.ModFileTabbedPane;
-import ui.StatusBar;
 import ui.ModFileTabbedPane.ModFileTab;
+import ui.StatusBar;
 import ui.dialogs.AboutDialog;
 import ui.trees.ProjectTree;
 import ui.trees.ProjectTreeModel.FileNode;
@@ -182,14 +183,14 @@ public class MainFrame extends JFrame {
 						upkPath = upkFile.getPath();
 					}
 					
-					// enable/disable 'update', 'apply' and 'revert' actions
-					setEditActionsEnabled((upkFile != null));
+					// enable/disable 'test', 'apply' and 'revert' actions
+					MainFrame.this.setEditActionsEnabled(modTab.getApplyStatus());
 					
 					// enable UPK selection button
 					ActionCache.getAction("associateUpk").setEnabled(true);
 				} else {
 					// last tab has been removed, reset to defaults
-					setEditActionsEnabled(false);
+					MainFrame.this.setEditActionsEnabled(false);
 					ActionCache.getAction("associateUpk").setEnabled(false);
 				}
 				// show file name in status bar (or missing file hint)
@@ -364,6 +365,14 @@ public class MainFrame extends JFrame {
 		}
 
 	/**
+	 * Sets the status bar's progress bar to the specified progress value.
+	 * @param progress the progress, between <code>0</code> and <code>100</code>
+	 */
+	public void setProgress(int progress) {
+		statusBar.setProgress(progress);
+	}
+
+	/**
 	 * Returns the cache of UPK files.
 	 * @return the UPK cache
 	 */
@@ -385,17 +394,28 @@ public class MainFrame extends JFrame {
 	}
 	
 	/**
-	 * Convenience method to set the enable state of the 'Update
-	 * References...', 'Apply Hex Changes' and 'Revert Hex Changes' menu
-	 * items.
+	 * Convenience method to set the enable state of the 'Test File Status',
+	 * 'Apply Hex Changes' and 'Revert Hex Changes' actions.
 	 * @param enabled the enable state
 	 */
-	public void setEditActionsEnabled(boolean enabled) {
+	private void setEditActionsEnabled(boolean enabled) {
+		ActionCache.getAction("testFile").setEnabled(enabled);
 		ActionCache.getAction("hexApply").setEnabled(enabled);
 		ActionCache.getAction("hexRevert").setEnabled(enabled);
-//		ActionCache.getAction("testFile").setEnabled(enabled);
 	}
-
+	
+	/**
+	 * Convenience method to set the enable state of the 'Test File Status',
+	 * 'Apply Hex Changes' and 'Revert Hex Changes' actions according to the
+	 * specified mod file apply state.
+	 * @param status the apply state
+	 */
+	private void setEditActionsEnabled(ApplyStatus status) {
+		ActionCache.getAction("testFile").setEnabled(true);
+		ActionCache.getAction("hexApply").setEnabled(status == ApplyStatus.BEFORE_HEX_PRESENT);
+		ActionCache.getAction("hexRevert").setEnabled(status == ApplyStatus.AFTER_HEX_PRESENT);
+	}
+	
 	/**
 	 * Shows the reference updating dialog for the currently selected mod file tab.
 	 */
@@ -432,13 +452,6 @@ public class MainFrame extends JFrame {
 		projectTree.createProject(projectPath);
 	}
 
-	/**
-	 * Performs refresh of project tree UI
-	 * Created to allow test action routed to ModFileTabbedPane to refresh the project pane.
-	 */
-	public void refreshProjectUI() {
-		projectTree.updateUI();
-	}
 	/**
 	 * Opens a project defined in the specified project XML file.
 	 * @param xmlPath the project XML
@@ -614,7 +627,7 @@ public class MainFrame extends JFrame {
 						this.associateUpk(upkPath);
 					}
 				}
-				setEditActionsEnabled((newTab.getModTree().getTargetUpk() != null));
+				setEditActionsEnabled(newTab.getApplyStatus());
 			}
 		} else {
 			// tab creation failed, show error message
@@ -674,72 +687,68 @@ public class MainFrame extends JFrame {
 	 * Applies the currently selected mod file tab's hex changes.
 	 */
 	public void applyModFile() {
-		modTabPane.applyModFile();
+		ApplyStatus status = modTabPane.applyModFile();
+		this.setEditActionsEnabled(status);
 	}
 
 	/**
 	 * Reverts the currently selected mod file tab's hex changes.
 	 */
 	public void revertModFile() {
-		modTabPane.revertModFile();
+		ApplyStatus status = modTabPane.revertModFile();
+		this.setEditActionsEnabled(status);
 	}
 
 	/**
 	 * Tests whether the current active pane's modfile's apply/revert status
 	 */
-	public void testStatusModFile() {
-		modTabPane.testStatusModFile();
+	public void testModFileStatus() {
+		ApplyStatus status = modTabPane.testModFileStatus();
+		this.setEditActionsEnabled(status);
 	}
 
-	/** 
-	 * Tests whether a path-specified (possibly not opened) modfile is applied to its target upk.
-	 * @param modNode
+	/**
+	 * Tests whether a path-specified (possibly not opened) modfile is applied
+	 * to its target upk.
+	 * @param modNode the mod file node to test
 	 */
-	public void testStatusModFile(ModFileNode modNode) {
+	public void testModFileStatus(ModFileNode modNode) {
 		if (modNode == null) {
 			return;
 		}
 		Path modFilePath = modNode.getFilePath();
-
-		if(modFilePath == null) {
+		if (modFilePath == null) {
 			return;
 		}
 
 		// test if the modfile is in an opened pane
 		if (modTabPane.getTab(modFilePath) != null) {
-			modTabPane.testStatusModFile(modFilePath);
-			return;
-		} 
-				
-		// if not opened, created create a temporary ModTree for testing
-		// this modTree is not hooked up to a document and so cannot be updated
-		// create parsed ModTree directly from supplied path
-		ModTree modTree = new ModTree(modFilePath);
+			ApplyStatus status = modTabPane.testModFileStatus(modFilePath);
+			this.setEditActionsEnabled(status);
+		} else {
+			// if not opened, create a temporary ModTree for testing,
+			// this modTree is not hooked up to a document and so cannot be
+			// updated,
+			// create parsed ModTree directly from supplied path
+			ModTree modTree = new ModTree(modFilePath);
 
-		//TODO: combine duplicate code for association of upks with tabs
-		// find upk for tree, if possible
-		ProjectNode project = modNode.getProject();
-		if (project != null) {
-			// get targeted generic UPK file name
-			String upkName = modTree.getUpkName();
-			// look up path in project's UPK file associations
-			Path upkPath = project.getUpkPath(upkName);
-			if (upkPath != null) {
-				// find upk in cache if possible
-				UpkFile upkFile = upkCache.get(upkPath);
-				// create new UpkFile if needed
-				if (upkFile == null) {
-					upkFile = new UpkFile(upkPath);
-					upkCache.put(upkPath, upkFile);
+			// find upk for tree, if possible
+			ProjectNode project = modNode.getProject();
+			if (project != null) {
+				// get targeted generic UPK file name
+				String upkName = modTree.getUpkName();
+				// look up path in project's UPK file associations
+				Path upkPath = project.getUpkPath(upkName);
+				if (upkPath != null) {
+					UpkFile upkFile = this.getUpkFile(upkPath);
+					//set the target upk in the ModTree
+					modTree.setTargetUpk(upkFile);
 				}
-				//set the target upk in the ModTree
-				modTree.setTargetUpk(upkFile);
 			}
-		}
 
-		// perform the test on the file
-		modNode.setStatus(HexSearchAndReplace.testFileStatus(modTree));
-		refreshProjectUI();
+			// perform the test on the file
+			modNode.setStatus(HexSearchAndReplace.testFileStatus(modTree));
+		}
 	}
 	
 	/**
@@ -747,16 +756,27 @@ public class MainFrame extends JFrame {
 	 * @param upkPath the path to the UPK file to associate
 	 */
 	public void associateUpk(Path upkPath) {
-		UpkFile upkFile = upkCache.get(upkPath);
-		if (upkFile == null) {
-			upkFile = new UpkFile(upkPath);
-			upkCache.put(upkPath, upkFile);
-		}
+		UpkFile upkFile = this.getUpkFile(upkPath);
 		if (modTabPane.associateUpk(upkFile)) {
 			statusBar.setUpkPath(upkPath);
 		}
 	}
 
+	/**
+	 * Convenience method to get a UPK file from the local cache or, if no
+	 * matching reference is present, to store a new reference in the cache.
+	 * @param upkPath the path to the UPK file
+	 * @return the UpkFile instance
+	 */
+	private UpkFile getUpkFile(Path upkPath) {
+		UpkFile upkFile = upkCache.get(upkPath);
+		if (upkFile == null) {
+			upkFile = new UpkFile(upkPath);
+			upkCache.put(upkPath, upkFile);
+		}
+		return upkFile;
+	}
+	
 	/**
 	 * Sets the status bar's status message text.
 	 * @param text the status message to display

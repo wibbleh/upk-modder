@@ -17,6 +17,7 @@
 
 package model.upk;
 
+import static model.modtree.ModTree.logger;
 import io.model.upk.ImportEntry;
 import io.model.upk.NameEntry;
 import io.model.upk.ObjectEntry;
@@ -29,7 +30,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import static model.modtree.ModTree.logger;
 
 /**
  * Model class for an UPK file header.
@@ -37,6 +37,8 @@ import static model.modtree.ModTree.logger;
  * @author Amineri, XMS
  */
 public class UpkHeader {
+	
+	// TODO: wrong logger is used here (static import from ModTree), create own logger 
 	
 	/**
 	 * The name list of this UPK header.
