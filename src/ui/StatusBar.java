@@ -34,6 +34,11 @@ public class StatusBar extends JPanel {
 	 * currently active mod file tab.
 	 */
 	private JTextField upkTtf;
+
+	/**
+	 * The progress bar indicating progress of various tasks.
+	 */
+	private JProgressBar progressBar;
 	
 	/**
 	 * The text field component displaying the current status message.
@@ -101,7 +106,7 @@ public class StatusBar extends JPanel {
 		// TODO: implement progress monitoring hooks into various processes
 		UIManager.getDefaults().put("nimbusOrange",
 				UIManager.getDefaults().get("nimbusFocus"));
-		JProgressBar progressBar = new JProgressBar();
+		progressBar = new JProgressBar();
 		progressBar.setStringPainted(true);
 
 		// create status message panel
@@ -174,6 +179,14 @@ public class StatusBar extends JPanel {
 	 */
 	public void setStatusMessage(String text) {
 		statusMsgTtf.setText(text);
+	}
+
+	/**
+	 * Sets the progress bar's value to the specified progress value.
+	 * @param progress the progress to display, between <code>0</code> and <code>100</code>
+	 */
+	public void setProgress(int progress) {
+		progressBar.setValue(progress);
 	}
 	
 }

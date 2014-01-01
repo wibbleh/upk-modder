@@ -1,5 +1,7 @@
 package ui.dialogs;
 
+import static model.modtree.ModTree.logger;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -39,8 +41,6 @@ import util.unrealhex.ReferenceUpdate;
 
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
-import static model.modtree.ModTree.logger;
-import static ui.Constants.REFERENCE_UPDATE_FONT;
 
 /**
  * Dialog implementation listing distinct references of a modfile tree model.
@@ -52,6 +52,8 @@ import static ui.Constants.REFERENCE_UPDATE_FONT;
  */
 @SuppressWarnings("serial")
 public class ReferenceUpdateDialog extends JDialog {
+
+	// TODO: wrong logger is used here (static import from ModTree), create own logger 
 	
 	/**
 	 * The reference to the current modfile tree structure.
@@ -188,7 +190,7 @@ public class ReferenceUpdateDialog extends JDialog {
 		
 		DefaultTableCellRenderer monoRenderer = new DefaultTableCellRenderer() {
 			/** Reference to monospaced font. */
-			private Font monoFont = REFERENCE_UPDATE_FONT;
+			private Font monoFont = Constants.REFERENCE_UPDATE_FONT;
 			@Override
 			public Component getTableCellRendererComponent(JTable table,
 					Object value, boolean isSelected, boolean hasFocus,

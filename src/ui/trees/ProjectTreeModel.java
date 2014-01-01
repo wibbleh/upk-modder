@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +39,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import ui.ApplyStatus;
 import ui.Constants;
-import util.unrealhex.HexSearchAndReplace;
-import util.unrealhex.HexSearchAndReplace.ApplyStatus;
 
 /**
  * A hybrid tree model combining a tree node-based setup with a file tree model.
@@ -110,10 +110,11 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	 * Adds a new project detailed within the specified XML file.
 	 * @param xmlPath the project XML file
 	 */
+	@SuppressWarnings("unchecked")
 	public void openProject(Path xmlPath) {
 		try {
 			final ProjectNode projectNode = new ProjectNode(xmlPath);
-			MutableTreeNode rootNode = this.getRoot();
+			DefaultMutableTreeNode rootNode = (DefaultMutableTreeNode) this.getRoot();
 			// check whether project already exists
 			for (int i = 0; i < rootNode.getChildCount(); i++) {
 				if (projectNode.equals(rootNode.getChildAt(i))) {
@@ -130,7 +131,8 @@ public class ProjectTreeModel extends DefaultTreeModel {
 				/** Temporary map storing path-to-node mappings. */
 				private Map<Path, FileNode> nodeMap = new HashMap<>();
 				{	// init map using project source directory
-					nodeMap.put(srcDir, projectNode); }
+					nodeMap.put(srcDir, projectNode);
+				}
 				
 				@Override
 				public FileVisitResult preVisitDirectory(Path dir,
@@ -162,6 +164,17 @@ public class ProjectTreeModel extends DefaultTreeModel {
 					return super.visitFile(file, attrs);
 				}
 			});
+			
+			Enumeration<Object> dfe = rootNode.depthFirstEnumeration();
+			while (dfe.hasMoreElements()) {
+				Object object = (Object) dfe.nextElement();
+				if (object instanceof FileNode) {
+					FileNode fileNode = (FileNode) object;
+					if (!fileNode.isExcluded()) {
+						fileNode.setStatus(ApplyStatus.UNKNOWN);
+					}
+				}
+			}
 			
 			logger.log(Level.INFO, "Project \'" + projectNode + "\' successfully loaded");
 		} catch (ParserConfigurationException | SAXException | IOException e) {
@@ -233,7 +246,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public MutableTreeNode getRoot() {
 		return (MutableTreeNode) super.getRoot();
@@ -252,12 +265,33 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	 */
 	public class FileNode extends DefaultMutableTreeNode implements Comparable<FileNode> {
 		
+		/** 
+		 * The last known status of the modfile. Used for display purposes.
+		 */
+		private ApplyStatus fileStatus;
+		
 		/**
 		 * Constructs a generic file node from the specified file or directory path.
 		 * @param path the path to wrap
 		 */
 		public FileNode(Path path) {
 			super(path);
+		}
+		
+		/**
+		 * Helper method returning whether this file node is supposed to be
+		 * excluded from certain operations.
+		 * @return <code>true</code> if excluded, <code>false</code> otherwise
+		 */
+		protected boolean isExcluded() {
+			// double leading underscore is key to ignore 
+			if (this.isLeaf() && !(this instanceof ModFileNode)) {
+				return true;
+			}
+			if (userObject != null) {
+				return this.getUserObject().getFileName().startsWith("__");
+			}
+			return false;
 		}
 		
 		/**
@@ -281,6 +315,26 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			return null;
 		}
 		
+		/**
+		 * Returns the apply state of this file node.
+		 * @return the apply state
+		 */
+		public ApplyStatus getStatus() {
+			return fileStatus;
+		}
+		
+		/**
+		 * Sets the apply state of this file node.
+		 * @param fileStatus the apply state to set
+		 */
+		public void setStatus(ApplyStatus fileStatus) {
+			this.fileStatus = fileStatus;
+			// notify model to force the tree to update
+			DefaultMutableTreeNode parent = (DefaultMutableTreeNode) this.getParent();
+			ProjectTreeModel.this.fireTreeNodesChanged(ProjectTreeModel.this, parent.getPath(),
+					new int[] { parent.getIndex(this) }, new Object[] { this });
+		}
+
 		@Override
 		public Path getUserObject() {
 			return (Path) super.getUserObject();
@@ -310,51 +364,6 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			return this.getFilePath().compareTo(that.getFilePath());
 		}
 		
-		//TODO: move to more appropriate location ??
-		/**
-		 * Determines the apply status of a node in the project tree.
-		 * @return
-		 */
-		public ApplyStatus getStatus() {
-			if (this.isLeaf() || this.toString().startsWith("__")) {
-				return null;
-			} else {
-				boolean beforeTest = true;
-				boolean afterTest = true;
-				boolean unknownTest = true;
-				boolean hasError = false;
-				for (int i = 0 ; i < this.getChildCount() ; i++) {
-					FileNode child = (FileNode) this.getChildAt(i);
-					if(!child.toString().startsWith("__")) {
-						ApplyStatus currStatus = child.getStatus();
-						if (currStatus != null) {
-							beforeTest = beforeTest && (currStatus == ApplyStatus.BEFORE_HEX_PRESENT);
-							afterTest = afterTest && (currStatus == ApplyStatus.AFTER_HEX_PRESENT);
-							unknownTest = unknownTest && (currStatus == ApplyStatus.UNKNOWN);
-							hasError = hasError || (currStatus == ApplyStatus.APPLY_ERROR);
-						}
-					}
-				}
-				if (hasError) {
-					return ApplyStatus.APPLY_ERROR;
-				}
-				// test if two or more are true
-				if (beforeTest ? (afterTest || unknownTest) : (afterTest && unknownTest)) {
-					return ApplyStatus.MIXED_STATUS;
-				}
-				if (beforeTest) {
-					return ApplyStatus.BEFORE_HEX_PRESENT;
-				}
-				if (afterTest) {
-					return ApplyStatus.AFTER_HEX_PRESENT;
-				}
-				if (unknownTest) {
-					return ApplyStatus.UNKNOWN;
-				} else {
-					return ApplyStatus.MIXED_STATUS;
-				}
-			}
-		}
 	}
 	
 	
@@ -522,11 +531,6 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	 */
 	public class ModFileNode extends FileNode {
 		
-		/** 
-		 * The last known status of the modfile. Used for display purposes.
-		 */
-		private HexSearchAndReplace.ApplyStatus fileStatus = HexSearchAndReplace.ApplyStatus.UNKNOWN;
-		
 		/**
 		 * Constructs a mod file node from the specified mod file path.
 		 * @param modPath the mod file path
@@ -535,21 +539,6 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			super(modPath);
 		}
 		
-		@Override
-		public HexSearchAndReplace.ApplyStatus getStatus() {
-			// TODO: turn into constant? Plan to use same key to ignore for bulk apply/convert operations.
-			// double leading underscore is key to ignore 
-			if (this.toString().startsWith("__")) {
-				return null;
-			}
-			return fileStatus;
-		}
-		
-		// TODO: set status of file when test or apply/revert action performed
-		public void setStatus(HexSearchAndReplace.ApplyStatus newStatus) {
-			this.fileStatus = newStatus;
-		}
-		
 	}
-	
+
 }

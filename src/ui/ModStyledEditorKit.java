@@ -1,5 +1,7 @@
 package ui;
 
+import static ui.Constants.TAB_SIZE;
+
 import java.awt.Shape;
 
 import javax.swing.event.DocumentEvent;
@@ -15,7 +17,6 @@ import javax.swing.text.StyledEditorKit;
 import javax.swing.text.TabSet;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
-import static ui.Constants.TAB_SIZE;
 
 /**
  * Current implementation fixes Java 7 bug with word wrapping.
