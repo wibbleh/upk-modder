@@ -33,7 +33,7 @@ import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
-import org.bounce.text.LineNumberMargin;
+//import org.bounce.text.LineNumberMargin;
 
 import ui.dialogs.ReferenceUpdateDialog;
 import ui.frames.MainFrame;
@@ -439,7 +439,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			JScrollPane modEditorScpn = new JScrollPane(modEditor,
 					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 					JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-			modEditorScpn.setRowHeaderView(new LineNumberMargin(modEditor));
+//			modEditorScpn.setRowHeaderView(new LineNumberMargin(modEditor));
 			modEditorScpn.setPreferredSize(new Dimension(650, 600));
 			
 			final Document modDocument = modEditor.getDocument();
@@ -473,6 +473,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 			modElemTreeScpn.setPreferredSize(new Dimension());
 			
+			modEditorScpn.setRowHeaderView(new TextLineNumber(modEditor, 4, this.modTree));
 			// configure look and feel of tree view
 			modElemTree.setRootVisible(false);
 			
