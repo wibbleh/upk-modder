@@ -1,7 +1,16 @@
-v0.72 (current)
+v0.75 (r126)
 Fixed error in FRand operator definition
 Improved speed of search algorithm to better handle searches in large objects
 Fixed bug preventing parsing of mixed hex + reference names
+Added "Test Status" command as context-menu action in Project Pane. Tests all subfolder/files.
+"Test Status" results displayed as icon overlays in both project pane and tab.
+    GREEN = BEFORE hex present
+	BLUE  = AFTER hex present
+	GREY  = No upk designated
+	YELLOW= Mixture of BEFORE, AFTER, and No upk
+	RED   = Error
+Hooked up progress bar to display progress when testing status of large projects.
+Added confirmation dialogue for unsaved files when closing application.
 
 v 0.71 (r118)
 Fixed bug causing incorrect file and memory sizes reported in tree view
