@@ -289,7 +289,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 				return true;
 			}
 			if (userObject != null) {
-				return this.getUserObject().getFileName().startsWith("__");
+				return this.getUserObject().getFileName().toString().startsWith("__");
 			}
 			return false;
 		}
@@ -368,13 +368,11 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		/**
 		 * Helper method to determine the apply state of a file node by checking
 		 * the states of its child nodes.
-		 * @param fileNode the file node to check
-		 * @return the apply state
 		 */
 		public void determineStatus() {
-			ApplyStatus status = null;
+			ApplyStatus tempStatus = null;
 			if (!this.isExcluded()) {
-				status = ApplyStatus.UNKNOWN;
+				tempStatus = ApplyStatus.UNKNOWN;
 				// init running variables
 				boolean allBefore = true;
 				boolean allAfter = true;
@@ -383,33 +381,33 @@ public class ProjectTreeModel extends DefaultTreeModel {
 				for (int i = 0; i < this.getChildCount(); i++) {
 					FileNode child = (FileNode) this.getChildAt(i);
 					// check status
-					status = child.getStatus();
+					ApplyStatus childStatus = child.getStatus();
 					// check for exclusion conditions
-					if ((status != null) && !child.isExcluded()) {
+					if ((childStatus != null) && !child.isExcluded()) {
 						
-						if (status == ApplyStatus.APPLY_ERROR) {
+						tempStatus = childStatus;
+						if (childStatus == ApplyStatus.APPLY_ERROR) {
 							// break out of loop, no need to check further on error
 							break;
 						}
 						// skip if mixed status, cannot get any better, but
 						// continue to look for errors
-						if (status != ApplyStatus.MIXED_STATUS) {
+						if (tempStatus != ApplyStatus.MIXED_STATUS) {
 							// update running variables
-							allBefore &= (status == ApplyStatus.BEFORE_HEX_PRESENT);
-							allAfter &= (status == ApplyStatus.AFTER_HEX_PRESENT);
-							allUnknown &= (status == ApplyStatus.UNKNOWN);
+							allBefore &= (tempStatus == ApplyStatus.BEFORE_HEX_PRESENT);
+							allAfter &= (tempStatus == ApplyStatus.AFTER_HEX_PRESENT);
+							allUnknown &= (tempStatus == ApplyStatus.UNKNOWN);
 							
 							// we have mixed state if all running variables turn
 							// out to be the same (i.e. false)
 							if (!allBefore && !allAfter && !allUnknown) {
-								status = ApplyStatus.MIXED_STATUS;
-								continue;
+								tempStatus = ApplyStatus.MIXED_STATUS;
 							}
 						}
 					}
 				}
 			}
-			this.setStatus(status);
+			this.setStatus(tempStatus);
 		}
 		
 	}

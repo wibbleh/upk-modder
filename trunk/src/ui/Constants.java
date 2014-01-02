@@ -56,11 +56,13 @@ public class Constants {
 	public static final Icon DIRECTORY_ICON = UIManager.getIcon("FileView.directoryIcon");
 
 	/** <img src="../ui/resources/icons/bullet_before16.png"/> */
-	public static final Icon BULLET_BEFORE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_before16.png"));
+//	public static final Icon BULLET_BEFORE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_before16.png"));
+	public static final Icon BULLET_BEFORE_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_green16.png"));
 	/** <img src="../ui/resources/icons/bullet_after16.png"/> */
 	public static final Icon BULLET_AFTER_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_after16.png"));
 	/** <img src="../ui/resources/icons/bullet_mixed16.png"/> */
-	public static final Icon BULLET_MIXED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_mixed16.png"));
+	//public static final Icon BULLET_MIXED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_mixed16.png"));
+	public static final Icon BULLET_MIXED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_orange16.png"));
 	/** <img src="../ui/resources/icons/bullet_error16.png"/> */
 	public static final Icon BULLET_ERROR_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_error16.png"));
 	/** <img src="../ui/resources/icons/bullet_unknown16.png"/> */

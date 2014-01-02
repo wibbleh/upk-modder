@@ -1,3 +1,8 @@
+v0.72 (current)
+Fixed error in FRand operator definition
+Improved speed of search algorithm to better handle searches in large objects
+Fixed bug preventing parsing of mixed hex + reference names
+
 v 0.71 (r118)
 Fixed bug causing incorrect file and memory sizes reported in tree view
 Fixed bug causing "test file status" to fail when AFTER hex was installed
