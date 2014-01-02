@@ -110,14 +110,16 @@ public class HexSearchAndReplace {
 	/**
 	 * Finds the specified hex within the target upk stored within the given tree.
 	 * Scope of the search is limited to the function in the associated tree.
-	 * @param hex hex to search for
+	 * The entire search hex is loaded into memory, so this is not appropriate for extreme cases.
+	 * The largest upk in XCOM is ~44MB, and the largest modded is ~19 MB, 
+	 *						so there should be no problems for this application.
+	 * @param pattern hex to search for
 	 * @param tree provides function to limit scope of search
 	 * @return file offset of found hex, or -1 if not found
 	 * @throws IOException
 	 */
-	public static long findFilePosition(byte[] hex, ModTree tree)
-			throws IOException {
-        long replaceOffset = -1;
+	public static long findFilePosition(byte[] pattern, ModTree tree) throws IOException {
+        long replaceOffset;
         
 		// find possible destination
 		
@@ -154,31 +156,47 @@ public class HexSearchAndReplace {
 //			return findIndex + functPos;
 //		}
 		
-		//allocate buffer as large as we need
-		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
+		// read search area fully and use KMPMatch to search for the pattern
+		// tested by performing "test status" on entire Long War project with no errors
+		ByteBuffer fileBuf = ByteBuffer.allocate((int) functLength);  // allocate enough space to read entire search space
+		
+		// open channel to upk for read-only to read in search space
 		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getTargetUpk().getPath(), StandardOpenOption.READ)) {
-			long endSearch = functPos + functLength - hex.length;
-			for (long currPos = functPos; currPos <= endSearch; currPos++) {
-				
-				// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
-				// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?
-				// TODO: @Amineri we could also implement Knuth-Morris-Pratt or Boyer-Moore algorithm for maximum pattern matching performance
-				boolean bMatch = true;
-				sbc.position(currPos); // set file position
-				sbc.read(fileBuf);
-				for (int jCount = 0; jCount < hex.length; jCount++) {
-					if (fileBuf.get(jCount) != hex[jCount]) {
-						bMatch = false;
-						break;
-					}
-				}
-				if (bMatch) {
-					replaceOffset = currPos;
-					break;
-				}
-				fileBuf.clear();
-			}
+			sbc.position(functPos);
+			sbc.read(fileBuf);
+			
 		}
+		byte[] searchSpace = fileBuf.array();
+		replaceOffset = KMPMatch.indexOf(searchSpace, pattern);
+		if (replaceOffset >=0) {
+			replaceOffset += functPos;
+		}
+		
+		//allocate buffer as large as we need
+//		ByteBuffer fileBuf = ByteBuffer.allocate(hex.length);
+//		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getTargetUpk().getPath(), StandardOpenOption.READ)) {
+//			long endSearch = functPos + functLength - hex.length;
+//			for (long currPos = functPos; currPos <= endSearch; currPos++) {
+//				
+//				// TODO: search code could probably be done faster with a match method, but I couldn't get it to work
+//				// TODO: @Amineri how about using 'new String(bytes).indexOf(new String(hex))' on a block of UPK bytes?
+//				// TODO: @Amineri we could also implement Knuth-Morris-Pratt or Boyer-Moore algorithm for maximum pattern matching performance
+//				boolean bMatch = true;
+//				sbc.position(currPos); // set file position
+//				sbc.read(fileBuf);
+//				for (int jCount = 0; jCount < hex.length; jCount++) {
+//					if (fileBuf.get(jCount) != hex[jCount]) {
+//						bMatch = false;
+//						break;
+//					}
+//				}
+//				if (bMatch) {
+//					replaceOffset = currPos;
+//					break;
+//				}
+//				fileBuf.clear();
+//			}
+//		}
 		return replaceOffset;
 	}
 	
@@ -336,13 +354,13 @@ public class HexSearchAndReplace {
 	 */
 	public static ApplyStatus testFileStatus(ModTree tree) {
 		
-		// TODO: test install status for mods that alter Table Entries (as opposed to objects)
-		if(!tree.getAction().isEmpty()) {
-			return ApplyStatus.UNKNOWN;
-		}
-		
 		if (tree.getTargetUpk() == null) {
 			return ApplyStatus.UNKNOWN;
+		}
+
+		// TODO: test install status for mods that alter Table Entries (as opposed to objects)
+		if(!tree.getAction().isEmpty()) {
+			return testSpecialStatus(tree);
 		}
 		
 		// consolidate BEFORE hex
@@ -405,6 +423,101 @@ public class HexSearchAndReplace {
 		}
 				
 		return ApplyStatus.APPLY_ERROR;
+	}
+	
+	/**
+	 * Test status of special operations.
+	 * Currently supported:
+	 *     Action=typechange
+	 * @param tree the ModTree to be tested
+	 * @return Application status
+	 */
+	private static ApplyStatus testSpecialStatus (ModTree tree) {
+		if (tree.getAction().equalsIgnoreCase("typechange")) {
+			int beforeSize=-1, afterSize=-1; 
+			//retrieve type change properties from tree from BEFORE section
+			String beforeType = findByKeyword("OBJECT_TYPE", tree, ModContextType.BEFORE_HEX);
+			String beforeSizeString = findByKeyword("SIZE", tree, ModContextType.BEFORE_HEX);
+			if(!beforeSizeString.isEmpty()) {
+				try {
+					beforeSize = Integer.parseInt(beforeSizeString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid BEFORE size.", ex);
+				}
+			}
+			//retrieve type change properties from tree from AFTER section
+			String afterType = findByKeyword("OBJECT_TYPE", tree, ModContextType.AFTER_HEX);
+			String afterSizeString = findByKeyword("SIZE", tree, ModContextType.AFTER_HEX);
+			if(!afterSizeString.isEmpty()) {
+				try {
+					afterSize = Integer.parseInt(afterSizeString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid AFTER size.", ex);
+				}
+			}
+			// retrieve import table references for types
+			int beforeTypeIdx = tree.getTargetUpk().findRefByName(beforeType);
+			if(beforeTypeIdx == 0) {
+				logger.log(Level.INFO, "No match for BEFORE type in Import Table");
+			}
+			if(beforeTypeIdx > 0) {
+				logger.log(Level.INFO, "ERROR - BEFORE object type can only be from Import Table");
+			}
+			// retrieve import table references for types
+			int afterTypeIdx = tree.getTargetUpk().findRefByName(afterType);
+			if(afterTypeIdx == 0) {
+				logger.log(Level.INFO, "No match for AFTER type in Import Table");
+			}
+			if(afterTypeIdx > 0) {
+				logger.log(Level.INFO, "ERROR - AFTER object type can only be from Import Table");
+			}
+			
+			// attempt to find object
+			int objectIdx = tree.getTargetUpk().findRefByName(tree.getFunctionName());
+			if(objectIdx == 0) {
+				logger.log(Level.INFO, "Object not found");
+				return ApplyStatus.APPLY_ERROR;
+			}
+			if(objectIdx < 0) {
+				logger.log(Level.INFO, "Import Objects cannot have type changed");
+				return ApplyStatus.APPLY_ERROR;
+			}
+			
+			ObjectEntry currentObjEntry = tree.getTargetUpk().getHeader().getObjectList().get(objectIdx);
+			
+			boolean beforeFound = true;
+			// verify that old values are there.
+			if(currentObjEntry.getType() != beforeTypeIdx) {
+				beforeFound = false;
+			}
+			if(currentObjEntry.getUpkSize() != beforeSize) {
+				beforeFound = false;
+			}
+			
+			boolean afterFound = true;
+			// verify that old values are there.
+			if(currentObjEntry.getType() != afterTypeIdx) {
+				afterFound = false;
+			}
+			if(currentObjEntry.getUpkSize() != afterSize) {
+				afterFound = false;
+			}
+			
+			if(beforeFound && afterFound) {
+				return ApplyStatus.MIXED_STATUS;
+			}
+			if(beforeFound) {
+				return ApplyStatus.BEFORE_HEX_PRESENT;
+			}
+			if(afterFound) {
+				return ApplyStatus.AFTER_HEX_PRESENT;
+			}
+			return ApplyStatus.APPLY_ERROR;
+		}
+			
+		return ApplyStatus.UNKNOWN;
 	}
 	
 	/**
@@ -592,6 +705,9 @@ public class HexSearchAndReplace {
 		try {
 			Files.move(origPath, backupPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch(IOException ex) {
+			logger.log(Level.INFO, "Failed to create backup file", ex);
+			return null;
+		} catch(Exception ex) {
 			logger.log(Level.INFO, "Failed to create backup file", ex);
 			return null;
 		}

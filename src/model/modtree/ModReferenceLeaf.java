@@ -102,10 +102,15 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 		this.value = 0;
 		int endOffset;
 		if (s.startsWith("{|") || s.startsWith("<|")) {
-			this.text = s.split("\\s", 2)[0].trim() + " ";
+			if(s.split("\\s").length > 1) {
+				this.text = s.split("\\s", 2)[0].trim() + " ";
+				s = s.split("\\s", 2)[1];
+			} else {
+				this.text = s.split("\\s", 2)[0].trim();
+				s = s.replace(this.text, "");
+			}
 			endOffset = this.getEndOffset();
 			endOffset += this.text.length();
-			s = s.split("\\s", 2)[1];
 			this.setRange(this.getStartOffset(), endOffset);
 			this.isName = true;
 			return s;

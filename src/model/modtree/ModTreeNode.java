@@ -17,7 +17,6 @@ import javax.swing.text.AttributeSet;
 import javax.swing.tree.TreeNode;
 
 import model.modtree.ModContext.ModContextType;
-import ui.editor.ModDocument;
 
 /**
  * Basic <code>TreeNode</code> implementation used in structuring modfile contents.
@@ -343,7 +342,8 @@ public class ModTreeNode implements TreeNode {
 			outString[0] = "";
 		}
 		// extract suffix string
-		outString[2] = in.replaceFirst(outString[0], "").replaceFirst(outString[1], "");
+		//outString[2] = in.replace(outString[0], "").replace(outString[1], "");
+		outString[2] = in.substring(outString[0].length() + outString[1].length(), in.length());
 //		int last = in.lastIndexOf(tokens[tokens.length - 1]);
 //		if ((last + tokens[tokens.length - 1].length()+1) < in.length()) {
 //			outString[2] = in.substring(last + tokens[tokens.length - 1].length()+1, in.length());
