@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -117,11 +119,11 @@ public class MainFrame extends JFrame {
 		this.restoreApplicationState();
 		
 		// make closing the main frame terminate the application
-		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+		this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent evt) {
-				appState.storeState();
+				MainFrame.this.closeApplication();
 			}
 		});
 		
@@ -320,49 +322,52 @@ public class MainFrame extends JFrame {
 		
 		return toolBar;
 	}
-
-//	public void setTargetUpk(ModFileTab tab, Path filePath) {
-//
-//			// grab UPK file from cache
-//			UpkFile upkFile = upkCache.get(filePath);
-//			if (upkFile == null) {
-//				// if cache doesn't contain UPK file instantiate a new one
-//				upkFile = new UpkFile(filePath);
-//			}
-//
-//			// TODO: create function for upk association
-//			// check whether UPK file is valid (i.e. header parsing worked properly)
-//			if (upkFile.getHeader() != null) {
-//				// store UPK file in cache
-//				upkCache.put(filePath, upkFile);
-//				// link UPK file to tab
-//				tab.setUpkFile(upkFile);
-//				// show file name in status bar
-//				upkTtf.setText(filePath.toString());
-//				// enable 'update', 'apply' and 'revert' actions
-//				setEditActionsEnabled(true);
-//
-//				if(tab.getModFile() != null) {
-//					// persistently store file-to-upk association
-//					// FIXME
-//					UpkModderProperties.setUpkProperty(tab.getModFile().getName(), filePath.toAbsolutePath().toString());
-//				}
-//			} else {
-//				// TODO: show error/warning message
-//			}
-//	}
 	
+	protected void closeApplication() {
+		// TODO: maybe implement 'Save All' action for tabs
+		boolean save = false;
+		for (int i = 0; i < modTabPane.getTabCount(); i++) {
+			ModFileTab modTab = (ModFileTab) modTabPane.getComponentAt(i);
+			if (modTab.isModified()) {
+				if (!save) {
+					int res = JOptionPane.showOptionDialog(this, "One or more tabs have unsaved changes, close anyway?",
+							"Confirm Close", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+							null, new String[] { "Close Without Save", "Save And Close", "Cancel" }, "Cancel");
+					if ((res == JOptionPane.CANCEL_OPTION) || (res == JOptionPane.CLOSED_OPTION)) {
+						// 'Cancel'
+						return;
+					} else if (res == JOptionPane.NO_OPTION) {
+						// 'Save And Close'
+						save = true;
+						// continue iterating tabs and save them
+					} else {
+						// 'Close Without Save'
+						break;
+					}
+				}
+				if (save) {
+					// save before closing
+					try {
+						modTab.saveFile();
+					} catch (IOException e) {
+						ModFileTabbedPane.logger.log(
+								Level.SEVERE, "Failed to save mod file \'" + modTab.getModFilePath() + "\'", e);
+					}
+				}
+			}
+		}
+		
+		// store application state
+		appState.storeState();
+		
+		// exit
+		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+	}
 
-	
 	@Override
 	public void setTitle(String title) {
 		super.setTitle(Constants.APPLICATION_NAME + " " + Constants.VERSION_NUMBER + title);
 	}
-
-	@Override
-		public void dispose() {
-			super.dispose();
-		}
 
 	/**
 	 * Sets the status bar's progress bar to the specified progress value.
