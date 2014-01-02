@@ -22,6 +22,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.Document;
 import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.TreeNode;
 
 import model.modtree.ModGenericLeaf;
 import model.modtree.ModOffsetLeaf;
@@ -36,6 +37,7 @@ import org.bounce.text.LineNumberMargin;
 
 import ui.dialogs.ReferenceUpdateDialog;
 import ui.frames.MainFrame;
+import ui.trees.ProjectTreeModel.FileNode;
 import ui.trees.ProjectTreeModel.ModFileNode;
 import ui.trees.ProjectTreeModel.ProjectNode;
 import util.unrealhex.HexSearchAndReplace;
@@ -151,7 +153,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				this.addTab(modPath.getFileName().toString(), modTab);
 			}
 			this.setSelectedComponent(modTab);
-			this.setApplyStatusAt(getSelectedIndex(), modNode.getStatus());
+			this.setApplyStatusAt(this.indexOfComponent(modTab), modNode.getStatus());
 			return modTab;
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Failed to load mod file \'" + modPath.getFileName() + "\'", e);
@@ -314,7 +316,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			tab = this.getTab(modFilePath);
 			index = this.indexOfComponent(tab);
 		}
-		
 		if (tab != null) {
 			ApplyStatus status = this.testApplyStatus(tab);
 			this.setApplyStatusAt(index, status);
@@ -535,7 +536,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 *      -- a few lines at the end of the function are changed, as well as the header
 		 */
 		public boolean applyChanges() {
-			return HexSearchAndReplace.applyRevertChanges(true, this.modTree);
+			boolean res = HexSearchAndReplace.applyRevertChanges(true, this.modTree);
+			return res;
 		}
 
 		/**
@@ -544,7 +546,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @return true if changes reverted successfully, false otherwise
 		 */
 		public boolean revertChanges() {
-			return HexSearchAndReplace.applyRevertChanges(false, this.modTree);
+			boolean res = HexSearchAndReplace.applyRevertChanges(false, this.modTree);
+			return res;
 		}
 		
 		/**
@@ -657,6 +660,12 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		public void setApplyStatus(ApplyStatus status) {
 			this.status = status;
 			modNode.setStatus(status);
+			// propagate status up the project hierarchy
+			TreeNode parent = modNode.getParent();
+			while (parent instanceof FileNode) {
+				((FileNode) parent).determineStatus();
+				parent = parent.getParent();
+			}
 		}
 
 	}

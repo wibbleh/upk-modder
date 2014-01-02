@@ -268,7 +268,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		/** 
 		 * The last known status of the modfile. Used for display purposes.
 		 */
-		private ApplyStatus fileStatus;
+		protected ApplyStatus status;
 		
 		/**
 		 * Constructs a generic file node from the specified file or directory path.
@@ -320,15 +320,15 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		 * @return the apply state
 		 */
 		public ApplyStatus getStatus() {
-			return fileStatus;
+			return status;
 		}
 		
 		/**
 		 * Sets the apply state of this file node.
-		 * @param fileStatus the apply state to set
+		 * @param status the apply state to set
 		 */
-		public void setStatus(ApplyStatus fileStatus) {
-			this.fileStatus = fileStatus;
+		public void setStatus(ApplyStatus status) {
+			this.status = status;
 			// notify model to force the tree to update
 			DefaultMutableTreeNode parent = (DefaultMutableTreeNode) this.getParent();
 			ProjectTreeModel.this.fireTreeNodesChanged(ProjectTreeModel.this, parent.getPath(),
@@ -362,6 +362,54 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		@Override
 		public int compareTo(FileNode that) {
 			return this.getFilePath().compareTo(that.getFilePath());
+		}
+
+		
+		/**
+		 * Helper method to determine the apply state of a file node by checking
+		 * the states of its child nodes.
+		 * @param fileNode the file node to check
+		 * @return the apply state
+		 */
+		public void determineStatus() {
+			ApplyStatus status = null;
+			if (!this.isExcluded()) {
+				status = ApplyStatus.UNKNOWN;
+				// init running variables
+				boolean allBefore = true;
+				boolean allAfter = true;
+				boolean allUnknown = true;
+				// iterate child nodes
+				for (int i = 0; i < this.getChildCount(); i++) {
+					FileNode child = (FileNode) this.getChildAt(i);
+					// check status
+					status = child.getStatus();
+					// check for exclusion conditions
+					if ((status != null) && !child.isExcluded()) {
+						
+						if (status == ApplyStatus.APPLY_ERROR) {
+							// break out of loop, no need to check further on error
+							break;
+						}
+						// skip if mixed status, cannot get any better, but
+						// continue to look for errors
+						if (status != ApplyStatus.MIXED_STATUS) {
+							// update running variables
+							allBefore &= (status == ApplyStatus.BEFORE_HEX_PRESENT);
+							allAfter &= (status == ApplyStatus.AFTER_HEX_PRESENT);
+							allUnknown &= (status == ApplyStatus.UNKNOWN);
+							
+							// we have mixed state if all running variables turn
+							// out to be the same (i.e. false)
+							if (!allBefore && !allAfter && !allUnknown) {
+								status = ApplyStatus.MIXED_STATUS;
+								continue;
+							}
+						}
+					}
+				}
+			}
+			this.setStatus(status);
 		}
 		
 	}
@@ -537,6 +585,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		 */
 		public ModFileNode(Path modPath) {
 			super(modPath);
+			this.status = ApplyStatus.UNKNOWN;
 		}
 		
 	}
