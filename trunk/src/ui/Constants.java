@@ -28,7 +28,7 @@ public class Constants {
 	/**
 	 * The application's version number.
 	 */
-	public static final String VERSION_NUMBER = "v0.72";
+	public static final String VERSION_NUMBER = "v0.75";
 	
 	/**
 	 * The list of authors.
@@ -62,7 +62,7 @@ public class Constants {
 	public static final Icon BULLET_AFTER_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_after16.png"));
 	/** <img src="../ui/resources/icons/bullet_mixed16.png"/> */
 	//public static final Icon BULLET_MIXED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_mixed16.png"));
-	public static final Icon BULLET_MIXED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_orange16.png"));
+	public static final Icon BULLET_MIXED_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_yellow16.png"));
 	/** <img src="../ui/resources/icons/bullet_error16.png"/> */
 	public static final Icon BULLET_ERROR_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/bullet_error16.png"));
 	/** <img src="../ui/resources/icons/bullet_unknown16.png"/> */
