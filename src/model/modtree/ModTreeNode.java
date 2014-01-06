@@ -12,11 +12,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.tree.TreeNode;
 
 import model.modtree.ModContext.ModContextType;
+import static model.modtree.ModTree.logger;
 
 /**
  * Basic <code>TreeNode</code> implementation used in structuring modfile contents.
@@ -388,28 +390,28 @@ public class ModTreeNode implements TreeNode {
 					getTree().setFileVersion(Integer.parseInt(this.getTagValue(this.getFullText())));
 				}
 				catch (NumberFormatException x) {
-					System.out.println("Invalid FileVersion: " +x);
+					logger.log(Level.INFO, "Invalid FileVersion: ", x);
 				}
 			} else if (content.startsWith("RESIZE=")) {
 				try {
 					getTree().setResizeAmount(Integer.parseInt(this.getTagValue(this.getFullText()), 16));
 				}
 				catch (NumberFormatException x) {
-					System.out.println("Invalid Resize amount: " +x);
+					logger.log(Level.INFO, "Invalid RESIZE amount: ", x);
 				}
 			} else if (content.startsWith("KEYWORD=")) {
 				try {
 					getTree().addKeyword(this.getTagValue(this.getFullText()));
 				}
-				catch (NumberFormatException x) {
-					System.out.println("Invalid Resize amount: " +x);
-				}
+				catch (Exception x) {
+					logger.log(Level.INFO, "Error parsing KEYWORD: ", x);
+				}					
 			} else if (content.startsWith("ACTION=")) {
 				try {
 					getTree().setAction(this.getTagValue(this.getFullText()));
 				}
-				catch (NumberFormatException x) {
-					System.out.println("Invalid Resize amount: " +x);
+				catch (Exception x) {
+					logger.log(Level.INFO, "Error parsing ACTION: ", x);
 				}
 			}
 		}

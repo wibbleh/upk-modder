@@ -100,6 +100,22 @@ public class ObjectEntry {
 	}
 
 	/**
+	 * Returns name index of entry
+	 * @return int
+	 */
+	public int getNamePtr() {
+		return this.iNamePtr;
+	}
+	
+	/**
+	 * Returns name index of entry
+	 * @return index
+	 */
+	public void setNamePtr(int index) {
+		this.iNamePtr = index;
+	}
+	
+	/**
 	 * Returns name of entry as index to namelist
 	 * @return int
 	 */
@@ -157,7 +173,6 @@ public class ObjectEntry {
 		return this.iType;
 	}
 	
-	
 	/**
 	 * Sets the local cached copy of the object type
 	 * WARNING -- this does not update the file itself
@@ -167,6 +182,40 @@ public class ObjectEntry {
 		this.iType = type;
 	}
 	
+	/**
+	 * Returns the object parent of this entry.
+	 * @return the object parent
+	 */
+	public int getParent() {
+		return this.iParent;
+	}
+	
+	/**
+	 * Sets the local cached copy of the object parent
+	 * WARNING -- this does not update the file itself
+	 * @param parent the new parent
+	 */
+	public void setParent(int parent) {
+		this.iParent = parent;
+	}
+
+	/**
+	 * Returns the object outer (or owner) of this entry.
+	 * @return the object outer (or owner)
+	 */
+	public int getOuter() {
+		return this.iOuter;
+	}
+	
+	/**
+	 * Sets the local cached copy of the object outer (or owner)
+	 * WARNING -- this does not update the file itself
+	 * @param outer the new outer (or owner)
+	 */
+	public void setOuter(int outer) {
+		this.iOuter = outer;
+	}
+
 	/**
 	 * Sets the position of the ObjectEntry object within the upk.
 	 * @return the file position of the object entry itself

@@ -1,3 +1,9 @@
+v0.76 (r128)
+Change line number display into Memory Position display
+Added new action "Generic Object Table Entry" change, and test
+Corrected some errors/warnings when parsing modfile header values
+
+
 v0.75 (r126)
 Fixed error in FRand operator definition
 Improved speed of search algorithm to better handle searches in large objects
