@@ -249,6 +249,15 @@ public class HexSearchAndReplace {
 						}
 						return true;
 					}
+				} else if (currTree.getAction().equalsIgnoreCase("genericObjectTableChange")) {
+					if (changeObjectTableEntry(apply, currTree)) {
+						if (apply) {
+							logger.log(Level.INFO, "Object changed to AFTER");
+						} else {
+							logger.log(Level.INFO, "Object changed to BEFORE");
+						}
+						return true;
+					}
 				}
 			}
 		} catch (IOException ex) {
@@ -503,6 +512,239 @@ public class HexSearchAndReplace {
 			}
 			if(currentObjEntry.getUpkSize() != afterSize) {
 				afterFound = false;
+			}
+			
+			if(beforeFound && afterFound) {
+				return ApplyStatus.MIXED_STATUS;
+			}
+			if(beforeFound) {
+				return ApplyStatus.BEFORE_HEX_PRESENT;
+			}
+			if(afterFound) {
+				return ApplyStatus.AFTER_HEX_PRESENT;
+			}
+			return ApplyStatus.APPLY_ERROR;
+		} else if (tree.getAction().equalsIgnoreCase("genericObjectTableChange")) {
+			ModContextType findContext = ModContextType.BEFORE_HEX;
+			ModContextType replaceContext = ModContextType.AFTER_HEX;
+			int findType = 0, findParent=0, findOuter=0, findNameIdx=-1, findHighFlags=0, findLowFlags=0, findSize=-1, findPos=-1;
+			int replaceType=0, replaceParent=0, replaceOuter=0, replaceNameIdx=-1, replaceHighFlags=0, replaceLowFlags=0, replaceSize=-1, replacePos=-1;
+
+			//retrieve possible change properties from tree -- FIND
+			String findTypeString = findByKeyword("OBJECT_TYPE", tree, findContext);
+			if(!findTypeString.isEmpty()) {
+				findType = tree.getTargetUpk().findRefByName(findTypeString);
+				if(findType == 0) {
+					logger.log(Level.INFO, "No match for FIND type in Import Table");
+					return ApplyStatus.APPLY_ERROR;
+				}
+				if(findType > 0) {
+					logger.log(Level.INFO, "ERROR - FIND object type can only be from Import Table");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String findParentString = findByKeyword("OBJECT_PARENT", tree, findContext);
+			if(!findParentString.isEmpty()) {
+				findParent = tree.getTargetUpk().findRefByName(findParentString);
+				if(findParent == 0) {
+					logger.log(Level.INFO, "No match for FIND parent");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String findOuterString = findByKeyword("OBJECT_OUTER", tree, findContext);
+			if(!findOuterString.isEmpty()) {
+				findOuter = tree.getTargetUpk().findRefByName(findOuterString);
+				if(findOuter == 0) {
+					logger.log(Level.INFO, "No match for FIND outer");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String findNameString = findByKeyword("OBJECT_NAMEIDX", tree, findContext);
+			if(!findNameString.isEmpty()) {
+				findNameIdx = tree.getTargetUpk().findVFRefByName(findNameString);
+				if(findNameIdx < 0) {
+					logger.log(Level.INFO, "No match for FIND name");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String findHighFlagsString = findByKeyword("OBJECT_HIGHFLAGS", tree, findContext);
+			if (!findHighFlagsString.isEmpty()) {
+				try {
+					findHighFlags = Integer.parseInt(findHighFlagsString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND high flags.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String findLowFlagsString = findByKeyword("OBJECT_LOWFLAGS", tree, findContext);
+			if (!findLowFlagsString.isEmpty()) {
+				try {
+					findLowFlags = Integer.parseInt(findLowFlagsString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND low flags.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String findSizeString = findByKeyword("OBJECT_SIZE", tree, findContext);
+			if (!findSizeString.isEmpty()) {
+				try {
+					findSize = Integer.parseInt(findSizeString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND size.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String findPositionString = findByKeyword("OBJECT_POSITION", tree, findContext);
+			if (!findPositionString.isEmpty()) {
+				try {
+					findPos = Integer.parseInt(findSizeString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND position.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			//retrieve possible change properties from tree -- FIND
+			String replaceTypeString = findByKeyword("OBJECT_TYPE", tree, replaceContext);
+			if(!replaceTypeString.isEmpty()) {
+				replaceType = tree.getTargetUpk().findRefByName(replaceTypeString);
+				if(replaceType == 0) {
+					logger.log(Level.INFO, "No match for FIND type in Import Table");
+					return ApplyStatus.APPLY_ERROR;
+				}
+				if(replaceType > 0) {
+					logger.log(Level.INFO, "ERROR - FIND object type can only be from Import Table");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String replaceParentString = findByKeyword("OBJECT_PARENT", tree, replaceContext);
+			if(!replaceParentString.isEmpty()) {
+				replaceParent = tree.getTargetUpk().findRefByName(replaceParentString);
+				if(replaceParent == 0) {
+					logger.log(Level.INFO, "No match for FIND parent");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String replaceOuterString = findByKeyword("OBJECT_OUTER", tree, replaceContext);
+			if(!replaceOuterString.isEmpty()) {
+				replaceOuter = tree.getTargetUpk().findRefByName(replaceOuterString);
+				if(replaceOuter == 0) {
+					logger.log(Level.INFO, "No match for FIND outer");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String replaceNameString = findByKeyword("OBJECT_NAMEIDX", tree, replaceContext);
+			if(!replaceNameString.isEmpty()) {
+				replaceNameIdx = tree.getTargetUpk().findVFRefByName(replaceNameString);
+				if(replaceNameIdx < 0) {
+					logger.log(Level.INFO, "No match for FIND name");
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String replaceHighFlagsString = findByKeyword("OBJECT_HIGHFLAGS", tree, replaceContext);
+			if (!replaceHighFlagsString.isEmpty()) {
+				try {
+					replaceHighFlags = Integer.parseInt(replaceHighFlagsString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND high flags.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String replaceLowFlagsString = findByKeyword("OBJECT_LOWFLAGS", tree, replaceContext);
+			if (!replaceLowFlagsString.isEmpty()) {
+				try {
+					replaceLowFlags = Integer.parseInt(replaceLowFlagsString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND low flags.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String replaceSizeString = findByKeyword("OBJECT_SIZE", tree, replaceContext);
+			if (!replaceSizeString.isEmpty()) {
+				try {
+					replaceSize = Integer.parseInt(replaceSizeString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND size.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			String replacePositionString = findByKeyword("OBJECT_POSITION", tree, replaceContext);
+			if (!replacePositionString.isEmpty()) {
+				try {
+					replacePos = Integer.parseInt(replaceSizeString, 16);
+				}
+				catch (NumberFormatException ex) {
+					logger.log(Level.INFO, "Invalid FIND position.", ex);
+					return ApplyStatus.APPLY_ERROR;
+				}
+			}
+
+			boolean beforeFound = true, afterFound = true;
+			ObjectEntry beforeObjEntry, afterObjEntry;
+			int beforeObjectIdx, afterObjectIdx;
+			// attempt to find object
+			// if name was non-null, then changing it will have changed how the function is found
+			if(findNameString.isEmpty()) {
+				beforeObjectIdx = tree.getTargetUpk().findRefByName(tree.getFunctionName());
+			} else {
+				String baseString = tree.getFunctionName();
+				String beforeName = findNameString + "@" + baseString;
+				beforeObjectIdx = tree.getTargetUpk().findRefByName(beforeName);
+			}
+			if(beforeObjectIdx == 0) {
+				beforeFound = false;
+			} else {
+				beforeObjEntry = tree.getTargetUpk().getHeader().getObjectList().get(beforeObjectIdx);
+
+				// check if old values are there
+				beforeFound &= findType == 0 || beforeObjEntry.getType() == findType;
+				beforeFound &= findParent == 0 || beforeObjEntry.getParent() == findParent;
+				beforeFound &= findOuter == 0 || beforeObjEntry.getOuter() == findOuter;
+				beforeFound &= findNameIdx == -1 || beforeObjEntry.getNameIdx() == findNameIdx;
+				beforeFound &= findSize == -1 || beforeObjEntry.getUpkSize() == findSize;
+				beforeFound &= findPos == -1 || beforeObjEntry.getUpkPos() == findPos;
+			}
+			
+			// if name was non-null, then changing it will have changed how the function is found
+			if(replaceNameString.isEmpty()) {
+				afterObjectIdx = tree.getTargetUpk().findRefByName(tree.getFunctionName());
+			} else {
+				String baseString = tree.getFunctionName();
+				String afterName = replaceNameString + "@" + baseString;
+				afterObjectIdx = tree.getTargetUpk().findRefByName(afterName);
+			}
+			if(afterObjectIdx == 0) {
+				afterFound = false;
+			} else {
+				afterObjEntry = tree.getTargetUpk().getHeader().getObjectList().get(afterObjectIdx);
+				// check if new values are there.
+				afterFound &= replaceType == 0 || afterObjEntry.getType() == replaceType;
+				afterFound &= replaceParent == 0 || afterObjEntry.getParent() == replaceParent;
+				afterFound &= replaceOuter == 0 || afterObjEntry.getOuter() == replaceOuter;
+				afterFound &= replaceNameIdx == -1 || afterObjEntry.getNameIdx() == replaceNameIdx;
+				afterFound &= replaceSize == -1 || afterObjEntry.getUpkSize() == replaceSize;
+				afterFound &= replacePos == -1 || afterObjEntry.getUpkPos() == replacePos;
 			}
 			
 			if(beforeFound && afterFound) {
@@ -879,6 +1121,356 @@ public class HexSearchAndReplace {
 		return true;
 	}
 	
+	/**
+	 * Allows generic alterations to an object table entry
+	 * @param apply whether the change is being applied or reverted
+	 * @param tree contains the data necessary to make the change
+	 * @return
+	 */
+	public static boolean changeObjectTableEntry(boolean apply, ModTree tree) {
+
+		ModContextType findContext;
+		ModContextType replaceContext;
+		if (apply) {
+			findContext = ModContextType.BEFORE_HEX;
+			replaceContext = ModContextType.AFTER_HEX;
+		} else {
+			findContext = ModContextType.AFTER_HEX;
+			replaceContext = ModContextType.BEFORE_HEX;
+		}
+
+		// Valid fields to be changed :
+		//		this.iType = data[0];		- object type, import index
+		//		this.iParent = data[1];		- object parent - 00 of not child class
+		//      this.iOuter = data[2];		- owner or container object -- 00 for outer class
+		//      this.iNamePtr = data[3];	- index to namelist
+		//		this.iHighFlags = data[6];	- flags
+		//		this.iLowFlags = data[7];	- flags
+		//      this.iUpkSize = data[8];	- file size of object
+		//      this.iUpkPos = data[9];		- file position of object, measured from beginning of package file
+
+		int findType = 0, findParent=0, findOuter=0, findNameIdx=-1, findHighFlags=0, findLowFlags=0, findSize=-1, findPos=-1;
+		int replaceType=0, replaceParent=0, replaceOuter=0, replaceNameIdx=-1, replaceHighFlags=0, replaceLowFlags=0, replaceSize=-1, replacePos=-1;
+		
+		//retrieve possible change properties from tree -- FIND
+		String findTypeString = findByKeyword("OBJECT_TYPE", tree, findContext);
+		if(!findTypeString.isEmpty()) {
+			findType = tree.getTargetUpk().findRefByName(findTypeString);
+			if(findType == 0) {
+				logger.log(Level.INFO, "No match for FIND type in Import Table");
+				return false;
+			}
+			if(findType > 0) {
+				logger.log(Level.INFO, "ERROR - FIND object type can only be from Import Table");
+				return false;
+			}
+		}
+		
+		String findParentString = findByKeyword("OBJECT_PARENT", tree, findContext);
+		if(!findParentString.isEmpty()) {
+			findParent = tree.getTargetUpk().findRefByName(findParentString);
+			if(findParent == 0) {
+				logger.log(Level.INFO, "No match for FIND parent");
+				return false;
+			}
+		}
+
+		String findOuterString = findByKeyword("OBJECT_OUTER", tree, findContext);
+		if(!findOuterString.isEmpty()) {
+			findOuter = tree.getTargetUpk().findRefByName(findOuterString);
+			if(findOuter == 0) {
+				logger.log(Level.INFO, "No match for FIND outer");
+				return false;
+			}
+		}
+
+		String findNameString = findByKeyword("OBJECT_NAMEIDX", tree, findContext);
+		if(!findNameString.isEmpty()) {
+			findNameIdx = tree.getTargetUpk().findVFRefByName(findNameString);
+			if(findNameIdx < 0) {
+				logger.log(Level.INFO, "No match for FIND name");
+				return false;
+			}
+		}
+
+		String findHighFlagsString = findByKeyword("OBJECT_HIGHFLAGS", tree, findContext);
+		if (!findHighFlagsString.isEmpty()) {
+			try {
+				findHighFlags = Integer.parseInt(findHighFlagsString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND high flags.", ex);
+				return false;
+			}
+		}
+
+		String findLowFlagsString = findByKeyword("OBJECT_LOWFLAGS", tree, findContext);
+		if (!findLowFlagsString.isEmpty()) {
+			try {
+				findLowFlags = Integer.parseInt(findLowFlagsString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND low flags.", ex);
+				return false;
+			}
+		}
+
+		String findSizeString = findByKeyword("OBJECT_SIZE", tree, findContext);
+		if (!findSizeString.isEmpty()) {
+			try {
+				findSize = Integer.parseInt(findSizeString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND size.", ex);
+				return false;
+			}
+		}
+
+		String findPositionString = findByKeyword("OBJECT_POSITION", tree, findContext);
+		if (!findPositionString.isEmpty()) {
+			try {
+				findPos = Integer.parseInt(findSizeString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND position.", ex);
+				return false;
+			}
+		}
+
+		//retrieve possible change properties from tree -- FIND
+		String replaceTypeString = findByKeyword("OBJECT_TYPE", tree, replaceContext);
+		if(!replaceTypeString.isEmpty()) {
+			replaceType = tree.getTargetUpk().findRefByName(replaceTypeString);
+			if(replaceType == 0) {
+				logger.log(Level.INFO, "No match for FIND type in Import Table");
+				return false;
+			}
+			if(replaceType > 0) {
+				logger.log(Level.INFO, "ERROR - FIND object type can only be from Import Table");
+				return false;
+			}
+		}
+		
+		String replaceParentString = findByKeyword("OBJECT_PARENT", tree, replaceContext);
+		if(!replaceParentString.isEmpty()) {
+			replaceParent = tree.getTargetUpk().findRefByName(replaceParentString);
+			if(replaceParent == 0) {
+				logger.log(Level.INFO, "No match for FIND parent");
+				return false;
+			}
+		}
+
+		String replaceOuterString = findByKeyword("OBJECT_OUTER", tree, replaceContext);
+		if(!replaceOuterString.isEmpty()) {
+			replaceOuter = tree.getTargetUpk().findRefByName(replaceOuterString);
+			if(replaceOuter == 0) {
+				logger.log(Level.INFO, "No match for FIND outer");
+				return false;
+			}
+		}
+
+		String replaceNameString = findByKeyword("OBJECT_NAMEIDX", tree, replaceContext);
+		if(!replaceNameString.isEmpty()) {
+			replaceNameIdx = tree.getTargetUpk().findVFRefByName(replaceNameString);
+			if(replaceNameIdx < 0) {
+				logger.log(Level.INFO, "No match for FIND name");
+				return false;
+			}
+		}
+
+		String replaceHighFlagsString = findByKeyword("OBJECT_HIGHFLAGS", tree, replaceContext);
+		if (!replaceHighFlagsString.isEmpty()) {
+			try {
+				replaceHighFlags = Integer.parseInt(replaceHighFlagsString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND high flags.", ex);
+				return false;
+			}
+		}
+
+		String replaceLowFlagsString = findByKeyword("OBJECT_LOWFLAGS", tree, replaceContext);
+		if (!replaceLowFlagsString.isEmpty()) {
+			try {
+				replaceLowFlags = Integer.parseInt(replaceLowFlagsString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND low flags.", ex);
+				return false;
+			}
+		}
+
+		String replaceSizeString = findByKeyword("OBJECT_SIZE", tree, replaceContext);
+		if (!replaceSizeString.isEmpty()) {
+			try {
+				replaceSize = Integer.parseInt(replaceSizeString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND size.", ex);
+				return false;
+			}
+		}
+
+		String replacePositionString = findByKeyword("OBJECT_POSITION", tree, replaceContext);
+		if (!replacePositionString.isEmpty()) {
+			try {
+				replacePos = Integer.parseInt(replaceSizeString, 16);
+			}
+			catch (NumberFormatException ex) {
+				logger.log(Level.INFO, "Invalid FIND position.", ex);
+				return false;
+			}
+		}
+
+		
+		
+		// attempt to find object
+		int objectIdx;
+		if(findNameString.isEmpty()){
+			objectIdx = tree.getTargetUpk().findRefByName(tree.getFunctionName());
+		} else {
+			objectIdx = tree.getTargetUpk().findRefByName(findNameString + "@" + tree.getFunctionName());
+		}
+		if(objectIdx == 0) {
+			logger.log(Level.INFO, "Object not found");
+			return false;
+		}
+		ObjectEntry currentObjEntry = tree.getTargetUpk().getHeader().getObjectList().get(objectIdx);
+		
+		// verify that old values are there for values that are specified
+		// and that any value specified has a new value defined
+		if(findType != 0) {
+			if(currentObjEntry.getType() != findType) {
+				logger.log(Level.INFO, "FIND type mismatch");
+				return false;
+			}
+			if(replaceType == 0) {
+				logger.log(Level.INFO, "REPLACE type not specified");
+				return false;
+			}
+		}
+		if(findParent != 0) {
+			if(currentObjEntry.getParent() != findParent) {
+				logger.log(Level.INFO, "FIND parent mismatch");
+				return false;
+			}
+			if(replaceParent == 0) {
+				logger.log(Level.INFO, "REPLACE parent not specified");
+				return false;
+			}
+		}
+		if(findOuter != 0) {
+			if(currentObjEntry.getOuter() != findOuter) {
+				logger.log(Level.INFO, "FIND outer mismatch");
+				return false;
+			}
+			if(replaceOuter == 0) {
+				logger.log(Level.INFO, "REPLACE outer not specified");
+				return false;
+			}
+		}
+		if(findNameIdx != -1) {
+			if(currentObjEntry.getNameIdx() != findNameIdx) {
+				logger.log(Level.INFO, "FIND name mismatch");
+				return false;
+			}
+			if(replaceNameIdx == -1) {
+				logger.log(Level.INFO, "REPLACE name not specified");
+				return false;
+			}
+		}
+		if(findSize != -1) {
+			if(currentObjEntry.getUpkSize() != findSize) {
+				logger.log(Level.INFO, "FIND size mismatch");
+				return false;
+			}
+			if(replaceSize == -1) {
+				logger.log(Level.INFO, "REPLACE size not specified");
+				return false;
+			}
+		}
+		if(findPos != -1) {
+			if(currentObjEntry.getUpkPos() != findPos) {
+				logger.log(Level.INFO, "FIND position mismatch");
+				return false;
+			}
+			if(replacePos == -1) {
+				logger.log(Level.INFO, "REPLACE position not specified");
+				return false;
+			}
+		}
+		
+		// change the file entries
+		try (SeekableByteChannel sbc = Files.newByteChannel(tree.getTargetUpk().getPath(), StandardOpenOption.WRITE)) {
+			ByteBuffer intBuf = ByteBuffer.allocate(4);
+			intBuf.order(ByteOrder.LITTLE_ENDIAN);
+			long objectListPos = currentObjEntry.getObjectEntryPos();
+			
+			//update each entry that has changed
+			if(findType != 0) {
+				intBuf.putInt(replaceType);
+				intBuf.rewind();
+				sbc.position(objectListPos + 0);
+				sbc.write(intBuf);
+				intBuf.clear();
+				currentObjEntry.setType(replaceType);
+			}
+			
+			if(findParent != 0) {
+				intBuf.putInt(replaceParent);
+				intBuf.rewind();
+				sbc.position(objectListPos + 4);
+				sbc.write(intBuf);
+				intBuf.clear();
+				currentObjEntry.setParent(replaceParent);
+			}
+			
+			if(findOuter != 0) {
+				intBuf.putInt(replaceOuter);
+				intBuf.rewind();
+				sbc.position(objectListPos + 8);
+				sbc.write(intBuf);
+				intBuf.clear();
+				currentObjEntry.setOuter(replaceOuter);
+			}
+
+			if(findNameIdx != -1) {
+				intBuf.putInt(replaceNameIdx);
+				intBuf.rewind();
+				sbc.position(objectListPos + 12);
+				sbc.write(intBuf);
+				intBuf.clear();
+				currentObjEntry.setNamePtr(replaceNameIdx);
+				// fix search table in UpkFile
+				tree.getTargetUpk().getHeader().objectListStrings.set(objectIdx, replaceNameString + "@" + tree.getFunctionName());
+			}
+
+			if(findSize != -1) {
+				intBuf.putInt(replaceSize);
+				intBuf.rewind();
+				sbc.position(objectListPos + 32);
+				sbc.write(intBuf);
+				intBuf.clear();
+				currentObjEntry.setUpkSize(replaceSize);
+			}
+
+			if(findPos != -1) {
+				intBuf.putInt(replacePos);
+				intBuf.rewind();
+				sbc.position(objectListPos + 36);
+				sbc.write(intBuf);
+				intBuf.clear();
+				currentObjEntry.setUpkPos(replacePos);
+			}
+
+		} catch(IOException ex) {
+			logger.log(Level.SEVERE, "IO Exception while writing data", ex);
+			return false;
+		}
+		
+		return true;
+	}
+
 	private static String findByKeyword(String keyword, ModTree tree, ModContextType context) {
 		Enumeration<ModTreeNode> lines = tree.getRoot().children();
 		while (lines.hasMoreElements()) {

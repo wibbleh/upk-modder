@@ -22,6 +22,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Scanner;
+import java.util.logging.Level;
+import static model.modtree.ModTree.logger;
 
 import parser.unrealhex.OperandTable;
 
@@ -57,7 +59,7 @@ public class OperandTableParser {
 				OperandTable.parseLine(currLine);
 			}
 		} catch (IOException x) {
-			System.out.println("caught exception: " + x);
+			logger.log(Level.INFO, "Error parsing Operand Table : ", x);
 		}
 	}
 }
