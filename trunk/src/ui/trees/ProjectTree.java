@@ -529,7 +529,7 @@ public class ProjectTree extends JTree {
 			Enumeration<FileNode> dfe = parentNode.depthFirstEnumeration();
 			while (dfe.hasMoreElements()) {
 				FileNode fileNode = (FileNode) dfe.nextElement();
-				if(((FileNode) fileNode.getParent()).isExcluded()) {
+				if(!(fileNode instanceof ProjectNode) && fileNode.getParent() != null && ((FileNode) fileNode.getParent()).isExcluded()) {
 					continue;
 				}
 				if (fileNode instanceof ModFileNode) {
@@ -542,7 +542,7 @@ public class ProjectTree extends JTree {
 			dfe = parentNode.depthFirstEnumeration();
 			while (dfe.hasMoreElements()) {
 				FileNode fileNode = (FileNode) dfe.nextElement();
-				if(((FileNode) fileNode.getParent()).isExcluded()) {
+				if(!(fileNode instanceof ProjectNode) && fileNode.getParent() != null && ((FileNode) fileNode.getParent()).isExcluded()) {
 					continue;
 				}
 				if (fileNode instanceof ModFileNode) {
