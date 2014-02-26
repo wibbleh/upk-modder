@@ -1,3 +1,11 @@
+v0.80 (r129)
+Added bulk apply/revert functionality accessible through context menu in project pane
+   -- any file beginning with __ or in a directory starting with __ cannot be applied/reverted in this manner, but can be manually applied/reverted by opening the file
+Fixed parse error when null string was at end of line
+Fixed error that prevented RESIZE operations from being applied if UE Explorer was open
+Added stability improvements to RESIZE operation -- memory copy of UPK header info is reloaded after RESIZE
+Fixed operand_data.ini issues with 0x59 (array Sort), 0x43 (Delegate), 0x52 (Interface Cast), 0x6F (NativeFunction), 0x09 (assert), and 0x7E (InStr) operands
+
 v0.76 (r128)
 Change line number display into Memory Position display
 Added new action "Generic Object Table Entry" change, and test

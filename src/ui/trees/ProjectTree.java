@@ -339,9 +339,49 @@ public class ProjectTree extends JTree {
 				}
 			};
 
+			Action bulkApplyModFileAction = new AbstractAction("Apply file(s)") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+
+					ModFileBulkApplyRevertWorker worker = new ModFileBulkApplyRevertWorker((FileNode) target, true);
+					worker.addPropertyChangeListener(new PropertyChangeListener() {
+						@Override
+						public void propertyChange(PropertyChangeEvent evt) {
+							if ("progress".equals(evt.getPropertyName())) {
+								// forward to main frame
+								MainFrame.getInstance().setProgress(
+										(Integer) evt.getNewValue());
+							}
+						}
+					});
+					worker.execute();
+				}
+			};
+
+			Action bulkRevertModFileAction = new AbstractAction("Revert file(s)") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+
+					ModFileBulkApplyRevertWorker worker = new ModFileBulkApplyRevertWorker((FileNode) target, false);
+					worker.addPropertyChangeListener(new PropertyChangeListener() {
+						@Override
+						public void propertyChange(PropertyChangeEvent evt) {
+							if ("progress".equals(evt.getPropertyName())) {
+								// forward to main frame
+								MainFrame.getInstance().setProgress(
+										(Integer) evt.getNewValue());
+							}
+						}
+					});
+					worker.execute();
+				}
+			};
+			
 			localActions.put("removeProject", removeProjectAction);
 			localActions.put("newModFile", newModFileAction);
 			localActions.put("testModFile", testModFileAction);
+			localActions.put("bulkApply", bulkApplyModFileAction);
+			localActions.put("bulkRevert", bulkRevertModFileAction);
 		}
 					
 		/**
@@ -354,6 +394,9 @@ public class ProjectTree extends JTree {
 			this.add(localActions.get("newModFile"));
 			this.addSeparator();
 			this.add(localActions.get("testModFile"));
+			this.addSeparator();
+			this.add(localActions.get("bulkApply"));
+			this.add(localActions.get("bulkRevert"));
 		}
 		
 		
@@ -378,6 +421,8 @@ public class ProjectTree extends JTree {
 						localActions.get("removeProject").setEnabled(false);
 						if (node instanceof ModFileNode) {
 							localActions.get("testModFile").setEnabled(true);
+							localActions.get("bulkApply").setEnabled(true);
+							localActions.get("bulkRevert").setEnabled(true);
 						} else {
 							// either a directory or a non-mod file node has been targeted
 							if (Files.isRegularFile(((FileNode) node).getFilePath())) {
@@ -438,6 +483,81 @@ public class ProjectTree extends JTree {
 				FileNode fileNode = (FileNode) dfe.nextElement();
 				if (fileNode instanceof ModFileNode) {
 					MainFrame.getInstance().testModFileStatus((ModFileNode) fileNode);
+					this.setProgress((int) (++current / total * 100.0));
+				} else {
+					if (!fileNode.isLeaf()) {
+						try {
+//							fileNode.setStatus(ProjectTree.this.determineStatus(fileNode));
+							fileNode.determineStatus();
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+			
+			return null;
+		}
+		
+		@Override
+		protected void done() {
+			// TODO: make application stop appearing busy
+			this.setProgress(100);
+		}
+		
+	}
+
+	@SuppressWarnings("unchecked")
+	public class ModFileBulkApplyRevertWorker extends SwingWorker<Object, Object> {
+		
+		private FileNode parentNode;
+		private boolean apply;
+
+		public ModFileBulkApplyRevertWorker(FileNode parentNode, boolean apply) {
+			super();
+			this.parentNode = parentNode;
+			this.apply = apply;
+		}
+
+		@Override
+		protected Object doInBackground() throws Exception {
+			// TODO: make application appear busy
+			this.setProgress(0);
+			
+			// determine total mod file count
+			double total = 0.0;
+			Enumeration<FileNode> dfe = parentNode.depthFirstEnumeration();
+			while (dfe.hasMoreElements()) {
+				FileNode fileNode = (FileNode) dfe.nextElement();
+				if(((FileNode) fileNode.getParent()).isExcluded()) {
+					continue;
+				}
+				if (fileNode instanceof ModFileNode) {
+					total++;
+				}
+			}
+			
+			// update mod file status and fire progress events
+			int current = 0;
+			dfe = parentNode.depthFirstEnumeration();
+			while (dfe.hasMoreElements()) {
+				FileNode fileNode = (FileNode) dfe.nextElement();
+				if(((FileNode) fileNode.getParent()).isExcluded()) {
+					continue;
+				}
+				if (fileNode instanceof ModFileNode) {
+					MainFrame.getInstance().testModFileStatus((ModFileNode) fileNode);
+					if(!fileNode.isExcluded()) {
+						if(this.apply) {
+							if(fileNode.getStatus() == ApplyStatus.BEFORE_HEX_PRESENT) {
+								MainFrame.getInstance().bulkApplyRevertModFile((ModFileNode) fileNode, true);
+							}
+						} else {
+							if(fileNode.getStatus() == ApplyStatus.AFTER_HEX_PRESENT) {
+								MainFrame.getInstance().bulkApplyRevertModFile((ModFileNode) fileNode, false);
+							}
+						}
+					}
 					this.setProgress((int) (++current / total * 100.0));
 				} else {
 					if (!fileNode.isLeaf()) {

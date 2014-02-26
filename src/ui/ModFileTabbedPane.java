@@ -538,6 +538,10 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public boolean applyChanges() {
 			boolean res = HexSearchAndReplace.applyRevertChanges(true, this.modTree);
+			//if a resize operation, reload the UPKFile
+			if(this.modTree.getResizeAmount() != 0) {
+				this.modTree.getTargetUpk().reload();
+			}
 			return res;
 		}
 
@@ -548,6 +552,10 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public boolean revertChanges() {
 			boolean res = HexSearchAndReplace.applyRevertChanges(false, this.modTree);
+			//if a resize operation, reload the UPKFile
+			if(this.modTree.getResizeAmount() != 0) {
+				this.modTree.getTargetUpk().reload();
+			}
 			return res;
 		}
 		
