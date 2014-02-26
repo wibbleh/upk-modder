@@ -1,3 +1,6 @@
+v0.81 (r131)
+Fixed bug preventing bulk apply/revert on projects (only subfolders and files worked)
+
 v0.80 (r129)
 Added bulk apply/revert functionality accessible through context menu in project pane
    -- any file beginning with __ or in a directory starting with __ cannot be applied/reverted in this manner, but can be manually applied/reverted by opening the file
