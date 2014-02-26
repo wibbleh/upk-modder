@@ -945,7 +945,7 @@ public class HexSearchAndReplace {
 		Path backupPath = Paths.get(backupFileName);
 		
 		try {
-			Files.move(origPath, backupPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			Files.copy(origPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
 		} catch(IOException ex) {
 			logger.log(Level.INFO, "Failed to create backup file", ex);
 			return null;
@@ -953,18 +953,18 @@ public class HexSearchAndReplace {
 			logger.log(Level.INFO, "Failed to create backup file", ex);
 			return null;
 		}
-		try {
-			// create new file with same name as original upk
-			Files.createFile(origPath);
-		} catch(IOException ex) {
-			logger.log(Level.SEVERE, "Could not create new upk file", ex);
-			return null;
-		}
+//		try {
+//			// create new file with same name as original upk
+//			Files.createFile(origPath);
+//		} catch(IOException ex) {
+//			logger.log(Level.SEVERE, "Could not create new upk file", ex);
+//			return null;
+//		}
 		
 		// benchmark comparisons : http://java.dzone.com/articles/file-copy-java-%E2%80%93-benchmark
 		// NIO copy method
 		try (FileChannel source = FileChannel.open(backupPath, StandardOpenOption.READ);
-				FileChannel destination = FileChannel.open(origPath, StandardOpenOption.WRITE)) {
+				FileChannel destination = FileChannel.open(origPath, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
 
 			// copy all hex from start to filePosition from backup file to new file
 			destination.transferFrom(source, 0, filePosition);

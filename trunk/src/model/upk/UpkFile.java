@@ -48,6 +48,14 @@ public class UpkFile {
 	}
 
 	/**
+	 * Reloads the upk header information from the file
+	 */
+	public void reload()
+	{
+		this.header = this.parseHeader(this.upkPath);
+	}
+	
+	/**
 	 * Returns the UPK header instance.
 	 * @return the UPK header
 	 */

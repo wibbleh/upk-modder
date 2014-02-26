@@ -757,6 +757,65 @@ public class MainFrame extends JFrame {
 	}
 	
 	/**
+	 * Attempts to bulk apply as called from the project tree
+	 */
+	public void bulkApplyRevertModFile(ModFileNode modNode, boolean apply) {
+		if (modNode == null) {
+			return;
+		}
+		Path modFilePath = modNode.getFilePath();
+		if (modFilePath == null) {
+			return;
+		}
+
+		
+		// test if the modfile is in an opened pane
+		if (modTabPane.getTab(modFilePath) != null) {
+			ApplyStatus status;
+			ModFileTab newTab = modTabPane.openModFile(modFilePath, modNode);
+			if(apply) {
+				status = modTabPane.applyModFile();
+			} else {
+				status = modTabPane.revertModFile();
+			}
+			this.setEditActionsEnabled(status);
+		} else {
+			// if not opened, create a temporary ModTree for application,
+			// this modTree is not hooked up to a document and so cannot be
+			// updated,
+			// create parsed ModTree directly from supplied path
+			ModTree modTree = new ModTree(modFilePath);
+
+			// find upk for tree, if possible
+			ProjectNode project = modNode.getProject();
+			if (project != null) {
+				// get targeted generic UPK file name
+				String upkName = modTree.getUpkName();
+				// look up path in project's UPK file associations
+				Path upkPath = project.getUpkPath(upkName);
+				if (upkPath != null) {
+					UpkFile upkFile = this.getUpkFile(upkPath);
+					//set the target upk in the ModTree
+					modTree.setTargetUpk(upkFile);
+				}
+			}
+
+			if(apply) {
+				//attempt to apply
+				if(HexSearchAndReplace.applyRevertChanges(true, modTree)) {
+					modNode.setStatus(ApplyStatus.AFTER_HEX_PRESENT);
+				}
+			} else {
+				//attempt to revert
+				if(HexSearchAndReplace.applyRevertChanges(false, modTree)) {
+					modNode.setStatus(ApplyStatus.BEFORE_HEX_PRESENT);
+				}				
+			}
+		}		
+	}
+	
+	
+	/**
 	 * Associates the specified UPK file with the currently active mod file tab.
 	 * @param upkPath the path to the UPK file to associate
 	 */
