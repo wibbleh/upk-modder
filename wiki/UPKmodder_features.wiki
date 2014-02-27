@@ -102,3 +102,36 @@ To apply a *UPK Modfile*:
  # All files should show as _*green*_ (unless you've already modded the UPK in same way).
  # Open each file and select the "Apply" button -- if successful the color should change to _*blue*_.
  # Launch the game.
+
+= FAQ =
+(as of version 0.81)
+
+Q&A: The "upk_config.ini" is obsolete.  Just ignore it.
+
+Q:  To replace old code by copy/paste: you need to delete it first, then paste a new code. Replacing selected text with text from clipboard doesn't work.  
+
+A: This appears to be a limitation of the built-in "DefaultStyledEditor" in Java, which was used instead of re-inventing that particular wheel.
+
+Q: For Update References to work properly I needed to lookup/convert source references first, then close the dialog, re-open it and lookup/convert destination references. If I try to lookup/convert destination references right after lookup/convert source references nothing happens.
+
+A: Are you converting to names as an intermediate step? The name conversion is more intended as a step for handling cases were some of the symbols don't match from one version to another. My usual steps are :
+  # Look up Source References
+  # Look up Destination References
+  # If everything mapped then the "Convert Source Refs to Dest Refs" button will activate, which directly converts the numerical source refs to dest refs.
+  However, if one of the intermediate names doesn't map to a destination reference (like in one function where Firaxis renamed a field _*c*_lassName to _*C*_lassName), then that button doesn't activate, since doing such a conversion would result in a file with references to two different versions of UPK and no way to tell them apart.
+  To handle that case is what I added the "Convert Hex References to Names" button for. It's there to convert everything to a name. It is a bit glitchy that you have to close and re-open the dialogue, but if you do so you can then convert the names that do match to dest refs back to references values, leaving just the names that didn't map to deal with manually.
+
+Q: Converting destination references updates the GUID, but it doesn't updates the UPKFILE path.
+
+A: That's a good point. I guess I assumed that the "UPKFILE=`<tag>`" wouldn't be changing. Behind the scenes it's a fully pathed filename, but I could extract the upk name and replace it if necessary.
+
+Q: At some point GUID wasn't updated after updating destination references. That was my first attempt to work with this feature, so I messed up some things. After I learned how it works, I see GUID updated each time I convert destination references (but, again, UPKFILE is not updated).
+
+A: I think if you convert to names the GUID is changed to "None", since a file with all names isn't necessarily tied (in the way numerical references are) to a particular version. Any time you convert to destination references it should be updating the GUID.
+  I should also point out that the smallest unit for conversion is a single line, so it's quite possible to copy lines to another file and therefore convert a file "piecemeal". I sometimes do this when some lines don't convert properly.
+
+Q: Code structure sometimes get messed up after references conversion: end of line gets "eaten", so some lines get merged into one. I suspect it can be related to different end of line standards: 0x0A without 0x0D or 0x0D followed by 0x0A.
+
+A: I think the issue is that an earlier version of UPKmodder required a trailing space even after the final hex character (if the final hex was directly followed by a '\\n' it would be treated as non-parsable). This was fixed in v0.70, by which point the Reference Update function had already been written and tested.
+  So I think that what is happening is that the Reference Update code is assuming that each hex line will have at least one trailing space, which it overwrites. However, if the final hex is instead immediately followed by a '\\n' character then instead that is overwritten by a space, resulting in the loss of the newline.
+  Definitely a glitch I've noticed as well, thought I forgot to add it to the issues list.
