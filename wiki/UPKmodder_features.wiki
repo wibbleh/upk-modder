@@ -135,3 +135,11 @@ Q: Code structure sometimes get messed up after references conversion: end of li
 A: I think the issue is that an earlier version of UPKmodder required a trailing space even after the final hex character (if the final hex was directly followed by a '\\n' it would be treated as non-parsable). This was fixed in v0.70, by which point the Reference Update function had already been written and tested.
   So I think that what is happening is that the Reference Update code is assuming that each hex line will have at least one trailing space, which it overwrites. However, if the final hex is instead immediately followed by a '\\n' character then instead that is overwritten by a space, resulting in the loss of the newline.
   Definitely a glitch I've noticed as well, thought I forgot to add it to the issues list.
+
+Q: Experiencing considerable slowdowns when highlighting long code lines; i.e. copying/pasting an entire code block from HxD as one long line.
+
+A: no response as yet.
+
+Q: Only projects which have been opened via "Open Project" are saved in project view (leftmost window). If you create a project and then close UPKModder, the new project will not be displayed after reopening it. But after you manually open the project and close UPKModder, it will be displayed after reopening UPKModder.
+
+A: no response as yet.
