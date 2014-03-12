@@ -1,3 +1,6 @@
+v0.82 (r135)
+Fixed bug preventing processing of embedded names in hex.
+
 v0.81 (r131)
 Fixed bug preventing bulk apply/revert on projects (only subfolders and files worked)
 

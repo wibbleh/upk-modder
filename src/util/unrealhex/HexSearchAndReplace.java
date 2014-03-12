@@ -75,7 +75,8 @@ public class HexSearchAndReplace {
 					// TODO: @Amineri, idea for further simplification, split at pipe character and parse non-reference token chains using HexStringLibrary.convertStringToByteArray()
 					for (String token : tokens) {
 //						if (token.startsWith("{|") && (upk != null)) {
-						if ((tree.getTargetUpk() != null) && token.matches("^([{<]\\|)")) {
+//						if ((tree.getTargetUpk() != null) && token.matches("^([{<]\\|)")) {
+						if ((tree.getTargetUpk() != null) && (token.startsWith("{|") || token.startsWith("<|"))) {
 							String contents = token.substring(2, token.length() - 2);
 							int value = token.startsWith("{|")
 									? tree.getTargetUpk().findRefByName(contents)
