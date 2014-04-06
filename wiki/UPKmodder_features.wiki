@@ -234,7 +234,7 @@ So when applying the change, it locates the object with the name _"iOverheatChan
 
 When reverting the change is locates the object with the name _"m_iTurnFired@CheckpointRecord_XGWeapon@XGWeapon"_.
 
-Then testing for apply/revert status, it tests both.
+Then when testing for apply/revert status, it tests both.
 
 = FAQ =
 (as of version 0.81)
