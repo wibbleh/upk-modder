@@ -91,7 +91,7 @@ When I'm creating a new modfile, I typically start off by copying the header fro
 The next steps involve either doing another copy/paste of the hex into the _AFTER / CODE_ section (if I'm primarly making modifications), using updated code from a previous version mod that I'm trying to fix up, or writing entirely new code, depending on the particulars.
 
 = Application =
-To apply a *UPK Modfile*:
+== To apply a *UPK Modfile*: ==
  # Decompress your UPK files using [http://www.gildor.org/downloads Gildor's Decompress tool] -- UPKmodder doesn't do anything or know anything about this (alternately ToolBoks will auto-decompress the UPKs and clean up the CookedPCConsole when launched).
  # Open UPKmodder and create a new _Project_.
  # Create a new file within the _Project_, paste the contents of your modfile into the new _Project_ file.
@@ -102,6 +102,139 @@ To apply a *UPK Modfile*:
  # All files should show as _*green*_ (unless you've already modded the UPK in same way).
  # Open each file and select the "Apply" button -- if successful the color should change to _*blue*_.
  # Launch the game.
+
+== To change *object table entries*: ==
+Each object has information stored in two different places.
+
+Object table data is what is accessed with UE Explorer in the "Table Buffer". The actual object's hex itself is accessed via the "Buffer".
+
+The UE Explorer "Table Buffer" is the table entry for the object (which has some basic descriptive information about the object, including the file position and file size of the object within the UPK). Typically each of the table entries is 68 bytes long. UPKmodder automatically parses the entire object table for each UPK it deals with. That's how it builds the reference ID-to-number mapping. The reference number is just the index within this table. XComGame.UPK for EW has about 55,000 (= D6D8) entries in the table, so that's why the numbers grow around that big.
+ 
+UPKmodder extracts the "useful" information from each object using (this is pasted directly out of the Java source code for UPKmodder):
+
+{{{
+   private void parseData(int[] data) {
+        this.iType = data[0];
+        this.iParent = data[1];
+        this.iOuter = data[2];
+        this.iNamePtr = data[3];
+        this.iHighFlags = data[6];
+        this.iLowFlags = data[7];
+        this.iUpkSize = data[8];
+        this.iUpkPos = data[9];
+        // TODO: parse/store other values, create getters and other convenience methods (e.g. getNameListIndex(), etc.)
+   }
+}}}
+
+UPKmodder reads the object table data as 4-byte words instead of at the byte-level. Most entries contain 17 4-byte words, although the specifier at position 11 specifies additional 4 byte-words (this value is only non-zero for non-script objects, in my experience).
+
+The stuff at the back end of each isn't of use for scripting (e.g. variables, enumerations, functions), and appears to be used to define art asset object info (e.g. 3D meshes, animations, textures, sound files). The 64 bits of flags are described in the downloadable [http://www.nexusmods.com/xcom/download/1000003820 UPK Format Document] developed by Wasteland Ghost (wghost81).
+
+When you include a RESIZE= command for an object it automatically updates the UpkSize of the current object and the UpkPos of all subsequent objects (all objects that have a position later than the current one). 
+
+---------------
+
+In UE Explorer the regular hex "Buffer" displays the hex for the object itself. The position and size of this object within the UPK file is defined via the UpkSize and UpkPos entries within the table entry for the object (i.e. if you looked up the table buffer, read words 8 and 9, opened the UPK with HxD and went to that position you'd find the object hex).
+ 
+Functions contain both the run-time "byte-code" bytes as well as 48 bytes of header and 15 bytes of footer information. Typically the only bytes in the header/footer that are changed are the last two words, which contain the memory/file size of the byte-code. The preceding 40 bytes do contain some useful things, including some references (import, object, and/or name). This means that listing the full raw header hex isn't patch-safe, since those values may be updated. However, you can use the name of the object which UPKmodder will attempt to convert to hex at apply/revert-time, which does make it patch-safe. (e.g. {|iType@GetPossibleSpawns@XGDeployAI|})
+
+I'm just not sure what the different header/footer bytes do specifically. I'm pretty sure that there are flags defining the function type (e.g. private, static, native, virtual) in the footer. And that some of the header information is used to in creating the linked list of local variables/parameters/return value for the function. Wghost is ahead of me in decoding that stuff.
+
+--------------
+
+By default UPKmodder changes the object entry itself (the "buffer dump"). It can change any bytes within the object hex, which is how we make changes to enumerations and variables, for example. For functions this includes the full function header (48 bytes) and footer (15 bytes).
+
+UPKmodder will only change hex in the object table when using special commands. For example the RESIZE= command alters size/position of many object table entries.
+
+Other commands include:
+
+ACTION=typechange -- a specific command that requires changing both the iType and UpkSize fields of the object table entry. These are specified using OBJECT_TYPE= and SIZE=, for example:
+
+{{{
+ACTION=typechange
+
+//change object type parameter into int type
+
+[BEFORE_HEX]
+OBJECT_TYPE=Core:ObjectProperty@Core
+SIZE=2C // hexadecimal
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+OBJECT_TYPE=Core:IntProperty@Core
+SIZE=28 // hexadecimal
+[/AFTER_HEX]
+}}}
+
+For more general-purpose changes to the object table entry for an object, there is the "ACTION=genericObjectTableChange" command.
+
+This allows you to manually change most any entry within the object table entry. Note that this can easily corrupt the UPK, in particular if the size/position values are changed incorrectly.
+
+For this command new values are specified via keywords, instead of via generic hex changes. This is because UPKmodder has to store copies of most of the table entry data in order to properly decode things, so changing these things is a little trickier and has to be under tighter control. Fortunately there aren't many 'useful' table values, so they can all be specified directly.
+
+This command could actually supercede the "typechange" command, as it's more flexible. It allows any or all entries below to be changed --not all values have to be specified.
+
+The keywords that allow changes to the object table entry are:
+ * OBJECT_TYPE : bytes 0-3 in the table buffer
+ * OBJECT_PARENT : bytes 4-7 in the table buffer
+ * OBJECT_OUTER : bytes 8-11 in the table buffer
+ * OBJECT_NAMEIDX : bytes 12-15 in the table buffer
+ * OBJECT_HIGHFLAGS : bytes 20-23 in the table buffer
+ * OBJECT_LOWFLAGS : bytes 24-27 in the table buffer
+ * OBJECT_SIZE : bytes 28-31 in the table buffer
+ * OBJECT_POSITION : bytes 32-35 in the table buffer
+
+ A few notes about these.
+ * OBJECT_TYPE is almost always an import object (reference value is negative), so in UPKmodder would be specified in a patch-safe manner as something like Core:IntProperty@Core, or Core:FunctionProperty@Core.
+ * OBJECT_PARENT is only used for classes, and indicates the parent of a class (e.g. XGWeapon is the parent of XGWeapon_AssaultRifle) This is typically a regular object reference
+ * OBJECT_OUTER indicates hierarchical ownership. For example in iType@GetPossibleSpawns@XGDeployAI, the iType object has as OUTER the GetPossibleSpawns object, while GetPossibleSpawns has as OUTER the XGDeployAI object. XGDeployAI has a null OUTER
+ * OBJECT_NAMEIDX is a reference to a name entry (an index into the name table). This is effectively how each object is named. Objects with the same name reference the same name entry without problem.
+
+UPKmodder expects certain type values in each field:
+ * OBJECT_TYPE : must be a valid object (import or export) name (e.g. Core:Function@Core or Core:IntProperty@Core)
+ * OBJECT_PARENT : must be a valid object (import of export) name
+ * OBJECT_OUTER : must be a valid object (import of export) name
+ * OBJECT_NAMEIDX : must be a valid name on the namelist
+ * OBJECT_HIGHFLAGS : must be an integer, specified in hexadecimal
+ * OBJECT_LOWFLAGS : must be an integer, specifed in hexadecimal
+ * OBJECT_SIZE : must be an integer, specifed in hexadecimal
+ * OBJECT_POSITION : must be an integer, specifed in hexadecimal
+
+Changing the OBJECT_NAMEIDX for an object is problematic since the name is how the object is referenced in the first place. So changing the name results in UPKmodder being unable to properly locate the object after the change (to verify correct install and to be able to revert the change).
+
+IMPORTANT!!!
+
+When changing the NAMEIDX, leave the name of the current object out of the FUNCTION= (alternative usage OBJECT_ENTRY=) specifier.
+
+For example:
+{{{
+MODFILEVERSION=4
+UPKFILE=XComGame.upk
+GUID=1C 18 A1 1A 2B C3 34 4E 8B 2C 72 33 CD 16 7E 3E // XComGame_EW_patch3.upk
+OBJECT_ENTRY=CheckpointRecord_XGWeapon@XGWeapon
+ACTION=genericObjectTableChange
+
+//iOverheatChance@CheckpointRecord_XGWeapon@XGWeapon
+//alter CheckpointRecord_XGWeapon so that m_iTurnFired is the member, not iOverheatChance
+
+[BEFORE_HEX]
+OBJECT_NAMEIDX=iOverheatChance
+[/BEFORE_HEX]
+
+[AFTER_HEX]
+OBJECT_NAMEIDX=m_iTurnFired
+[/AFTER_HEX]
+}}}
+
+In this case the object _iOverheatChance@CheckpointRecord_XGWeapon@XGWeapon_ is being transformed into the object _m_iTurnFired@CheckpointRecord_XGWeapon@XGWeapon_.
+
+The _CheckpointRecord_XGWeapon@XGWeapon_ object itself is not being changed. Instead if UPKmodder sees that the OBJECT_NAMEIDX= field is being changed, it automatically prepends the value to what is specified in the OBJECT_ENTRY field.
+
+So when applying the change, it locates the object with the name _"iOverheatChance@CheckpointRecord_XGWeapon@XGWeapon"_.
+
+When reverting the change is locates the object with the name _"m_iTurnFired@CheckpointRecord_XGWeapon@XGWeapon"_.
+
+Then testing for apply/revert status, it tests both.
 
 = FAQ =
 (as of version 0.81)
