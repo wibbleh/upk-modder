@@ -454,7 +454,8 @@ public class MainFrame extends JFrame {
 	 * @param projectPath the project directory
 	 */
 	public void createNewProject(Path projectPath) {
-		projectTree.createProject(projectPath);
+		Path xmlPath = projectTree.createProject(projectPath);
+		this.openProject(xmlPath);
 	}
 
 	/**

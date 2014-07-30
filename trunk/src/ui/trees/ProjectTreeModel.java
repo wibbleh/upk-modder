@@ -66,8 +66,9 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	/**
 	 * Creates a new project the the given name at the specified location
 	 * @param projectPath the directory the project will occupy
+	 * @return the path to the project configuration file
 	 */
-	public void createProject(Path projectPath) {
+	public Path createProject(Path projectPath) {
 		try {
 			// grab template file
 			File templateFile = Constants.TEMPLATE_PROJECT_FILE;
@@ -98,12 +99,11 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			// send DOM to file
 			tr.transform(new DOMSource(doc), new StreamResult(new FileOutputStream(xmlPath.toFile())));
 			
-			// add new project to tree
-			this.openProject(xmlPath);
-			
+			return xmlPath;
 		} catch (IOException | ParserConfigurationException | TransformerException | DOMException | SAXException e) {
 			logger.log(Level.INFO, "Failed to create project \'" + projectPath.getFileName() + "\'", e);
 		}
+		return null;
 	}
 	
 	/**
@@ -123,6 +123,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 				}
 			}
 			final Path srcDir = projectNode.getProjectDirectory();
+			
 			// append new project node below root
 			this.insertNodeInto(projectNode, rootNode,
 					this.getChildCount(this.root));
@@ -163,6 +164,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 					
 					return super.visitFile(file, attrs);
 				}
+				
 			});
 			
 			Enumeration<Object> dfe = rootNode.depthFirstEnumeration();
@@ -473,7 +475,11 @@ public class ProjectTreeModel extends DefaultTreeModel {
 					this.projectName = child.getTextContent();
 					break;
 				case "source-root":
-					this.userObject = Paths.get(child.getTextContent());
+					Path path = Paths.get(child.getTextContent());
+					if (!path.isAbsolute()) {
+						path = xmlPath.getParent().resolve(path);
+					}
+					this.userObject = path;
 					break;
 				case "upk-file":
 					NamedNodeMap attributes = child.getAttributes();
