@@ -112,8 +112,10 @@ public class ProjectTree extends JTree {
 
 		// mouse adapter to handle opening files from the project pane
 		this.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseReleased(MouseEvent evt) {
+			@Override public void mousePressed(MouseEvent evt) { this.processEvent(evt); }
+			@Override public void mouseReleased(MouseEvent evt) { this.processEvent(evt); }
+
+			private void processEvent(MouseEvent evt) {
 				TreePath treePath =
 						ProjectTree.this.getPathForLocation(evt.getX(), evt.getY());
 				// check click count and type of button
@@ -134,7 +136,7 @@ public class ProjectTree extends JTree {
 				}
 			}
 		});
-
+		
 		// only allow single selections and monitor them
 		this.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 		this.addTreeSelectionListener(new TreeSelectionListener() {
@@ -147,13 +149,16 @@ public class ProjectTree extends JTree {
 	}
 	
 	/**
-	 * Creates a new project in the specified directorz.
-	 * @param projectPath the path to the project root directorz
+	 * Creates a new project in the specified directory.
+	 * @param projectPath the path to the project root directory
+	 * @return the path to the project configuration file
 	 */
-	public void createProject(Path projectPath) {
-		this.getModel().createProject(projectPath);
+	public Path createProject(Path projectPath) {
+		Path xmlPath = this.getModel().createProject(projectPath);
 		// expand root
 		this.expandPath(new TreePath(this.getModel().getRoot()));
+		
+		return xmlPath;
 	}
 
 	/**
