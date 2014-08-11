@@ -110,7 +110,7 @@ public class StatusBar extends JPanel {
 		progressBar.setStringPainted(true);
 
 		// create status message panel
-		JPanel statusMsgPnl = new JPanel(new FormLayout("p:g, r:p", "b:p"));
+		JPanel statusMsgPnl = new JPanel(new FormLayout("0px:g, 3px, r:p", "b:p"));
 		
 		statusMsgTtf = new JTextField();
 		statusMsgTtf.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
@@ -145,7 +145,7 @@ public class StatusBar extends JPanel {
 		statusMsgTtf.setBorder(null);
 		
 		statusMsgPnl.add(statusMsgTtf, CC.xy(1, 1));
-		statusMsgPnl.add(loggingBtn, CC.xy(2, 1));
+		statusMsgPnl.add(loggingBtn, CC.xy(3, 1));
 				
 		this.add(upkPnl, CC.xy(1, 1));
 		this.add(progressBar, CC.xy(2, 1));
