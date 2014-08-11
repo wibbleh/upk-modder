@@ -168,7 +168,7 @@ public class MainFrame extends JFrame {
 		UIManager.put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(3, 0, 4, 0));
 		UIManager.put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
 		modTabPane = new ModFileTabbedPane();
-		modTabPane.setPreferredSize(new Dimension(1000, 600));
+		modTabPane.setPreferredSize(new Dimension(500, 300));
 		
 		// install listener on tabbed pane to capture selection changes
 		modTabPane.addChangeListener(new ChangeListener() {
@@ -203,7 +203,7 @@ public class MainFrame extends JFrame {
 		// create left-hand project pane
 		projectTree = new ProjectTree();
 		JScrollPane projectScpn = new JScrollPane(projectTree);
-		projectScpn.setPreferredSize(new Dimension(320, 600));
+		projectScpn.setPreferredSize(new Dimension(160, 300));
 
 		// wrap project pane and tabbed pane in a split pane
 		JSplitPane mainPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, projectScpn, modTabPane);
