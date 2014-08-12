@@ -307,14 +307,14 @@ public class ActionCache {
 		associateUpkAction.putValue(Action.SHORT_DESCRIPTION, "Associate UPK File");
 		associateUpkAction.setEnabled(false);
 		
-		Action showLogAction = new AbstractAction() {
+		Action toggleLogAction = new AbstractAction("Message Log") {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
-				mainFrame.showLogDialog();
+				mainFrame.toggleLogDialog();
 			}
 		};
-		showLogAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileChooser.listViewIcon"));
-		showLogAction.putValue(Action.SHORT_DESCRIPTION, "Show Message Log");
+		toggleLogAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileChooser.listViewIcon"));
+		toggleLogAction.putValue(Action.SHORT_DESCRIPTION, "Toggle Message Log");
 		
 		// file actions
 		cache.put("newProject", newProjectAction);
@@ -346,7 +346,7 @@ public class ActionCache {
 		
 		// misc actions
 		cache.put("associateUpk", associateUpkAction);
-		cache.put("showLog", showLogAction);
+		cache.put("toggleLog", toggleLogAction);
 		
 		actionCache = Collections.unmodifiableMap(cache);
 	}

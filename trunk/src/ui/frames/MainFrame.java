@@ -19,6 +19,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.Box;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -289,6 +290,8 @@ public class MainFrame extends JFrame {
 		helpMenu.setMnemonic('h');
 		helpMenu.add(ActionCache.getAction("help"));
 		helpMenu.addSeparator();
+		helpMenu.add(ActionCache.getAction("toggleLog"));
+		helpMenu.addSeparator();
 		helpMenu.add(ActionCache.getAction("about"));
 
 		// add menus to menu bar
@@ -306,6 +309,7 @@ public class MainFrame extends JFrame {
 	private JToolBar createToolBar() {
 		
 		JToolBar toolBar = new JToolBar();
+		
 		toolBar.add(ActionCache.getAction("newProject"));
 		toolBar.add(ActionCache.getAction("openProject"));
 		toolBar.addSeparator();
@@ -319,6 +323,12 @@ public class MainFrame extends JFrame {
 		toolBar.add(ActionCache.getAction("testFile"));
 		toolBar.add(ActionCache.getAction("hexApply"));
 		toolBar.add(ActionCache.getAction("hexRevert"));
+		
+		Component glue = Box.createHorizontalGlue();
+		glue.setFocusable(false);
+		
+		toolBar.add(glue);
+		toolBar.add(ActionCache.getAction("toggleLog"));
 		
 		return toolBar;
 	}
@@ -443,10 +453,10 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
-	 * Shows the message log dialog.
+	 * Shows or hides the message log dialog.
 	 */
-	public void showLogDialog() {
-		statusBar.showLogDialog();
+	public void toggleLogDialog() {
+		statusBar.toggleLogDialog();
 	}
 
 	/**

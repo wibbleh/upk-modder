@@ -1,5 +1,6 @@
 package ui;
 
+import java.awt.Insets;
 import java.util.Locale;
 
 import javax.swing.UIManager;
@@ -31,7 +32,7 @@ public class Launcher {
 	 * Configures the Look and Feel and locale of the graphical user interface.
 	 */
 	private static void configureLookAndFeel() {
-		// set locale to english
+		// set locale to English
 		Locale.setDefault(Locale.ENGLISH);
 		// try setting Nimbus LAF
 		try {
@@ -42,6 +43,8 @@ public class Launcher {
 		            break;
 		        }
 		    }
+			// enlarge toolbar button margins
+			UIManager.put("ToolBar:Button.contentMargins", new Insets(6, 6, 6, 6));
 		} catch (Exception e) {
 		    e.printStackTrace();
 		    System.exit(-1);
