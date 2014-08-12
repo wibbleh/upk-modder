@@ -121,7 +121,8 @@ public class StatusBar extends JPanel {
 		loggingDlg = new LogDialog(owner);
 		
 		// create button to show log dialog
-		JButton loggingBtn = new JButton(ActionCache.getAction("showLog"));
+		JButton loggingBtn = new JButton(ActionCache.getAction("toggleLog"));
+		loggingBtn.setText(null);
 		loggingBtn.setBorder(null);
 		
 		// create lighter and darker versions of logging icon
@@ -167,10 +168,10 @@ public class StatusBar extends JPanel {
 	}
 
 	/**
-	 * Shows the message log dialog.
+	 * Shows or hides the message log dialog.
 	 */
-	public void showLogDialog() {
-		loggingDlg.setVisible(true);
+	public void toggleLogDialog() {
+		loggingDlg.setVisible(!loggingDlg.isVisible());
 	}
 
 	/**
