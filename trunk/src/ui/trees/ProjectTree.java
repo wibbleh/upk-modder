@@ -7,11 +7,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -43,10 +46,13 @@ import ui.trees.ProjectTreeModel.ProjectNode;
 @SuppressWarnings("serial")
 public class ProjectTree extends JTree {
 	
+        private ProjectTreeModel theTreeModel;
+    
 	/**
 	 * Constructs a project tree using a default project tree model.
+         * @throws java.io.IOException
 	 */
-	public ProjectTree() {
+	public ProjectTree() throws IOException {
 		this(new ProjectTreeModel());
 	}
 	
@@ -56,8 +62,13 @@ public class ProjectTree extends JTree {
 	 */
 	public ProjectTree(ProjectTreeModel treeModel) {
 		super(treeModel);
-		
+                this.theTreeModel = treeModel;
+
 		this.initComponents();
+                
+                DirectoryChangeWorker worker = new DirectoryChangeWorker();
+                worker.execute();
+
 	}
 
 	/**
@@ -277,8 +288,23 @@ public class ProjectTree extends JTree {
 	public ProjectTreeModel getModel() {
 		return (ProjectTreeModel) treeModel;
 	}
-	
-	/**
+
+        @SuppressWarnings("unchecked")
+	public class DirectoryChangeWorker extends SwingWorker<Object, Object> {
+		
+		public DirectoryChangeWorker() {
+			super();
+		}
+
+		@Override
+		protected Object doInBackground() throws Exception {
+                    theTreeModel.processEvents();
+                    return null;
+                }
+                
+        }
+        
+        /**
 	 * Context-sensitive popup menu implementation for the project tree.
 	 * @author XMS
 	 */
@@ -325,7 +351,40 @@ public class ProjectTree extends JTree {
 				}
 			};
 
-			Action testModFileAction = new AbstractAction("Test Status") {
+			Action renameFileAction = new AbstractAction("Rename File") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					MainFrame.getInstance().renameFile((FileNode) target);
+				}
+			};
+
+			Action deleteModFileAction = new AbstractAction("Delete Mod File") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					MainFrame.getInstance().deleteModFile((FileNode) target);
+				}
+			};
+
+			Action newFolderAction = new AbstractAction("New Folder") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					MainFrame.getInstance().createNewFolder((FileNode) target);
+				}
+			};
+
+			Action deleteFolderAction = new AbstractAction("Delete Folder") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+                                    try {
+                                        MainFrame.getInstance().deleteFolder((FileNode) target);
+                                    } catch (IOException ex) {
+                                        //TODO: log failure to create folder
+                                        Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+				}
+			};
+                        
+                        Action testModFileAction = new AbstractAction("Test Status") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
 
@@ -383,7 +442,11 @@ public class ProjectTree extends JTree {
 			};
 			
 			localActions.put("removeProject", removeProjectAction);
+			localActions.put("deleteModFile", deleteModFileAction);
 			localActions.put("newModFile", newModFileAction);
+			localActions.put("renameFile", renameFileAction);
+			localActions.put("newFolder", newFolderAction);
+			localActions.put("deleteFolder", deleteFolderAction);
 			localActions.put("testModFile", testModFileAction);
 			localActions.put("bulkApply", bulkApplyModFileAction);
 			localActions.put("bulkRevert", bulkRevertModFileAction);
@@ -397,11 +460,16 @@ public class ProjectTree extends JTree {
 			this.add(localActions.get("removeProject"));
 			this.addSeparator();
 			this.add(localActions.get("newModFile"));
+			this.add(localActions.get("renameFile"));
+			this.add(localActions.get("newFolder"));
 			this.addSeparator();
 			this.add(localActions.get("testModFile"));
 			this.addSeparator();
 			this.add(localActions.get("bulkApply"));
 			this.add(localActions.get("bulkRevert"));
+			this.addSeparator();
+			this.add(localActions.get("deleteModFile"));
+			this.add(localActions.get("deleteFolder"));
 		}
 		
 		
@@ -422,20 +490,33 @@ public class ProjectTree extends JTree {
 					// a mod file node has been targeted
 					if (node instanceof ProjectNode) {
 						localActions.get("removeProject").setEnabled(true);
+                                                localActions.get("deleteModFile").setEnabled(false);
+                                                localActions.get("deleteFolder").setEnabled(false);
+                                                localActions.get("renameFile").setEnabled(false);
+                                                localActions.get("testModFile").setEnabled(true);
 					} else {
 						localActions.get("removeProject").setEnabled(false);
 						if (node instanceof ModFileNode) {
 							localActions.get("testModFile").setEnabled(true);
 							localActions.get("bulkApply").setEnabled(true);
 							localActions.get("bulkRevert").setEnabled(true);
+							localActions.get("deleteModFile").setEnabled(true);
+                                                        localActions.get("deleteFolder").setEnabled(false);
+                                                        localActions.get("renameFile").setEnabled(true);
+
 						} else {
 							// either a directory or a non-mod file node has been targeted
 							if (Files.isRegularFile(((FileNode) node).getFilePath())) {
 								// non-mod file
+                                                                localActions.get("renameFile").setEnabled(true);
+                                                                localActions.get("testModFile").setEnabled(false);
 
-							} else {
-								// directory
-								
+							} else {  // directory
+                                                            localActions.get("newFolder").setEnabled(true);
+                                                            localActions.get("deleteFolder").setEnabled(true);
+                                                            localActions.get("deleteModFile").setEnabled(false);
+                                                            localActions.get("renameFile").setEnabled(false);
+                                                            localActions.get("testModFile").setEnabled(true);
 							}
 						}
 					}
