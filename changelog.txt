@@ -1,3 +1,18 @@
+v0.83 (working)
+Fixed various Linux incompatibility issues
+Added automatic dynamic updating of Project Pane when changes are made to folders/files in project directory
+Added context menu items to delete files and folders
+Added context menu item to create new folders
+Added context menu item to rename files
+Fixed various glitches in the operand_data.ini (StructCmpEq, StructCmpNe, Global Functions, hex0x69 native functions, float negate unary operator, and == and != for name types)
+Attempted fix where 'Test File' command would sometimes be unavailable
+Error logs messages will now report memory values in hex instead of decimal
+Made toolbar buttons slightly larger
+Added option to show log dialog to main menu bar and tool bar
+Made log action toggle log dialog visibility
+Lowered general preferred frame size
+Fixed log button disappearing when log message was too long
+
 v0.82 (r135)
 Fixed bug preventing processing of embedded names in hex.
 

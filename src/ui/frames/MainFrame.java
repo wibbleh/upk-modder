@@ -8,14 +8,23 @@ import java.awt.Image;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import java.nio.file.WatchKey;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,6 +55,7 @@ import ui.ModFileTabbedPane.ModFileTab;
 import ui.StatusBar;
 import ui.dialogs.AboutDialog;
 import ui.trees.ProjectTree;
+import ui.trees.ProjectTreeModel;
 import ui.trees.ProjectTreeModel.FileNode;
 import ui.trees.ProjectTreeModel.ModFileNode;
 import ui.trees.ProjectTreeModel.ProjectNode;
@@ -200,9 +210,12 @@ public class MainFrame extends JFrame {
 				statusBar.setUpkPath(upkPath);
 			}
 		});
-
-		// create left-hand project pane
-		projectTree = new ProjectTree();
+                try {
+                    // create left-hand project pane
+                    projectTree = new ProjectTree();
+                } catch (IOException ex) {
+                    Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+                }
 		JScrollPane projectScpn = new JScrollPane(projectTree);
 		projectScpn.setPreferredSize(new Dimension(160, 300));
 
@@ -473,10 +486,12 @@ public class MainFrame extends JFrame {
 	 * @param xmlPath the project XML
 	 */
 	public void openProject(Path xmlPath) {
-		projectTree.openProject(xmlPath);
-		
-		// store opened file
-		appState.addProjectFile(xmlPath);
+                if(xmlPath.toFile().exists()) {
+                    projectTree.openProject(xmlPath);
+
+                    // store opened file
+                    appState.addProjectFile(xmlPath);
+                }
 	}
 
 	/**
@@ -569,17 +584,150 @@ public class MainFrame extends JFrame {
 					res += ".upk_mod";   // append file extension if user did not type it
 				}
 				ModFileNode node = projectTree.createModFile(dirNode, res);
-				if (node != null) {
-					// create a new mod file tab
-					this.openModFile(node.getFilePath(), node);
-				} else {
-					// node creation failed, show error message
-					JOptionPane.showMessageDialog(this,
-							"Failed to create mod file, see message log for details.",
-							"Error", JOptionPane.ERROR_MESSAGE);
-					// TODO: perform clean-up?
-				}
+//				if (node != null) {
+//					// create a new mod file tab
+//					this.openModFile(node.getFilePath(), node);
+//				} else {
+//					// node creation failed, show error message
+//					JOptionPane.showMessageDialog(this,
+//							"Failed to create mod file, see message log for details.",
+//							"Error", JOptionPane.ERROR_MESSAGE);
+//					// TODO: perform clean-up?
+//				}
 			}
+		} else {
+			// we shouldn't get here as the corresponding action(s) should be disabled
+			throw new IllegalArgumentException();
+		}
+	}
+
+	/**
+	 * Deletes a specified mod file 
+	 * @param fileNode the fileNode associated with the file to be removed
+	 */
+	public void deleteModFile(FileNode fileNode) {
+                if((fileNode != null) && (fileNode instanceof ModFileNode) && (fileNode.getFilePath().toFile().exists())) {
+                        int res = JOptionPane.CANCEL_OPTION;
+                        ModFileNode modFileNode = (ModFileNode) fileNode;
+                        if(modFileNode.getStatus() !=  ApplyStatus.BEFORE_HEX_PRESENT) {
+                            res = JOptionPane.showOptionDialog(this, "The file you're about to delete may be applied. Delete anyway?",
+                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+                                            null, new String[] { "Delete", "Cancel" }, "Cancel");
+                        } else {
+                            res = JOptionPane.showOptionDialog(this, "Delete file?",
+                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+                                            null, new String[] { "Delete", "Cancel" }, "Delete");
+                        }
+                        
+			// check whether user aborted 
+			if (res == JOptionPane.OK_OPTION)  {
+                            // delete the new mod file node
+                            modFileNode.getFilePath().toFile().delete();
+			}
+		} else {
+			// we shouldn't get here as the corresponding action(s) should be disabled
+			throw new IllegalArgumentException();
+		}
+	}
+
+	/**
+	 * Renames a specified file 
+	 * @param fileNode the fileNode associated with the file to be renamed
+	 */
+	public void renameFile(FileNode fileNode) {
+                if((fileNode != null) && (fileNode.getFilePath().toFile().exists()) && fileNode.getFilePath().toFile().isFile()) {
+			String res = JOptionPane.showInputDialog(this, "Enter New Name of File",
+					"New Name", JOptionPane.INFORMATION_MESSAGE);
+			if ((res != null) && !res.isEmpty() && isValidName(res)) {
+                            try {
+                                // rename file
+                                Files.move(fileNode.getFilePath(), fileNode.getFilePath().resolveSibling(res));
+                            } catch (IOException ex) {
+                                // node creation failed, show error message
+                                JOptionPane.showMessageDialog(this,
+                                                "Failed to rename file, see message log for details.",
+                                                "Error", JOptionPane.ERROR_MESSAGE);
+                            }
+                                
+                        }
+		} else {
+			// we shouldn't get here as the corresponding action(s) should be disabled
+			throw new IllegalArgumentException();
+		}
+	}
+
+	/**
+	 * Creates a new folder inside the specified directory node.
+	 * @param dirNode the directory node of the project pane tree under which a folder shall be created
+	 */
+	public void createNewFolder(FileNode dirNode) {
+		if (dirNode != null) {
+			// prompt for mod file name
+			String res = JOptionPane.showInputDialog(this, "Enter Name of New Folder",
+					"New Folder", JOptionPane.INFORMATION_MESSAGE);
+			// check whether user aborted or entered invalid name
+			// TODO: verify enhanced error checking to prevent invalid file names
+			if ((res != null) && !res.isEmpty() && isValidName(res)) {
+				// create a new folder node
+				// TODO: should always succeed if error checking is in place
+//				FileNode node = projectTree.createModFile(dirNode, res);
+
+                                Path directoryPath = dirNode.getFilePath().resolve(res);
+                                try{
+                                    directoryPath.toFile().mkdir();
+                                } catch(SecurityException se){
+                                    //TODO add error message to logger
+                                    // node creation failed, show error message
+                                    JOptionPane.showMessageDialog(this,
+                                                    "Failed to create folder, see message log for details.",
+                                                    "Error", JOptionPane.ERROR_MESSAGE);
+                                    // TODO: perform clean-up?
+                                }  
+			}
+		} else {
+			// we shouldn't get here as the corresponding action(s) should be disabled
+			throw new IllegalArgumentException();
+		}
+	}
+
+	/**
+	 * Deletes a directory at the specified location.
+	 * @param fileNode the filenode corresponding to the directory to be deleted
+	 */
+	public void deleteFolder(FileNode fileNode) throws IOException {
+                if((fileNode != null) && !(fileNode instanceof ModFileNode) && (fileNode.getFilePath().toFile().exists()) && fileNode.getFilePath().toFile().isDirectory()) {
+                        int res = JOptionPane.CANCEL_OPTION;
+                        if(fileNode.getStatus() !=  ApplyStatus.BEFORE_HEX_PRESENT) {
+                            res = JOptionPane.showOptionDialog(this, "The directory you're about to delete may have applied files. Delete anyway?",
+                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+                                            null, new String[] { "Delete", "Cancel" }, "Cancel");
+                        } else if(fileNode.getFilePath().toFile().listFiles().length > 0 ){
+                            res = JOptionPane.showOptionDialog(this, "Non-empty directory. Delete anyway?",
+                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+                                            null, new String[] { "Delete", "Cancel" }, "Cancel");
+                        } else {
+                            res = JOptionPane.showOptionDialog(this, "Confirm delete directory?",
+                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+                                            null, new String[] { "Delete", "Cancel" }, "Delete");
+                        }
+                        
+			// check whether user aborted 
+			if (res == JOptionPane.OK_OPTION)  {
+                            // delete the new mod file node
+                            Files.walkFileTree(fileNode.getFilePath(), new SimpleFileVisitor<Path>() {
+                                @Override
+                                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                                    dir.toFile().delete();
+                                    return super.postVisitDirectory(dir, exc);
+                                }
+
+                                @Override
+                                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                                    file.toFile().delete();
+                                    return super.visitFile(file, attrs);
+                                }
+                            });
+                        }
 		} else {
 			// we shouldn't get here as the corresponding action(s) should be disabled
 			throw new IllegalArgumentException();

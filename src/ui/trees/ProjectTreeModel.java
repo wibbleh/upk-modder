@@ -18,10 +18,19 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import java.nio.file.*;
+import static java.nio.file.StandardWatchEventKinds.*;
+import static java.nio.file.LinkOption.*;
+import java.nio.file.attribute.*;
+import java.io.*;
+import java.util.*;
+import javax.swing.SwingWorker;
+
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -49,6 +58,14 @@ import ui.Constants;
 @SuppressWarnings("serial")
 public class ProjectTreeModel extends DefaultTreeModel {
 
+        private final WatchService watcher;
+        private final Map<WatchKey,Path> keys;
+
+        /**
+         * Persistent map storing path-to-node mappings.
+         */
+        protected Map<Path, FileNode> nodeMap;
+        
 	/**
 	 * The logger.
 	 */
@@ -56,11 +73,15 @@ public class ProjectTreeModel extends DefaultTreeModel {
 	
 	/**
 	 * Constructs a project tree model using a default root node.
+         * @throws java.io.IOException
 	 */
-	public ProjectTreeModel() {
+	public ProjectTreeModel() throws IOException {
 		super(new DefaultMutableTreeNode("Project Root"));
 		// TODO: maybe implement WatchService to detect project file system changes
 		// TODO: implement manual tree structure refresh
+                this.nodeMap = new HashMap<Path, FileNode>();
+                this.watcher = FileSystems.getDefault().newWatchService();
+                this.keys = new HashMap<WatchKey,Path>();
 	}
 
 	/**
@@ -123,17 +144,20 @@ public class ProjectTreeModel extends DefaultTreeModel {
 				}
 			}
 			final Path srcDir = projectNode.getProjectDirectory();
-			
-			// append new project node below root
+                        
+			// init map using project source directory
+                        nodeMap.put(srcDir, projectNode);
+
+                        // append new project node below root
 			this.insertNodeInto(projectNode, rootNode,
 					this.getChildCount(this.root));
 			// walk file tree and add nodes for all files
 			Files.walkFileTree(srcDir, new SimpleFileVisitor<Path>() {
 				/** Temporary map storing path-to-node mappings. */
-				private Map<Path, FileNode> nodeMap = new HashMap<>();
-				{	// init map using project source directory
-					nodeMap.put(srcDir, projectNode);
-				}
+//				private Map<Path, FileNode> nodeMap = new HashMap<>();
+//				{	// init map using project source directory
+//					nodeMap.put(srcDir, projectNode);
+//				}
 				
 				@Override
 				public FileVisitResult preVisitDirectory(Path dir,
@@ -148,6 +172,8 @@ public class ProjectTreeModel extends DefaultTreeModel {
 						// store path-to-node mapping
 						nodeMap.put(dir, childNode);
 					}
+                                        WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+                                        ProjectTreeModel.this.keys.put(key, dir);
 					return super.preVisitDirectory(dir, attrs);
 				}
 				
@@ -161,6 +187,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 					FileNode childNode = (isModFile) ? new ModFileNode(file) : new FileNode(file);
 					ProjectTreeModel.this.insertNodeInto(
 							childNode, parentNode, parentNode.getChildCount());
+                                        nodeMap.put(file, childNode);
 					
 					return super.visitFile(file, attrs);
 				}
@@ -249,6 +276,192 @@ public class ProjectTreeModel extends DefaultTreeModel {
 		return null;
 	}
 
+        @SuppressWarnings("unchecked")
+        static <T> WatchEvent<T> cast(WatchEvent<?> event) {
+            return (WatchEvent<T>) event;
+        }
+ 
+        /**
+         * Register the given directory, and all its sub-directories, with the
+         * WatchService.
+         */
+        private void registerAll(final Path start) throws IOException {
+            // register directory and sub-directories
+            Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    if (!dir.equals(start)) {	// skip source directory
+                        // look up parent node
+                        FileNode parentNode = nodeMap.get(dir.getParent());
+                        // create new directory node
+                        FileNode childNode = new FileNode(dir);
+                        ProjectTreeModel.this.insertNodeInto(
+                                        childNode, parentNode, parentNode.getChildCount());
+                        // store path-to-node mapping
+                        nodeMap.put(dir, childNode);
+                    }
+                                
+                    WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+                    ProjectTreeModel.this.keys.put(key, dir);
+                    return super.preVisitDirectory(dir, attrs);
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        // look up parent node
+                        FileNode parentNode = nodeMap.get(file.getParent());
+                        // create new generic file node or mod file node
+                        boolean isModFile = file.toString().endsWith(".upk_mod");
+                        FileNode childNode = (isModFile) ? new ModFileNode(file) : new FileNode(file);
+                        ProjectTreeModel.this.insertNodeInto(
+                                        childNode, parentNode, parentNode.getChildCount());
+                        nodeMap.put(file, childNode);
+
+                        return super.visitFile(file, attrs);
+                }
+            });
+        }
+
+        /**
+         * Remove all child directories/files from both the watch service and nodeMap
+         */
+        private void deRegisterAll(FileNode root) {
+            for (int i = 0; i < root.getChildCount(); i++) {
+                FileNode childNode = (FileNode) root.getChildAt(i);
+                //update nodeMap for changed directory/file
+                if(childNode.getFilePath().toFile().isDirectory()) {
+                    ProjectTreeModel.this.deRegisterAll(childNode);
+                }
+                ProjectTreeModel.this.nodeMap.remove(childNode.getFilePath());
+
+            }
+        }
+
+        /**
+         * Process all events for keys queued to the watcher
+         * Code copied from oracle docs example at : http://docs.oracle.com/javase/tutorial/essential/io/examples/WatchDir.java
+         */
+        void processEvents() {
+            for (;;) {
+
+                // wait for key to be signalled
+                WatchKey key;
+                try {
+                    key = watcher.take();
+                } catch (InterruptedException x) {
+                    return;
+                }
+
+                Path dir = keys.get(key);
+                if (dir == null) {
+                    System.err.println("WatchKey not recognized!!");
+                    continue;
+                }
+
+                for (WatchEvent<?> event: key.pollEvents()) {
+                    WatchEvent.Kind kind = event.kind();
+
+                    // TBD - handle OVERFLOW event
+                    if (kind == OVERFLOW) {
+                        continue;
+                    }
+
+                    // Context for directory entry event is the file name of entry
+                    WatchEvent<Path> ev = cast(event);
+                    Path name = ev.context();
+                    Path child = dir.resolve(name);
+
+                    // print out event
+                    System.out.format("%s: %s\n", event.kind().name(), child);
+                    
+                    if(kind == ENTRY_CREATE) {
+                        // look up parent node
+                        FileNode parentNode = ProjectTreeModel.this.nodeMap.get(dir);
+                        if(ProjectTreeModel.this.nodeMap.get(child) == null) {
+                            // create new generic file node or mod file node
+                            boolean isModFile = child.toString().endsWith(".upk_mod");
+                            FileNode childNode = (isModFile) ? new ModFileNode(child) : new FileNode(child);
+                            // find insertion point
+                            List<FileNode> list = Collections.list(parentNode.children());
+                            int index = Collections.binarySearch(list, childNode);
+                            if (index < 0) {	// sanity check, should always be negative
+                                    index = Math.abs(index + 1);
+                                    // insert new node
+                                    ProjectTreeModel.this.insertNodeInto(childNode, parentNode, index);
+                            }
+
+                            //ProjectTreeModel.this.insertNodeInto(childNode, parentNode, parentNode.getChildCount());
+                            //update nodeMap for new directory/file
+                            ProjectTreeModel.this.nodeMap.put(child, childNode);
+                            // set Unknown status for new child
+                            if (!childNode.isExcluded()) {
+                                    childNode.setStatus(ApplyStatus.UNKNOWN);
+                            }
+                            if(child.toFile().isDirectory()) {
+                                try {
+                                    ProjectTreeModel.this.registerAll(child);
+                                } catch (IOException ex) {
+                                    //TODO : fix logging
+                                    Logger.getLogger(ProjectTreeModel.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            }
+                        }
+                    }
+                    else if (kind == ENTRY_DELETE) {
+                        // look up deleted child node
+                        FileNode childNode = ProjectTreeModel.this.nodeMap.get(child);
+                        if(childNode != null) {
+                            ProjectTreeModel.this.removeNodeFromParent(childNode);
+                            //update nodeMap for changed directory/file
+                            if(child.toFile().isDirectory()) {
+                                ProjectTreeModel.this.deRegisterAll(childNode);
+                            }
+                            ProjectTreeModel.this.nodeMap.remove(child);
+                        }
+                    }
+                    else if (kind == ENTRY_MODIFY) {
+//                        if(ev.count() != 1) { // TBD handle ENTRY_MODIFY events with count > 1
+//                        }
+//                        else {
+//                            if(child.toFile().isDirectory()) {
+//                            }
+//                            else {
+//                                // look up modified child node
+//                                FileNode oldChildNode = ProjectTreeModel.this.nodeMap.get(child);
+//                                if(oldChildNode != null) {
+//                                    //create new child node
+//                                    boolean isModFile = child.toString().endsWith(".upk_mod");
+//                                    FileNode newChildNode = (isModFile) ? new ModFileNode(child) : new FileNode(child);
+//                                    if(oldChildNode.getPath() != newChildNode.getPath()) {
+//                                        TreePath treePath = new TreePath(oldChildNode.getPath());
+//    //                                    ProjectTreeModel.this.valueForPathChanged(treePath, (Object) newChildNode);
+//                                        //update nodeMap for changed directory/file
+//                                        ProjectTreeModel.this.nodeMap.put(child, newChildNode);
+//                                        if (!newChildNode.isExcluded()) {
+//                                            newChildNode.setStatus(ApplyStatus.UNKNOWN);
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+                    }
+                        
+
+                }
+
+                // reset key and remove from set if directory no longer accessible
+                boolean valid = key.reset();
+                if (!valid) {
+                    keys.remove(key);
+
+                    // all directories are inaccessible
+                    if (keys.isEmpty()) {
+                        break;
+                    }
+                }
+            }
+        }
+        
 	@Override
 	public MutableTreeNode getRoot() {
 		return (MutableTreeNode) super.getRoot();
@@ -260,7 +473,7 @@ public class ProjectTreeModel extends DefaultTreeModel {
 			super.setRoot(root);
 		}
 	}
-	
+        
 	/**
 	 * Custom tree node representing a file or directory in the project tree.
 	 * @author XMS

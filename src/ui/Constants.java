@@ -28,7 +28,7 @@ public class Constants {
 	/**
 	 * The application's version number.
 	 */
-	public static final String VERSION_NUMBER = "v0.82";
+	public static final String VERSION_NUMBER = "v0.83";
 	
 	/**
 	 * The list of authors.

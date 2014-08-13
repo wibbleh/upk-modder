@@ -321,8 +321,8 @@ public class HexSearchAndReplace {
 		for (int i = 0; i < patterns.size() ; i++) {
 			if (patterns.get(i).length != replacements.get(i).length) {
 				logger.log(Level.INFO, "Block " + i + " bytecount mismatch. FIND = " 
-					+ patterns.get(i).length + ", REPLACE = " 
-					+ replacements.get(i).length);
+					+ Integer.toHexString(patterns.get(i).length) + ", REPLACE = " 
+					+ Integer.toHexString(replacements.get(i).length));
 				return null;
 			}
 		}
@@ -822,9 +822,9 @@ public class HexSearchAndReplace {
 		// Verify size change
 		if(findHex.length + resizeAmount != replaceHex.length) {
 			logger.log(Level.INFO, "Mismatch in expected size difference between FIND/REPLACE blocks\n"
-					+ "    FIND size: " + findHex.length + "\n"
-					+ "    Request resize: " + resizeAmount + "\n"
-					+ "    REPLACE size: " + replaceHex.length + "\n");
+					+ "    FIND size: " + Integer.toHexString(findHex.length) + "\n"
+					+ "    Request resize: " + Integer.toHexString(resizeAmount) + "\n"
+					+ "    REPLACE size: " + Integer.toHexString(replaceHex.length) + "\n");
 			return false;
 		}
 		
