@@ -3,6 +3,8 @@ package ui.trees;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
@@ -11,18 +13,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.ActionMap;
 import javax.swing.Icon;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
+import javax.swing.KeyStroke;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -46,11 +52,9 @@ import ui.trees.ProjectTreeModel.ProjectNode;
 @SuppressWarnings("serial")
 public class ProjectTree extends JTree {
 	
-        private ProjectTreeModel theTreeModel;
-    
 	/**
 	 * Constructs a project tree using a default project tree model.
-         * @throws java.io.IOException
+	 * @throws IOException
 	 */
 	public ProjectTree() throws IOException {
 		this(new ProjectTreeModel());
@@ -62,13 +66,11 @@ public class ProjectTree extends JTree {
 	 */
 	public ProjectTree(ProjectTreeModel treeModel) {
 		super(treeModel);
-                this.theTreeModel = treeModel;
 
 		this.initComponents();
-                
-                DirectoryChangeWorker worker = new DirectoryChangeWorker();
-                worker.execute();
-
+		
+		// launch file watching service
+		new DirectoryChangeWorker(treeModel).execute();
 	}
 
 	/**
@@ -289,22 +291,34 @@ public class ProjectTree extends JTree {
 		return (ProjectTreeModel) treeModel;
 	}
 
-        @SuppressWarnings("unchecked")
-	public class DirectoryChangeWorker extends SwingWorker<Object, Object> {
-		
-		public DirectoryChangeWorker() {
+	/**
+	 * Background worker for monitoring project directory structure changes.
+	 * @author Amineri
+	 */
+	private class DirectoryChangeWorker extends SwingWorker<Object, Object> {
+
+		/** The tree model which does all the watch event processing. */
+		private ProjectTreeModel model;
+
+		/**
+		 * Creates a project directory watcher implemented in the specified
+		 * project tree model.
+		 * @param model the project tree model
+		 */
+		public DirectoryChangeWorker(ProjectTreeModel model) {
 			super();
+			this.model = model;
 		}
 
 		@Override
 		protected Object doInBackground() throws Exception {
-                    theTreeModel.processEvents();
-                    return null;
-                }
-                
-        }
-        
-        /**
+			model.processEvents();
+			return null;
+		}
+
+	}
+
+	/**
 	 * Context-sensitive popup menu implementation for the project tree.
 	 * @author XMS
 	 */
@@ -314,11 +328,6 @@ public class ProjectTree extends JTree {
 		 * The targeted node or <code>null</code> if nothing is targeted.
 		 */
 		private Object target;
-		
-		/**
-		 * The cache of tree-specific context actions.
-		 */
-		private Map<String, Action> localActions;
 		
 		/**
 		 * Creates a context-sensitive popup menu.
@@ -335,7 +344,15 @@ public class ProjectTree extends JTree {
 		 * Creates and configures the context menu's local action cache.
 		 */
 		private void initActions() {
-			localActions = new HashMap<>();
+			ActionMap actionMap = this.getActionMap();
+			
+			Action openModFileAction = new AbstractAction("Open Mod File") {
+				@Override
+				public void actionPerformed(ActionEvent evt) {
+					ModFileNode modNode = (ModFileNode) target;
+					MainFrame.getInstance().openModFile(modNode.getFilePath(), modNode);
+				}
+			};
 			
 			Action removeProjectAction = new AbstractAction("Remove Project") {
 				@Override
@@ -344,50 +361,70 @@ public class ProjectTree extends JTree {
 				}
 			};
 			
-			Action newModFileAction = new AbstractAction("New Mod File") {
+			Action newModFileAction = new AbstractAction(
+					"New Mod File", UIManager.getIcon("FileView.fileIcon")) {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
 					MainFrame.getInstance().createNewModFile((FileNode) target);
 				}
 			};
+			newModFileAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
+			newModFileAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
 
 			Action renameFileAction = new AbstractAction("Rename File") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-					MainFrame.getInstance().renameFile((FileNode) target);
+					try {
+						MainFrame.getInstance().renameFile((FileNode) target);
+					} catch (IOException e) {
+						// log failure to rename file
+						Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, e);
+					}
 				}
 			};
 
 			Action deleteModFileAction = new AbstractAction("Delete Mod File") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-					MainFrame.getInstance().deleteModFile((FileNode) target);
+					try {
+						MainFrame.getInstance().deleteModFile((FileNode) target);
+					} catch (IOException e) {
+						// log failure to delete file
+						Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, e);
+					}
 				}
 			};
 
-			Action newFolderAction = new AbstractAction("New Folder") {
+			Action newFolderAction = new AbstractAction("New Folder",
+					UIManager.getIcon("FileChooser.newFolderIcon")) {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-					MainFrame.getInstance().createNewFolder((FileNode) target);
+					try {
+						MainFrame.getInstance().createNewFolder((FileNode) target);
+					} catch (IOException e) {
+						// log failure to create folder
+						Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, e);
+					}
 				}
 			};
+			newFolderAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(
+					KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK + InputEvent.ALT_DOWN_MASK));
 
 			Action deleteFolderAction = new AbstractAction("Delete Folder") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-                                    try {
-                                        MainFrame.getInstance().deleteFolder((FileNode) target);
-                                    } catch (IOException ex) {
-                                        //TODO: log failure to create folder
-                                        Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, ex);
-                                    }
+					try {
+						MainFrame.getInstance().deleteFolder((FileNode) target);
+					} catch (IOException e) {
+						// TODO: log failure to create folder
+						Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, e);
+					}
 				}
 			};
                         
-                        Action testModFileAction = new AbstractAction("Test Status") {
+			Action testModFileAction = new AbstractAction("Test Status") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-
 					ModFileStatusWorker worker = new ModFileStatusWorker((FileNode) target);
 					worker.addPropertyChangeListener(new PropertyChangeListener() {
 						@Override
@@ -406,8 +443,8 @@ public class ProjectTree extends JTree {
 			Action bulkApplyModFileAction = new AbstractAction("Apply file(s)") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-
-					ModFileBulkApplyRevertWorker worker = new ModFileBulkApplyRevertWorker((FileNode) target, true);
+					ModFileBulkApplyRevertWorker worker =
+							new ModFileBulkApplyRevertWorker((FileNode) target, true);
 					worker.addPropertyChangeListener(new PropertyChangeListener() {
 						@Override
 						public void propertyChange(PropertyChangeEvent evt) {
@@ -425,106 +462,57 @@ public class ProjectTree extends JTree {
 			Action bulkRevertModFileAction = new AbstractAction("Revert file(s)") {
 				@Override
 				public void actionPerformed(ActionEvent evt) {
-
-					ModFileBulkApplyRevertWorker worker = new ModFileBulkApplyRevertWorker((FileNode) target, false);
+					ModFileBulkApplyRevertWorker worker =
+							new ModFileBulkApplyRevertWorker((FileNode) target, false);
 					worker.addPropertyChangeListener(new PropertyChangeListener() {
 						@Override
 						public void propertyChange(PropertyChangeEvent evt) {
 							if ("progress".equals(evt.getPropertyName())) {
 								// forward to main frame
-								MainFrame.getInstance().setProgress(
-										(Integer) evt.getNewValue());
+								MainFrame.getInstance().setProgress((Integer) evt.getNewValue());
 							}
 						}
 					});
 					worker.execute();
 				}
 			};
-			
-			localActions.put("removeProject", removeProjectAction);
-			localActions.put("deleteModFile", deleteModFileAction);
-			localActions.put("newModFile", newModFileAction);
-			localActions.put("renameFile", renameFileAction);
-			localActions.put("newFolder", newFolderAction);
-			localActions.put("deleteFolder", deleteFolderAction);
-			localActions.put("testModFile", testModFileAction);
-			localActions.put("bulkApply", bulkApplyModFileAction);
-			localActions.put("bulkRevert", bulkRevertModFileAction);
+
+			actionMap.put("openModFile", openModFileAction);
+			actionMap.put("removeProject", removeProjectAction);
+			actionMap.put("deleteModFile", deleteModFileAction);
+			actionMap.put("newModFile", newModFileAction);
+			actionMap.put("renameFile", renameFileAction);
+			actionMap.put("newFolder", newFolderAction);
+			actionMap.put("deleteFolder", deleteFolderAction);
+			actionMap.put("testModFile", testModFileAction);
+			actionMap.put("bulkApply", bulkApplyModFileAction);
+			actionMap.put("bulkRevert", bulkRevertModFileAction);
 		}
 					
 		/**
 		 * Creates the context menu's entries.
 		 */
 		private void initComponents() {
-			this.add(ActionCache.getAction("newProject"));
-			this.add(localActions.get("removeProject"));
+			ActionMap actionMap = this.getActionMap();
+			
+			JMenu newMenu = new JMenu("New...");
+			newMenu.add(ActionCache.getAction("newProject"));
+			newMenu.add(actionMap.get("newModFile"));
+			newMenu.addSeparator();
+			newMenu.add(actionMap.get("newFolder"));
+			
+			this.add(newMenu);
 			this.addSeparator();
-			this.add(localActions.get("newModFile"));
-			this.add(localActions.get("renameFile"));
-			this.add(localActions.get("newFolder"));
+			this.add(actionMap.get("openModFile"));
 			this.addSeparator();
-			this.add(localActions.get("testModFile"));
+			this.add(actionMap.get("renameFile"));
+			this.add(actionMap.get("removeProject"));
+			this.add(actionMap.get("deleteModFile"));
+			this.add(actionMap.get("deleteFolder"));
 			this.addSeparator();
-			this.add(localActions.get("bulkApply"));
-			this.add(localActions.get("bulkRevert"));
-			this.addSeparator();
-			this.add(localActions.get("deleteModFile"));
-			this.add(localActions.get("deleteFolder"));
-		}
-		
-		
-		/**
-		 * Configures the available actions depending on the context established
-		 * by the specified target path.
-		 * @param targetPath the target path
-		 */
-		private void configureTargetContext(TreePath targetPath) {
-			// determine context
-			if (targetPath != null) {
-				// a tree node has been targeted
-				Object node = targetPath.getLastPathComponent();
-				target = node;
-				
-				if (node instanceof FileNode) {	// sanity check, all nodes descend from FileNode
-					// either a project node, a generic file/directory node or
-					// a mod file node has been targeted
-					if (node instanceof ProjectNode) {
-						localActions.get("removeProject").setEnabled(true);
-                                                localActions.get("deleteModFile").setEnabled(false);
-                                                localActions.get("deleteFolder").setEnabled(false);
-                                                localActions.get("renameFile").setEnabled(false);
-                                                localActions.get("testModFile").setEnabled(true);
-					} else {
-						localActions.get("removeProject").setEnabled(false);
-						if (node instanceof ModFileNode) {
-							localActions.get("testModFile").setEnabled(true);
-							localActions.get("bulkApply").setEnabled(true);
-							localActions.get("bulkRevert").setEnabled(true);
-							localActions.get("deleteModFile").setEnabled(true);
-                                                        localActions.get("deleteFolder").setEnabled(false);
-                                                        localActions.get("renameFile").setEnabled(true);
-
-						} else {
-							// either a directory or a non-mod file node has been targeted
-							if (Files.isRegularFile(((FileNode) node).getFilePath())) {
-								// non-mod file
-                                                                localActions.get("renameFile").setEnabled(true);
-                                                                localActions.get("testModFile").setEnabled(false);
-
-							} else {  // directory
-                                                            localActions.get("newFolder").setEnabled(true);
-                                                            localActions.get("deleteFolder").setEnabled(true);
-                                                            localActions.get("deleteModFile").setEnabled(false);
-                                                            localActions.get("renameFile").setEnabled(false);
-                                                            localActions.get("testModFile").setEnabled(true);
-							}
-						}
-					}
-				}
-			} else {
-				// empty space has been targeted
-				localActions.get("testModFile").setEnabled(false);
-			}
+			this.add(actionMap.get("testModFile"));
+			this.add(actionMap.get("bulkApply"));
+			this.add(actionMap.get("bulkRevert"));
 		}
 		
 		@Override
@@ -534,14 +522,112 @@ public class ProjectTree extends JTree {
 			
 			super.show(invoker, x, y);
 		}
+
+		/**
+		 * Configures the available actions depending on the context established
+		 * by the specified target path.
+		 * @param targetPath the target path
+		 */
+		private void configureTargetContext(TreePath targetPath) {
+			ActionMap actionMap = this.getActionMap();
+			
+			// determine context
+			if (targetPath != null) {
+				// a tree node has been targeted
+				Object node = targetPath.getLastPathComponent();
+				target = node;
+		
+				// sanity check, all nodes descend from FileNode
+				if (node instanceof FileNode) {
+					// either a project node, a generic file/directory node or
+					// a mod file node has been targeted
+					if (node instanceof ProjectNode) {
+						actionMap.get("openModFile").setEnabled(false);
+//						actionMap.get("removeProject").setEnabled(true);
+						this.findItem(actionMap.get("removeProject")).setVisible(true);
+//						actionMap.get("deleteModFile").setEnabled(false);
+						this.findItem(actionMap.get("deleteModFile")).setVisible(false);
+//						actionMap.get("deleteFolder").setEnabled(false);
+						this.findItem(actionMap.get("deleteFolder")).setVisible(false);
+						actionMap.get("renameFile").setEnabled(false);
+						actionMap.get("testModFile").setEnabled(true);
+					} else {
+//						actionMap.get("removeProject").setEnabled(false);
+						this.findItem(actionMap.get("removeProject")).setVisible(false);
+						if (node instanceof ModFileNode) {
+							actionMap.get("openModFile").setEnabled(true);
+							actionMap.get("testModFile").setEnabled(true);
+							actionMap.get("bulkApply").setEnabled(true);
+							actionMap.get("bulkRevert").setEnabled(true);
+//							actionMap.get("deleteModFile").setEnabled(true);
+							this.findItem(actionMap.get("deleteModFile")).setVisible(true);
+//							actionMap.get("deleteFolder").setEnabled(false);
+							this.findItem(actionMap.get("deleteFolder")).setVisible(false);
+							actionMap.get("renameFile").setEnabled(true);
+						} else {
+							actionMap.get("openModFile").setEnabled(false);
+							// either a directory or a non-mod file node has been targeted
+							if (Files.isRegularFile(((FileNode) node).getFilePath())) {
+								// non-mod file
+								actionMap.get("renameFile").setEnabled(true);
+								actionMap.get("testModFile").setEnabled(false);
+							} else {
+								// directory
+								actionMap.get("newFolder").setEnabled(true);
+//								actionMap.get("deleteFolder").setEnabled(true);
+								this.findItem(actionMap.get("deleteFolder")).setVisible(true);
+//								actionMap.get("deleteModFile").setEnabled(false);
+								this.findItem(actionMap.get("deleteModFile")).setVisible(false);
+								actionMap.get("renameFile").setEnabled(false);
+								actionMap.get("testModFile").setEnabled(true);
+							}
+						}
+					}
+				}
+			} else {
+				// empty space has been targeted
+				actionMap.get("testModFile").setEnabled(false);
+			}
+		}
+		
+		private JMenuItem findItem(Action action) {
+			return this.findItem(this, action);
+		}
+		
+		private JMenuItem findItem(JComponent menu, Action action) {
+			for (Component comp : menu.getComponents()) {
+				if (comp instanceof JMenu) {
+					JMenuItem item = this.findItem((JMenu) comp, action);
+					if (item != null) {
+						return item;
+					}
+				} else if (comp instanceof JMenuItem) {
+					JMenuItem item = (JMenuItem) comp;
+					if (item.getAction().equals(action)) {
+						return item;
+					}
+				}
+			}
+			return null;
+		}
 		
 	}
 
+	/**
+	 * Background worker for determining apply states of mod files.
+	 * @author Amineri
+	 */
 	@SuppressWarnings("unchecked")
 	public class ModFileStatusWorker extends SwingWorker<Object, Object> {
 		
+		/** The parent file node. */
 		private FileNode parentNode;
 
+		/**
+		 * Creates a status-determining worker for mod files below the specified
+		 * parent file node.
+		 * @param parentNode the parent file node
+		 */
 		public ModFileStatusWorker(FileNode parentNode) {
 			super();
 			this.parentNode = parentNode;
@@ -575,8 +661,8 @@ public class ProjectTree extends JTree {
 						try {
 //							fileNode.setStatus(ProjectTree.this.determineStatus(fileNode));
 							fileNode.determineStatus();
-						} catch (Exception e) {
-							e.printStackTrace();
+						} catch (Exception ex) {
+							Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, ex);
 						}
 					}
 				}
@@ -593,15 +679,28 @@ public class ProjectTree extends JTree {
 		
 	}
 
+	/**
+	 * Background worker for batch-applying/reverting mod files.
+	 * @author Amineri
+	 */
 	@SuppressWarnings("unchecked")
 	public class ModFileBulkApplyRevertWorker extends SwingWorker<Object, Object> {
 		
-		private FileNode parentNode;
+		/** The root of the sub-tree to perform operations on. */
+		private FileNode root;
+		/** Flag denoting whether an apply or a revert operation shall be performed. */
 		private boolean apply;
 
-		public ModFileBulkApplyRevertWorker(FileNode parentNode, boolean apply) {
+		/**
+		 * Creates a bulk processing worker for mod files in the subtree rooted
+		 * at the specified file node.
+		 * @param root the parent file node
+		 * @param apply <code>true</code> if apply operations shall be performed,
+		 *  <code>false</code> for revert operations
+		 */
+		public ModFileBulkApplyRevertWorker(FileNode root, boolean apply) {
 			super();
-			this.parentNode = parentNode;
+			this.root = root;
 			this.apply = apply;
 		}
 
@@ -612,10 +711,13 @@ public class ProjectTree extends JTree {
 			
 			// determine total mod file count
 			double total = 0.0;
-			Enumeration<FileNode> dfe = parentNode.depthFirstEnumeration();
+			Enumeration<FileNode> dfe = root.depthFirstEnumeration();
 			while (dfe.hasMoreElements()) {
 				FileNode fileNode = (FileNode) dfe.nextElement();
-				if(!(fileNode instanceof ProjectNode) && fileNode.getParent() != null && ((FileNode) fileNode.getParent()).isExcluded()) {
+				FileNode parentNode = (FileNode) fileNode.getParent();
+				if (!(fileNode instanceof ProjectNode)
+						&& (parentNode != null)
+						&& parentNode.isExcluded()) {
 					continue;
 				}
 				if (fileNode instanceof ModFileNode) {
@@ -625,22 +727,27 @@ public class ProjectTree extends JTree {
 			
 			// update mod file status and fire progress events
 			int current = 0;
-			dfe = parentNode.depthFirstEnumeration();
+			dfe = root.depthFirstEnumeration();
 			while (dfe.hasMoreElements()) {
 				FileNode fileNode = (FileNode) dfe.nextElement();
-				if(!(fileNode instanceof ProjectNode) && fileNode.getParent() != null && ((FileNode) fileNode.getParent()).isExcluded()) {
+				FileNode parentNode = (FileNode) fileNode.getParent();
+				if (!(fileNode instanceof ProjectNode)
+						&& (parentNode != null)
+						&& parentNode.isExcluded()) {
 					continue;
 				}
 				if (fileNode instanceof ModFileNode) {
-					MainFrame.getInstance().testModFileStatus((ModFileNode) fileNode);
-					if(!fileNode.isExcluded()) {
-						if(this.apply) {
+					ModFileNode modFileNode = (ModFileNode) fileNode;
+					MainFrame.getInstance().testModFileStatus(modFileNode);
+					if (!fileNode.isExcluded()) {
+						if (this.apply) {
 							if(fileNode.getStatus() == ApplyStatus.BEFORE_HEX_PRESENT) {
-								MainFrame.getInstance().bulkApplyRevertModFile((ModFileNode) fileNode, true);
+								// @Amineri if the MainFrame's doing the actual heavy lifting why not move the worker there? That way it can also be added to the global action cache for use in menu/toolbar items
+								MainFrame.getInstance().bulkApplyRevertModFile(modFileNode, true);
 							}
 						} else {
 							if(fileNode.getStatus() == ApplyStatus.AFTER_HEX_PRESENT) {
-								MainFrame.getInstance().bulkApplyRevertModFile((ModFileNode) fileNode, false);
+								MainFrame.getInstance().bulkApplyRevertModFile(modFileNode, false);
 							}
 						}
 					}
@@ -650,8 +757,8 @@ public class ProjectTree extends JTree {
 						try {
 //							fileNode.setStatus(ProjectTree.this.determineStatus(fileNode));
 							fileNode.determineStatus();
-						} catch (Exception e) {
-							e.printStackTrace();
+						} catch (Exception ex) {
+							Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, ex);
 						}
 					}
 				}

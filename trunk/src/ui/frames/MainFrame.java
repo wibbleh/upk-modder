@@ -8,15 +8,12 @@ import java.awt.Image;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
-import java.nio.file.WatchKey;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +52,6 @@ import ui.ModFileTabbedPane.ModFileTab;
 import ui.StatusBar;
 import ui.dialogs.AboutDialog;
 import ui.trees.ProjectTree;
-import ui.trees.ProjectTreeModel;
 import ui.trees.ProjectTreeModel.FileNode;
 import ui.trees.ProjectTreeModel.ModFileNode;
 import ui.trees.ProjectTreeModel.ProjectNode;
@@ -486,12 +482,12 @@ public class MainFrame extends JFrame {
 	 * @param xmlPath the project XML
 	 */
 	public void openProject(Path xmlPath) {
-                if(xmlPath.toFile().exists()) {
-                    projectTree.openProject(xmlPath);
+		if (Files.exists(xmlPath)) {
+			projectTree.openProject(xmlPath);
 
-                    // store opened file
-                    appState.addProjectFile(xmlPath);
-                }
+			// store opened file
+			appState.addProjectFile(xmlPath);
+		}
 	}
 
 	/**
@@ -577,13 +573,14 @@ public class MainFrame extends JFrame {
 					"New Mod File", JOptionPane.INFORMATION_MESSAGE);
 			// check whether user aborted or entered invalid name
 			// TODO: verify enhanced error checking to prevent invalid file names
-			if ((res != null) && !res.isEmpty() && isValidName(res)) {
+			if ((res != null) && !res.isEmpty() && this.isValidName(res)) {
 				// create a new mod file node
 				// TODO: should always succeed if error checking is in place
 				if (!res.toLowerCase().endsWith(".upk_mod")) {
 					res += ".upk_mod";   // append file extension if user did not type it
 				}
-				ModFileNode node = projectTree.createModFile(dirNode, res);
+				projectTree.createModFile(dirNode, res);
+//				ModFileNode node = projectTree.createModFile(dirNode, res);
 //				if (node != null) {
 //					// create a new mod file tab
 //					this.openModFile(node.getFilePath(), node);
@@ -604,25 +601,23 @@ public class MainFrame extends JFrame {
 	/**
 	 * Deletes a specified mod file 
 	 * @param fileNode the fileNode associated with the file to be removed
+	 * @throws IOException if an I/O error occurs
 	 */
-	public void deleteModFile(FileNode fileNode) {
-                if((fileNode != null) && (fileNode instanceof ModFileNode) && (fileNode.getFilePath().toFile().exists())) {
-                        int res = JOptionPane.CANCEL_OPTION;
-                        ModFileNode modFileNode = (ModFileNode) fileNode;
-                        if(modFileNode.getStatus() !=  ApplyStatus.BEFORE_HEX_PRESENT) {
-                            res = JOptionPane.showOptionDialog(this, "The file you're about to delete may be applied. Delete anyway?",
-                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                                            null, new String[] { "Delete", "Cancel" }, "Cancel");
-                        } else {
-                            res = JOptionPane.showOptionDialog(this, "Delete file?",
-                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                                            null, new String[] { "Delete", "Cancel" }, "Delete");
-                        }
-                        
+	public void deleteModFile(FileNode fileNode) throws IOException {
+		Path filePath = fileNode.getFilePath();
+		if ((fileNode instanceof ModFileNode) && Files.exists(filePath)) {
+			boolean isApplied = fileNode.getStatus() != ApplyStatus.BEFORE_HEX_PRESENT;
+			String prompt = (isApplied) ? "The file you're about to delete may be applied. Delete anyway?"
+					: "Do you really want to delete this file?";
+			String[] options = new String[] { "Delete", "Cancel" };
+			int res = JOptionPane.showOptionDialog(this, prompt, "Confirm Delete",
+					JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,
+					null, options, options[1]);
+
 			// check whether user aborted 
-			if (res == JOptionPane.OK_OPTION)  {
-                            // delete the new mod file node
-                            modFileNode.getFilePath().toFile().delete();
+			if (res == JOptionPane.OK_OPTION) {
+				// delete the new mod file node
+				Files.delete(filePath);
 			}
 		} else {
 			// we shouldn't get here as the corresponding action(s) should be disabled
@@ -631,25 +626,23 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
-	 * Renames a specified file 
-	 * @param fileNode the fileNode associated with the file to be renamed
+	 * Renames the file associated with the specified file node.
+	 * @param fileNode the file node
+	 * @throws IOException if an I/O error occurs
 	 */
-	public void renameFile(FileNode fileNode) {
-                if((fileNode != null) && (fileNode.getFilePath().toFile().exists()) && fileNode.getFilePath().toFile().isFile()) {
-			String res = JOptionPane.showInputDialog(this, "Enter New Name of File",
-					"New Name", JOptionPane.INFORMATION_MESSAGE);
-			if ((res != null) && !res.isEmpty() && isValidName(res)) {
-                            try {
-                                // rename file
-                                Files.move(fileNode.getFilePath(), fileNode.getFilePath().resolveSibling(res));
-                            } catch (IOException ex) {
-                                // node creation failed, show error message
-                                JOptionPane.showMessageDialog(this,
-                                                "Failed to rename file, see message log for details.",
-                                                "Error", JOptionPane.ERROR_MESSAGE);
-                            }
-                                
-                        }
+	public void renameFile(FileNode fileNode) throws IOException {
+		if (fileNode != null) {
+			Path filePath = fileNode.getFilePath();
+			// @Amineri surely renaming directories should be an option, too, maybe drop the file check?
+			if (Files.isRegularFile(filePath)) {
+				String res = JOptionPane.showInputDialog(this,
+						"Enter New Name of File", "Rename",
+						JOptionPane.INFORMATION_MESSAGE);
+				if ((res != null) && !res.isEmpty() && this.isValidName(res)) {
+					// rename file
+					Files.move(filePath, filePath.resolveSibling(res));
+				}
+			}
 		} else {
 			// we shouldn't get here as the corresponding action(s) should be disabled
 			throw new IllegalArgumentException();
@@ -657,32 +650,28 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
-	 * Creates a new folder inside the specified directory node.
-	 * @param dirNode the directory node of the project pane tree under which a folder shall be created
+	 * Creates a new directory below the one associated with the specified file
+	 * node.
+	 * @param dirNode the file node pointing to the parent directory
+	 * @throws IOException if an I/O error occurs
 	 */
-	public void createNewFolder(FileNode dirNode) {
+	public void createNewFolder(FileNode dirNode) throws IOException {
 		if (dirNode != null) {
-			// prompt for mod file name
-			String res = JOptionPane.showInputDialog(this, "Enter Name of New Folder",
-					"New Folder", JOptionPane.INFORMATION_MESSAGE);
-			// check whether user aborted or entered invalid name
-			// TODO: verify enhanced error checking to prevent invalid file names
-			if ((res != null) && !res.isEmpty() && isValidName(res)) {
-				// create a new folder node
-				// TODO: should always succeed if error checking is in place
-//				FileNode node = projectTree.createModFile(dirNode, res);
+			Path parentPath = dirNode.getFilePath();
+			if (Files.isDirectory(parentPath)) {
+				// prompt for mod file name
+				String res = JOptionPane.showInputDialog(this, "Enter Name of New Folder",
+						"New Folder", JOptionPane.INFORMATION_MESSAGE);
+				// check whether user aborted or entered invalid name
+				// TODO: verify enhanced error checking to prevent invalid file names
+				if ((res != null) && !res.isEmpty() && this.isValidName(res)) {
+					// create a new folder node
+					// TODO: should always succeed if error checking is in place
+//					FileNode node = projectTree.createModFile(dirNode, res);
 
-                                Path directoryPath = dirNode.getFilePath().resolve(res);
-                                try{
-                                    directoryPath.toFile().mkdir();
-                                } catch(SecurityException se){
-                                    //TODO add error message to logger
-                                    // node creation failed, show error message
-                                    JOptionPane.showMessageDialog(this,
-                                                    "Failed to create folder, see message log for details.",
-                                                    "Error", JOptionPane.ERROR_MESSAGE);
-                                    // TODO: perform clean-up?
-                                }  
+					Path childPath = parentPath.resolve(res);
+					Files.createDirectories(childPath);
+				}
 			}
 		} else {
 			// we shouldn't get here as the corresponding action(s) should be disabled
@@ -691,43 +680,43 @@ public class MainFrame extends JFrame {
 	}
 
 	/**
-	 * Deletes a directory at the specified location.
-	 * @param fileNode the filenode corresponding to the directory to be deleted
+	 * Deletes the directory and all its contents rooted at the specified file node.
+	 * @param fileNode the file node corresponding to the directory to be deleted
 	 */
 	public void deleteFolder(FileNode fileNode) throws IOException {
-                if((fileNode != null) && !(fileNode instanceof ModFileNode) && (fileNode.getFilePath().toFile().exists()) && fileNode.getFilePath().toFile().isDirectory()) {
-                        int res = JOptionPane.CANCEL_OPTION;
-                        if(fileNode.getStatus() !=  ApplyStatus.BEFORE_HEX_PRESENT) {
-                            res = JOptionPane.showOptionDialog(this, "The directory you're about to delete may have applied files. Delete anyway?",
-                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                                            null, new String[] { "Delete", "Cancel" }, "Cancel");
-                        } else if(fileNode.getFilePath().toFile().listFiles().length > 0 ){
-                            res = JOptionPane.showOptionDialog(this, "Non-empty directory. Delete anyway?",
-                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                                            null, new String[] { "Delete", "Cancel" }, "Cancel");
-                        } else {
-                            res = JOptionPane.showOptionDialog(this, "Confirm delete directory?",
-                                            "Confirm Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                                            null, new String[] { "Delete", "Cancel" }, "Delete");
-                        }
-                        
-			// check whether user aborted 
-			if (res == JOptionPane.OK_OPTION)  {
-                            // delete the new mod file node
-                            Files.walkFileTree(fileNode.getFilePath(), new SimpleFileVisitor<Path>() {
-                                @Override
-                                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                                    dir.toFile().delete();
-                                    return super.postVisitDirectory(dir, exc);
-                                }
+		if (fileNode != null) {
+			Path filePath = fileNode.getFilePath();
+			if (Files.isDirectory(filePath)) {
+				boolean isApplied = fileNode.getStatus() != ApplyStatus.BEFORE_HEX_PRESENT;
+				boolean isEmpty = true;
+				try (DirectoryStream<Path> ds = Files.newDirectoryStream(filePath)) {
+					isEmpty = !ds.iterator().hasNext();
+				}
+				String prompt = (isApplied) ? "The directory you're about to delete may have applied files. Delete anyway?"
+						: (!isEmpty) ? "The directory you're about to delete is not empty. Delete anyway?"
+								: "Do you really want to delete this directory?";
+				String[] options = new String[] { "Delete", "Cancel" };
+				int res = JOptionPane.showOptionDialog(this, prompt, "Confirm Delete",
+						JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,
+						null, options, options[1]);
 
-                                @Override
-                                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                                    file.toFile().delete();
-                                    return super.visitFile(file, attrs);
-                                }
-                            });
-                        }
+				// check whether user aborted
+				if (res == JOptionPane.OK_OPTION) {
+					// recursively delete directory and its contents
+					Files.walkFileTree(filePath, new SimpleFileVisitor<Path>() {
+						@Override public FileVisitResult postVisitDirectory(
+								Path dir, IOException exc) throws IOException {
+							Files.delete(dir);
+							return super.postVisitDirectory(dir, exc);
+						}
+						@Override public FileVisitResult visitFile(Path file,
+								BasicFileAttributes attrs) throws IOException {
+							Files.delete(file);
+							return super.visitFile(file, attrs);
+						}
+					});
+				}
+			}
 		} else {
 			// we shouldn't get here as the corresponding action(s) should be disabled
 			throw new IllegalArgumentException();
@@ -737,8 +726,15 @@ public class MainFrame extends JFrame {
 	// TODO : move to utility function after validation -- we don't seem to have UI-related utilities yet...
 	// code from http://stackoverflow.com/questions/6730009/validate-a-file-name-on-windows
 	// TODO: @Amineri, that looks like a simpler (and platform-independent) way: http://stackoverflow.com/questions/893977/java-how-to-find-out-whether-a-file-name-is-valid
-	// TODO: @XMTS, my thinking is to employ more restrictive naming so that file names will be more cross platform compatible 
-	public static boolean isValidName(String text) {
+	// TODO: @XMTS, my thinking is to employ more restrictive naming so that file names will be more cross platform compatible
+	/**
+	 * Auxiliary method to check whether the provided string is a valid file
+	 * name.
+	 * @param text the string to check
+	 * @return <code>true</code> if the string is a valid file name,
+	 *  <code>false</code> otherwise
+	 */
+	private boolean isValidName(String text) {
 		Pattern pattern = Pattern.compile(
 			"# Match a valid Windows filename (unspecified file system).          \n" +
 			"^                                # Anchor to start of string.        \n" +
@@ -791,7 +787,7 @@ public class MainFrame extends JFrame {
 						this.associateUpk(upkPath);
 					}
 				}
-				setEditActionsEnabled(newTab.getApplyStatus());
+				this.setEditActionsEnabled(newTab.getApplyStatus());
 			}
 		} else {
 			// tab creation failed, show error message
@@ -926,13 +922,12 @@ public class MainFrame extends JFrame {
 		if (modFilePath == null) {
 			return;
 		}
-
 		
-		// test if the modfile is in an opened pane
+		// test if the mod file is in an opened pane
 		if (modTabPane.getTab(modFilePath) != null) {
 			ApplyStatus status;
-			ModFileTab newTab = modTabPane.openModFile(modFilePath, modNode);
-			if(apply) {
+			modTabPane.openModFile(modFilePath, modNode);
+			if (apply) {
 				status = modTabPane.applyModFile();
 			} else {
 				status = modTabPane.revertModFile();
@@ -941,11 +936,10 @@ public class MainFrame extends JFrame {
 		} else {
 			// if not opened, create a temporary ModTree for application,
 			// this modTree is not hooked up to a document and so cannot be
-			// updated,
-			// create parsed ModTree directly from supplied path
+			// updated, create parsed ModTree directly from supplied path
 			ModTree modTree = new ModTree(modFilePath);
 
-			// find upk for tree, if possible
+			// find UPK for tree, if possible
 			ProjectNode project = modNode.getProject();
 			if (project != null) {
 				// get targeted generic UPK file name
@@ -959,16 +953,16 @@ public class MainFrame extends JFrame {
 				}
 			}
 
-			if(apply) {
-				//attempt to apply
-				if(HexSearchAndReplace.applyRevertChanges(true, modTree)) {
+			if (apply) {
+				// attempt to apply
+				if (HexSearchAndReplace.applyRevertChanges(true, modTree)) {
 					modNode.setStatus(ApplyStatus.AFTER_HEX_PRESENT);
 				}
 			} else {
-				//attempt to revert
-				if(HexSearchAndReplace.applyRevertChanges(false, modTree)) {
+				// attempt to revert
+				if (HexSearchAndReplace.applyRevertChanges(false, modTree)) {
 					modNode.setStatus(ApplyStatus.BEFORE_HEX_PRESENT);
-				}				
+				}
 			}
 		}		
 	}

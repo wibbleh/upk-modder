@@ -61,7 +61,7 @@ public class ActionCache {
 				mainFrame.createNewProject(file.toPath());
 			}
 		};
-		newProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileView.fileIcon"));
+		newProjectAction.putValue(Action.SMALL_ICON, UIManager.getIcon("FileChooser.newFolderIcon"));
 		newProjectAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK + InputEvent.SHIFT_DOWN_MASK));
 		newProjectAction.putValue(Action.MNEMONIC_KEY, (int) 'n');
 		newProjectAction.putValue(Action.SHORT_DESCRIPTION, "New Project");
