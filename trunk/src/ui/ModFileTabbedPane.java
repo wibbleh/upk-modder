@@ -430,6 +430,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			// install editor kit
 			modEditor.setEditorKit(new ModStyledEditorKit());
 			
+                        modEditor.setDragEnabled(true);
+                        
 			// read provided file, if possible
 			if (modFile != null) {
 				modEditor.read(Files.newInputStream(modFile), null);

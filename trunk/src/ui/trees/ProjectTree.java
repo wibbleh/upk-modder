@@ -2,6 +2,9 @@ package ui.trees;
 
 import java.awt.Component;
 import java.awt.Font;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -10,15 +13,22 @@ import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.WatchKey;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
+import javax.swing.DropMode;
 import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -28,11 +38,14 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.SwingWorker;
+import javax.swing.TransferHandler;
 import javax.swing.UIManager;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeCellRenderer;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
@@ -52,6 +65,8 @@ import ui.trees.ProjectTreeModel.ProjectNode;
 @SuppressWarnings("serial")
 public class ProjectTree extends JTree {
 	
+	ProjectTreeModel theTreeModel;
+	
 	/**
 	 * Constructs a project tree using a default project tree model.
 	 * @throws IOException
@@ -66,7 +81,7 @@ public class ProjectTree extends JTree {
 	 */
 	public ProjectTree(ProjectTreeModel treeModel) {
 		super(treeModel);
-
+		this.theTreeModel = treeModel;
 		this.initComponents();
 		
 		// launch file watching service
@@ -159,6 +174,10 @@ public class ProjectTree extends JTree {
 			}
 		});
 		
+		// init drag and drop functionality
+		this.setDragEnabled(true);
+		this.setDropMode(DropMode.ON_OR_INSERT);
+		this.setTransferHandler(new TreeTransferHandler());
 	}
 	
 	/**
@@ -519,7 +538,7 @@ public class ProjectTree extends JTree {
 		public void show(Component invoker, int x, int y) {
 			TreePath treePath = ((JTree) invoker).getPathForLocation(x, y);
 			this.configureTargetContext(treePath);
-			
+		
 			super.show(invoker, x, y);
 		}
 
@@ -571,6 +590,7 @@ public class ProjectTree extends JTree {
 								// non-mod file
 								actionMap.get("renameFile").setEnabled(true);
 								actionMap.get("testModFile").setEnabled(false);
+								this.findItem(actionMap.get("deleteModFile")).setVisible(false);
 							} else {
 								// directory
 								actionMap.get("newFolder").setEnabled(true);
@@ -774,5 +794,220 @@ public class ProjectTree extends JTree {
 		}
 		
 	}
+        
+    /**
+     * TreeTransferHandler handles drag/drop operations within the ProjectTree
+     * code from : http://stackoverflow.com/questions/4588109/drag-and-drop-nodes-in-jtree
+     */      
+    class TreeTransferHandler extends TransferHandler {
+        DataFlavor nodesFlavor;
+        DataFlavor[] flavors = new DataFlavor[1];
+        DefaultMutableTreeNode[] nodesToRemove;
 
+        public TreeTransferHandler() {
+            try {
+                String mimeType = DataFlavor.javaJVMLocalObjectMimeType +
+                                  ";class=\"" +
+                    javax.swing.tree.DefaultMutableTreeNode[].class.getName() +
+                                  "\"";
+                nodesFlavor = new DataFlavor(mimeType);
+                flavors[0] = nodesFlavor;
+            } catch(ClassNotFoundException e) {
+                System.out.println("ClassNotFound: " + e.getMessage());
+            }
+        }
+
+        @Override
+        public boolean canImport(TransferHandler.TransferSupport support) {
+            if(!support.isDrop()) {
+                return false;
+            }
+
+            if(!support.isDataFlavorSupported(nodesFlavor)) {
+                return false;
+            }
+            JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();
+            JTree tree = (JTree)support.getComponent();
+            int dropRow = tree.getRowForPath(dl.getPath());
+            int[] selRows = tree.getSelectionRows();
+            TreePath selPath = tree.getPathForRow(selRows[0]);
+            FileNode source = (FileNode)selPath.getLastPathComponent();
+            TreePath destPath = dl.getPath();
+            FileNode target = (FileNode)destPath.getLastPathComponent();
+
+            // Do not allow a drop on the drag source selections.
+            for(int i = 0; i < selRows.length; i++) {
+                if(selRows[i] == dropRow) {
+                    return false;
+                }
+            }
+            // Do not allow dropping on non-directory nodes
+            if(!target.getFilePath().toFile().isDirectory()) {     
+                return false;
+            }
+            // Do not allow dragging between different projects
+            if(!source.getProject().equals(target.getProject())) {
+                return false;
+            }
+            // Do not allow a non-leaf node to be copied to a descendant
+            if(selPath.isDescendant(destPath)) {
+                return false;
+            }
+            support.setShowDropLocation(true);
+            return true;                
+        }
+
+        @Override
+        protected Transferable createTransferable(JComponent c) {
+            JTree tree = (JTree)c;
+            TreePath[] paths = tree.getSelectionPaths();
+            if(paths != null) {
+                // Make up a node array of copies for transfer and
+                // another for/of the nodes that will be removed in
+                // exportDone after a successful drop.
+                List<DefaultMutableTreeNode> copies = new ArrayList<>();
+                List<DefaultMutableTreeNode> toRemove = new ArrayList<>();
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode)paths[0].getLastPathComponent();
+                DefaultMutableTreeNode copy = copy(node);
+                copies.add(copy);
+                toRemove.add(node);
+                for(int i = 1; i < paths.length; i++) {
+                    DefaultMutableTreeNode next =
+                        (DefaultMutableTreeNode)paths[i].getLastPathComponent();
+                    // Do not allow higher level nodes to be added to list.
+                    if(next.getLevel() < node.getLevel()) {
+                        break;
+                    } else if(next.getLevel() > node.getLevel()) {  // child node
+                        copy.add(copy(next));
+                        // node already contains child
+                    } else {                                        // sibling
+                        copies.add(copy(next));
+                        toRemove.add(next);
+                    }
+                }
+                DefaultMutableTreeNode[] nodes = copies.toArray(new DefaultMutableTreeNode[copies.size()]);
+                nodesToRemove = toRemove.toArray(new DefaultMutableTreeNode[toRemove.size()]);
+                return new NodesTransferable(nodes);
+            }
+            return null;
+        }
+
+        /** Defensive copy used in createTransferable. */
+        private DefaultMutableTreeNode copy(TreeNode node) {
+            return new DefaultMutableTreeNode(node);
+        }
+
+//        @Override
+//        protected void exportDone(JComponent source, Transferable data, int action) {
+//            if((action & MOVE) == MOVE) {
+//                JTree tree = (JTree)source;
+//                DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+//                for (DefaultMutableTreeNode node : nodesToRemove) {
+//                    model.removeNodeFromParent(node);
+//                }
+//            }
+//        }
+
+        @Override
+        public int getSourceActions(JComponent c) {
+            return COPY_OR_MOVE;
+        }
+
+        @Override
+        public boolean importData(TransferHandler.TransferSupport support) {
+            if(!canImport(support)) {
+                return false;
+            }
+            // Extract transfer data.
+            DefaultMutableTreeNode[] nodes = null;
+            try {
+                Transferable t = support.getTransferable();
+                nodes = (DefaultMutableTreeNode[])t.getTransferData(nodesFlavor);
+            } catch(UnsupportedFlavorException ufe) {
+                System.out.println("UnsupportedFlavor: " + ufe.getMessage());
+            } catch(java.io.IOException ioe) {
+                System.out.println("I/O error: " + ioe.getMessage());
+            }
+            // Get drop location info.
+            JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();
+            JTree tree = (JTree)support.getComponent();
+            int dropRow = tree.getRowForPath(dl.getPath());
+            int[] selRows = tree.getSelectionRows();
+            FileNode source = (FileNode)tree.getPathForRow(selRows[0]).getLastPathComponent();
+            FileNode target = (FileNode)dl.getPath().getLastPathComponent();
+            Path sourcePath = source.getFilePath();
+            Path destPath = target.getFilePath().resolve(sourcePath.getFileName());
+            if(!sourcePath.equals(destPath)) {
+                if(sourcePath.toFile().isDirectory()) {
+                    try {
+                        Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
+                            @Override
+                            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                                WatchKey key = theTreeModel.getWatchKey(dir);
+                                if(key != null) {
+                                    key.cancel();
+                                }
+                                return super.preVisitDirectory(dir, attrs);
+                            }
+                        });
+                    } catch (IOException ex) {
+                        Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                try {
+                    Files.move(sourcePath, destPath);
+                } catch (IOException ex) {
+                    Logger.getLogger(ProjectTree.class.getName()).log(Level.SEVERE, null, ex);
+                    return false;
+                }
+            }
+            
+//            JTree.DropLocation dl = (JTree.DropLocation)support.getDropLocation();
+//            int childIndex = dl.getChildIndex();
+//            TreePath dest = dl.getPath();
+//            DefaultMutableTreeNode parent = (DefaultMutableTreeNode)dest.getLastPathComponent();
+//            JTree tree = (JTree)support.getComponent();
+//            DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
+//            // Configure for drop mode.
+//            int index = childIndex;    // DropMode.INSERT
+//            if(childIndex == -1) {     // DropMode.ON
+//                index = parent.getChildCount();
+//            }
+//            for (DefaultMutableTreeNode node : nodes) {
+//                model.insertNodeInto(node, parent, index++);
+//            }
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getName();
+        }
+
+        public class NodesTransferable implements Transferable {
+            DefaultMutableTreeNode[] nodes;
+
+            public NodesTransferable(DefaultMutableTreeNode[] nodes) {
+                this.nodes = nodes;
+             }
+
+            @Override
+            public Object getTransferData(DataFlavor flavor)
+                                     throws UnsupportedFlavorException {
+                if(!isDataFlavorSupported(flavor))
+                    throw new UnsupportedFlavorException(flavor);
+                return nodes;
+            }
+
+            @Override
+            public DataFlavor[] getTransferDataFlavors() {
+                return flavors;
+            }
+
+            @Override
+            public boolean isDataFlavorSupported(DataFlavor flavor) {
+                return nodesFlavor.equals(flavor);
+            }
+        }
+    }
 }
