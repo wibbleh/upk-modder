@@ -12,6 +12,9 @@ Added option to show log dialog to main menu bar and tool bar
 Made log action toggle log dialog visibility
 Lowered general preferred frame size
 Fixed log button disappearing when log message was too long
+Enabled text drag/drop in modfile editor, as well as into/out of external drag/drop supported text editors
+Enabled drag/drop of file/folder within Project Tree
+Explicitly sort files in the project tree to correct Linux compatibility issues
 
 v0.82 (r135)
 Fixed bug preventing processing of embedded names in hex.
