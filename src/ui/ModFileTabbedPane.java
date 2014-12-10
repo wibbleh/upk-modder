@@ -33,7 +33,7 @@ import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
 import model.upk.UpkFile;
 
-//import org.bounce.text.LineNumberMargin;
+import org.jdesktop.swingx.JXEditorPane;
 
 import ui.dialogs.ReferenceUpdateDialog;
 import ui.frames.MainFrame;
@@ -424,7 +424,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		private void initComponents() throws Exception {
 			// create right-hand editor pane
-			modEditor = new JEditorPane();
+			modEditor = new JXEditorPane();
 			modEditor.setFont(Constants.TEXT_PANE_FONT);
 			
 			// install editor kit

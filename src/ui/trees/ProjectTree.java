@@ -43,11 +43,13 @@ import javax.swing.UIManager;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+
+import org.jdesktop.swingx.JXTree;
+import org.jdesktop.swingx.decorator.AbstractHighlighter;
+import org.jdesktop.swingx.decorator.ComponentAdapter;
 
 import ui.ActionCache;
 import ui.ApplyStatus;
@@ -63,7 +65,7 @@ import ui.trees.ProjectTreeModel.ProjectNode;
  * @author XMS
  */
 @SuppressWarnings("serial")
-public class ProjectTree extends JTree {
+public class ProjectTree extends JXTree {
 	
 	ProjectTreeModel theTreeModel;
 	
@@ -95,22 +97,52 @@ public class ProjectTree extends JTree {
 		// hide root node
 		this.setRootVisible(false);
 		
-		// TODO: maybe use better custom icons for projects/modpackages/modfiles
-		// @XMTS: I think I've made a bit of a mess of this because of my inability to use the Nimbus icons for overlay
-		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
-			/** The renderer delegate. */
-			private TreeCellRenderer delegate = ProjectTree.this.getCellRenderer();
-
+//		// TODO: maybe use better custom icons for projects/modpackages/modfiles
+//		// @XMTS: I think I've made a bit of a mess of this because of my inability to use the Nimbus icons for overlay
+//		DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
+//			/** The renderer delegate. */
+//			private TreeCellRenderer delegate = ProjectTree.this.getCellRenderer();
+//
+//			@Override
+//			public Component getTreeCellRendererComponent(
+//					JTree tree, Object value, boolean sel, boolean expanded,
+//					boolean leaf, int row, boolean hasFocus) {
+//				
+//				// get pre-configured component from delegate renderer
+//				JLabel rendererLbl = (JLabel) tree.getCellRenderer().getTreeCellRendererComponent(
+//						tree, value, sel, expanded, leaf, row, hasFocus);
+//				
+//				// modify renderer component depending on context
+//				if (value instanceof FileNode) {
+//					FileNode fileNode = (FileNode) value;
+//					// extract status
+//					ApplyStatus status = fileNode.getStatus();
+//					
+//					// set up visual parameters
+//					Icon statusIcon = (status != null) ? status.getIcon() : null;
+//					Icon baseIcon = null;
+//					Font font = null;
+//					if (fileNode instanceof ProjectNode) {
+//						font = Constants.PROJECT_NAME_FONT;
+//						baseIcon = Constants.HEX_SMALL_ICON;
+//					} else {
+//						font = Constants.PROJECT_ENTRY_FONT;
+//						baseIcon = (leaf && !Files.isDirectory(fileNode.getFilePath()))
+//								? Constants.FILE_ICON : Constants.DIRECTORY_ICON;
+//					}
+//					rendererLbl.setIcon(new CompoundIcon(baseIcon, statusIcon));
+//					rendererLbl.setFont(font);
+//				}
+//				return rendererLbl;
+//			}
+//		};
+//		this.setCellRenderer(renderer);
+		
+		this.addHighlighter(new AbstractHighlighter() {
 			@Override
-			public Component getTreeCellRendererComponent(
-					JTree tree, Object value, boolean sel, boolean expanded,
-					boolean leaf, int row, boolean hasFocus) {
-				
-				// get pre-configured component from delegate renderer
-				JLabel rendererLbl = (JLabel) delegate.getTreeCellRendererComponent(
-						tree, value, sel, expanded, leaf, row, hasFocus);
-				
-				// modify renderer component depending on context
+			protected Component doHighlight(Component component,
+					ComponentAdapter adapter) {
+				Object value = adapter.getValue();
 				if (value instanceof FileNode) {
 					FileNode fileNode = (FileNode) value;
 					// extract status
@@ -125,16 +157,15 @@ public class ProjectTree extends JTree {
 						baseIcon = Constants.HEX_SMALL_ICON;
 					} else {
 						font = Constants.PROJECT_ENTRY_FONT;
-						baseIcon = (leaf && !Files.isDirectory(fileNode.getFilePath()))
+						baseIcon = (adapter.isLeaf() && !Files.isDirectory(fileNode.getFilePath()))
 								? Constants.FILE_ICON : Constants.DIRECTORY_ICON;
 					}
-					rendererLbl.setIcon(new CompoundIcon(baseIcon, statusIcon));
-					rendererLbl.setFont(font);
+					((JLabel) component).setIcon(new CompoundIcon(baseIcon, statusIcon));
+					component.setFont(font);
 				}
-				return rendererLbl;
+				return component;
 			}
-		};
-		this.setCellRenderer(renderer);
+		});
 		
 		final ContextPopupMenu contextMenu = new ContextPopupMenu();
 
