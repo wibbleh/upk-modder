@@ -89,7 +89,7 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 		String[] split = this.getText().split("\\s");
 		int int0 = Integer.parseInt(split[0], 16);
 		int int1 = Integer.parseInt(split[1], 16);
-		this.jumpOffset = 256 * int0 + int1;
+		this.jumpOffset = 256 * int1 + int0;
 		
 		return res;
 	}

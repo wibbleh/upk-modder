@@ -75,6 +75,9 @@ public class MainFrame extends JFrame {
 	 */
 	private ApplicationState appState;
 
+
+	private JScrollPane projectScpn;
+	
 	/**
 	 * The project pane tree component.
 	 */
@@ -118,11 +121,12 @@ public class MainFrame extends JFrame {
 		// initialize action cache
 		ActionCache.initActionCache(this);
 
-		// create and lay out the frame's components
-		this.initComponents();
-		
 		// TODO: add separate thread here to re-open projects and files
 		appState = ApplicationState.readState();
+
+		// create and lay out the frame's components
+		this.initComponents();
+
 		this.restoreApplicationState();
 		
 		// make closing the main frame terminate the application
@@ -136,7 +140,7 @@ public class MainFrame extends JFrame {
 		
 		// adjust frame size
 		this.pack();
-		this.setMinimumSize(this.getSize());
+		this.setMinimumSize(new Dimension(500, 300));
 		// center frame in screen
 		this.setLocationRelativeTo(null);
 		
@@ -175,8 +179,11 @@ public class MainFrame extends JFrame {
 		UIManager.put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(3, 0, 4, 0));
 		UIManager.put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
 		modTabPane = new ModFileTabbedPane();
-		modTabPane.setPreferredSize(new Dimension(500, 300));
-		
+		if(appState.getModFileDimension() == null) {
+			modTabPane.setPreferredSize(new Dimension(500, 300));
+		} else {
+			modTabPane.setPreferredSize(appState.getModFileDimension());
+		}
 		// install listener on tabbed pane to capture selection changes
 		modTabPane.addChangeListener(new ChangeListener() {
 			@Override
@@ -212,9 +219,13 @@ public class MainFrame extends JFrame {
                 } catch (IOException ex) {
                     Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
                 }
-		JScrollPane projectScpn = new JScrollPane(projectTree);
-		projectScpn.setPreferredSize(new Dimension(160, 300));
-
+		//JScrollPane projectScpn = new JScrollPane(projectTree);
+		projectScpn = new JScrollPane(projectTree);
+		if(appState.getProjectPaneDimension() == null) {
+			projectScpn.setPreferredSize(new Dimension(160, 300));
+		} else {
+			projectScpn.setPreferredSize(appState.getProjectPaneDimension());
+		}
 		// wrap project pane and tabbed pane in a split pane
 		JSplitPane mainPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, projectScpn, modTabPane);
 		
@@ -375,6 +386,11 @@ public class MainFrame extends JFrame {
 				}
 			}
 		}
+
+		//update various Pane sizes
+		appState.setMainFrameDimension(this.getSize());
+		appState.setModFileDimension(modTabPane.getSize());
+		appState.setProjectPaneDimension(projectScpn.getSize());
 		
 		// store application state
 		appState.storeState();

@@ -426,7 +426,18 @@ public class ModTree implements TreeModel {
 			}
 			if (node instanceof ModOffsetLeaf) {
 				if(((ModOffsetLeaf)node).getOperand() == null) { // is absolute jump offset
-					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
+					boolean foundValidOffset = false;
+						
+					for (int i = 0; i < this.getRoot().getChildNodeCount(); i++) {
+						if (((ModOffsetLeaf)node).getOffset() == this.getRoot().getChildNodeAt(i).getMemoryPosition()) {
+							foundValidOffset = true;
+						}
+					}
+					if(foundValidOffset) {  // jump is to valid line position
+						StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
+					} else {  // jump is not to valid line position
+						StyleConstants.setBackground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
+					}
 				} else { // is relative jump offset
 					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 255, 180));  // yellow
 				}

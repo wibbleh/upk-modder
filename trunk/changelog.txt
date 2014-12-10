@@ -1,4 +1,9 @@
-v0.83 (working)
+v0.84 (r144)
+Fixed issues with Project Pane folders not sorting under Linux
+Added error-checking to jump offset highlighting so that jump offsets are colored red if not pointing to the start of a line
+Added save/restore of window size when close/re-launch of UPKmodder app
+
+v0.83 (r143)
 Fixed various Linux incompatibility issues
 Added automatic dynamic updating of Project Pane when changes are made to folders/files in project directory
 Added context menu items to delete files and folders

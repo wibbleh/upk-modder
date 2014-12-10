@@ -1,5 +1,6 @@
 package ui;
 
+import java.awt.Dimension;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -33,7 +34,22 @@ public class ApplicationState implements Serializable {
 	 * index 0.
 	 */
 	private List<String> recentProjectFiles;
-	
+
+	/**
+	 * The x and y dimension of the main window
+	 */
+	private Dimension mainWindow;
+
+	/**
+	 * The x and y dimension of the project pane
+	 */
+	private Dimension projectPane;
+
+	/**
+	 * The x and y dimension of the modfile pane
+	 */
+	private Dimension modFilePane;
+
 	/**
 	 * Creates a new application state container object instance.
 	 */
@@ -78,6 +94,54 @@ public class ApplicationState implements Serializable {
 	 */
 	public Collection<String> getOpenedProjectFiles() {
 		return openedProjectFiles;
+	}
+	
+	/**
+	 * Sets the MainFrame dimension
+	 * @param d the dimension to store
+	 */
+	public void setMainFrameDimension(Dimension d) {
+		this.mainWindow = d;
+	}
+	
+	/**
+	 * Gets the MainFrame dimension
+	 * @return the stored dimension
+	 */
+	public Dimension getMainFrameDimension() {
+		return this.mainWindow;
+	}
+	
+	/**
+	 * Sets the ProjectPane dimension
+	 * @param d the dimension to store
+	 */
+	public void setProjectPaneDimension(Dimension d) {
+		this.projectPane = d;
+	}
+
+	/**
+	 * Gets the ProjectPane dimension
+	 * @return the stored dimension
+	 */
+	public Dimension getProjectPaneDimension() {
+		return this.projectPane;
+	}
+
+	/**
+	 * Sets the ProjectPane dimension
+	 * @param d the dimension to store
+	 */
+	public void setModFileDimension(Dimension d) {
+		this.modFilePane = d;
+	}
+
+	/**
+	 * Gets the ProjectPane dimension
+	 * @return the stored dimension
+	 */
+	public Dimension getModFileDimension() {
+		return this.modFilePane;
 	}
 	
 	/**
