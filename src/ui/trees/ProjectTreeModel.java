@@ -181,8 +181,15 @@ public class ProjectTreeModel extends DefaultTreeModel {
 						FileNode parentNode = nodeMap.get(dir.getParent());
 						// create new directory node
 						FileNode childNode = new FileNode(dir);
-						ProjectTreeModel.this.insertNodeInto(
-								childNode, parentNode, parentNode.getChildCount());
+						// find insertion point
+						List<FileNode> list = Collections.list(parentNode.children());
+						int index = Collections.binarySearch(list, childNode);
+						if (index < 0) {	// sanity check, should always be negative
+							index = Math.abs(index + 1);
+							// insert new node
+							ProjectTreeModel.this.insertNodeInto(childNode, parentNode, index);
+						}	
+//						ProjectTreeModel.this.insertNodeInto(childNode, parentNode, parentNode.getChildCount());
 						// store path-to-node mapping
 						nodeMap.put(dir, childNode);
 					}
