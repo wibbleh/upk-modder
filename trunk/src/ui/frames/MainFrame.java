@@ -381,7 +381,7 @@ public class MainFrame extends JFrame {
 						modTab.saveFile();
 					} catch (IOException e) {
 						ModFileTabbedPane.logger.log(
-								Level.SEVERE, "Failed to save mod file \'" + modTab.getModFilePath() + "\'", e);
+								Level.SEVERE, "Failed to save mod file \'" + modTab.getModFile() + "\'", e);
 					}
 				}
 			}

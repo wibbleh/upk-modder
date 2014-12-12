@@ -6,6 +6,7 @@ import static model.modtree.ModContext.ModContextType.FILE_HEADER;
 import static model.modtree.ModContext.ModContextType.HEX_CODE;
 import static model.modtree.ModContext.ModContextType.HEX_HEADER;
 import static model.modtree.ModContext.ModContextType.VALID_CODE;
+import static model.modtree.ModTree.logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +19,7 @@ import javax.swing.text.AttributeSet;
 import javax.swing.tree.TreeNode;
 
 import model.modtree.ModContext.ModContextType;
-import static model.modtree.ModTree.logger;
+import ui.editor.ModDocument;
 
 /**
  * Basic <code>TreeNode</code> implementation used in structuring modfile contents.
@@ -127,6 +128,7 @@ public class ModTreeNode implements TreeNode {
 		this.context = new ModContext();
 	}
     
+	@Deprecated
 	public ModTree getTree() {
 		// fetch tree from parent, only the root node carries the actual
 		// reference to the tree instance
@@ -489,37 +491,49 @@ public class ModTreeNode implements TreeNode {
         int re = offset + length;
         int s = startOffset;
         int e = endOffset;
+		String text = this.getText();
         // adjust start and end offsets for node / leaf
-        if(re < e) { // removal end occurs prior to node end -- cases 1, 2, 3
-            if(re < s) { // removal entirely before current node -- case 1
-                startOffset -= length;
-                endOffset -= length;
-            } else if (rs < s ) { // removal start occurs prior to node start -- case 2
-                if(isLeaf()) { // remove early part of data string for leaf
-                    setText(getText().substring(re-s, getText().length()));
+		if (re < e) {
+			// removal end occurs prior to node end -- cases 1, 2, 3
+			if (re < s) {
+				// removal entirely before current node -- case 1
+				startOffset -= length;
+				endOffset -= length;
+			} else if (rs < s) {
+				// removal start occurs prior to node start -- case 2
+				if (this.isLeaf()) {
+                	// remove early part of data string for leaf
+                	this.setText(text.substring(re-s, text.length()));
                 }
                 startOffset -= s - rs;
                 endOffset -= length;
 //				this.setUpdateFlag(true);
-            } else { // removal start happens within node -- case 3
-                if(isLeaf()) { // remove middle part of data string for leaf
-                    setText(getText().substring(0, rs-s) + getText().substring(re-s, getText().length()));
+            } else {
+            	// removal start happens within node -- case 3
+				if (this.isLeaf()) {
+                	// remove middle part of data string for leaf
+					this.setText(text.substring(0, rs-s) + text.substring(re-s, text.length()));
                 }
                 endOffset -= length;
 //				this.setUpdateFlag(true);
             }
-        } else { // removal end happens after node end -- cases 4, 5, 6
-            if(rs < s) { // remove start occurs prior to node start -- case 6
-                if(isLeaf()) { // delete data string
-                    setText("");
-                }
-                endOffset = startOffset;
+		} else {
+			// removal end happens after node end -- cases 4, 5, 6
+			if (rs < s) {
+				// remove start occurs prior to node start -- case 6
+				if (this.isLeaf()) {
+					// delete data string
+					this.setText("");
+				}
+				endOffset = startOffset;
 //				this.setUpdateFlag(true);
 //                removeModNode();
-            } else if(rs < e) { // remove start happens in middle of node -- case 4
-                if(isLeaf()) { // remove end part of data string for leaf
-                    setText(getText().substring(0, e-rs));
-                }
+			} else if (rs < e) {
+				// remove start happens in middle of node -- case 4
+				if (this.isLeaf()) {
+					// remove end part of data string for leaf
+					this.setText(text.substring(0, e - rs));
+				}
                 endOffset -= e - rs;
 //				this.setUpdateFlag(true);
             } else { // removal is after node -- case 5
@@ -527,11 +541,11 @@ public class ModTreeNode implements TreeNode {
                 removeInBranches = false;
             }
         }
-        if(removeInBranches) {
-            for(ModTreeNode branch : children) {
-                branch.remove(offset, length);
-        }
-        }
+		if (removeInBranches) {
+			for (ModTreeNode branch : children) {
+				branch.remove(offset, length);
+			}
+		}
     }
     
     /**
@@ -553,31 +567,34 @@ public class ModTreeNode implements TreeNode {
      * Inserts string at given offset.
      * @param offset
      * @param string
-     * @param as
      */
-    public void insertString(int offset, String string, AttributeSet as)
-    {
-        int length = string.length();
-        int s = startOffset;
-        int e = endOffset;
-		if(offset <= endOffset) {
-			endOffset += length;
-		}
-		if(offset < startOffset) {
-			startOffset += length;
-		}
-		if(isLeaf()){
-            if(offset >= s && offset <= e){ // insertion is at leaf
-                insertStringAtLeaf(offset, string, as);
-            }
-        } else { // recursive step for nodes
-            if(offset >= s && offset <= e){ // insertion is at leaf
-//				this.setUpdateFlag(true);
+	public void insertString(int offset, String string) {
+		if (string != null) {
+			int length = string.length();
+			int s = startOffset;
+			int e = endOffset;
+			if (offset <= endOffset) {
+				endOffset += length;
 			}
-            for(ModTreeNode branch : children) {
-                branch.insertString(offset, string, as);
-            }
-        }
+			if (offset < startOffset) {
+				startOffset += length;
+			}
+			if (this.isLeaf()) {
+				if (offset >= s && offset <= e) {
+					// insertion is at leaf
+					this.insertStringAtLeaf(offset, string);
+				}
+			} else {
+				// recursive step for nodes
+				if (offset >= s && offset <= e) {
+					// insertion is at leaf
+//					this.setUpdateFlag(true);
+				}
+				for (ModTreeNode branch : children) {
+					branch.insertString(offset, string);
+				}
+			}
+		}
     }
     
     /**
@@ -585,10 +602,9 @@ public class ModTreeNode implements TreeNode {
      * For non-simple leaves it consolidates the string into a single leaf.
      * @param offset
      * @param string
-     * @param as
      */
-	protected void insertStringAtLeaf(int offset, String string, AttributeSet as) {
-		if (this.plainText) {
+	protected void insertStringAtLeaf(int offset, String string) {
+		if (this.isPlainText()) {
 			String text = this.getText();
 			this.setText(text.substring(0, offset - startOffset) + string
 					+ text.substring(offset - startOffset, text.length()));
@@ -608,13 +624,13 @@ public class ModTreeNode implements TreeNode {
 	}
 
 	public void setText(String text) {
-        throw new InternalError("Attempted to set string for Element of type: " + getName()); 
-        // placeholder for overriding function
+//        throw new InternalError("Attempted to set string for Element of type: " + getName()); 
+		// placeholder for overriding function
     }
 
 	public String getText() {
-		throw new InternalError("Attempted to get string for Element of type: " + getName());
-		// return "";
+//		throw new InternalError("Attempted to get string for Element of type: " + getName());
+		return "";
 	}
     
     /**
@@ -950,7 +966,6 @@ public class ModTreeNode implements TreeNode {
 		return !isLeaf();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public Enumeration<ModTreeNode> children() {
 		return Collections.enumeration(this.children);

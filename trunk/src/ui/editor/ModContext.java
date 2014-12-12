@@ -1,17 +1,40 @@
 package ui.editor;
 
+import static model.modtree.ModContext.ModContextType.HEX_CODE;
+import static model.modtree.ModContext.ModContextType.VALID_CODE;
+
+import java.awt.Color;
+import java.util.Enumeration;
+
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
+import model.modtree.ModOffsetLeaf;
+import model.modtree.ModReferenceLeaf;
+import model.modtree.ModTreeNode;
+
 /**
- * TODO: API
+ * Style cache for mod file editor contents.
  * 
  * @author XMS
  */
 @SuppressWarnings("serial")
 public class ModContext extends StyleContext {
+	
+	/* style name constants */
+	private static final String COMMENT_STYLE = "comment";
+	private static final String REFERENCE_STYLE = "reference";
+	private static final String VIRTUAL_FUNCTION_REFERENCE_STYLE = "vfreference";
+	private static final String INVALID_HEX_STYLE = "invalid";
+	private static final String OPERAND_STYLE = "operand";
+	private static final String NOTHING_OPERAND_STYLE = "nothingoperand";
+	private static final String VALID_OFFSET_STYLE = "offset";
+	private static final String INVALID_OFFSET_STYLE = "invalidoffset";
+	private static final String RELATIVE_OFFSET_STYLE = "relativeoffset";
 
 	/**
-	 * TODO: API
+	 * Creates a default mod file editor style cache.
 	 */
 	public ModContext() {
 		super();
@@ -23,7 +46,118 @@ public class ModContext extends StyleContext {
 	 * Populates the pool of styles with default values.
 	 */
 	private void initDefaults() {
-		// TODO: do stuff
+		// default style
+		Style defaultStyle = this.getStyle(DEFAULT_STYLE);
+		
+		// comment style
+		Style commentStyle = this.addStyle(COMMENT_STYLE, defaultStyle);
+		commentStyle.addAttribute(StyleConstants.Foreground, new Color(128, 128, 128));
+		commentStyle.addAttribute(StyleConstants.Italic, true);
+		
+		// reference style
+		Style referenceStyle = this.addStyle(REFERENCE_STYLE, defaultStyle);
+		referenceStyle.addAttribute(StyleConstants.Foreground, new Color(160, 140, 100));
+		referenceStyle.addAttribute(StyleConstants.Underline, true);
+		// virtual function reference style
+		Style vfReferenceStyle = this.addStyle(VIRTUAL_FUNCTION_REFERENCE_STYLE, (Style) referenceStyle);
+		vfReferenceStyle.addAttribute(StyleConstants.Foreground, new Color(220, 180, 50));
+		
+		// invalid hex style
+		Style invalidHexStyle = this.addStyle(INVALID_HEX_STYLE, defaultStyle);
+		invalidHexStyle.addAttribute(StyleConstants.Foreground, new Color(255, 128, 128));
+		invalidHexStyle.addAttribute(StyleConstants.StrikeThrough, true);
+		
+		// operand style
+		Style operandStyle = this.addStyle(OPERAND_STYLE, defaultStyle);
+		operandStyle.addAttribute(StyleConstants.Foreground, Color.BLUE);
+		operandStyle.addAttribute(StyleConstants.Bold, true);
+		// 0B operand style
+		Style nothingOperandStyle = this.addStyle(NOTHING_OPERAND_STYLE, (Style) operandStyle);
+		nothingOperandStyle.addAttribute(StyleConstants.Bold, false);
+		
+		// offset style
+		Style offsetStyle = this.addStyle(VALID_OFFSET_STYLE, defaultStyle);
+		offsetStyle.addAttribute(StyleConstants.Background, new Color( 255, 200, 100));
+		// invalid offset style
+		Style invalidOffsetStyle = this.addStyle(INVALID_OFFSET_STYLE, (Style) offsetStyle);
+		invalidOffsetStyle.addAttribute(StyleConstants.Background, new Color(255, 128, 128));
+		// relative offset style
+		Style relativeOffsetStyle = this.addStyle(RELATIVE_OFFSET_STYLE, (Style) offsetStyle);
+		relativeOffsetStyle.addAttribute(StyleConstants.Background, new Color(255, 255, 180));
+		
+	}
+	
+	public String getStyleNameByNode(ModTreeNode node) {
+		
+		// plain text, may be comment
+		if (node.isPlainText()) {
+			// find comment marker
+			String s = node.getFullText();
+			if (s.contains("//")) {
+				return COMMENT_STYLE;
+			} else {
+				return DEFAULT_STYLE;
+			}
+		}
+		
+		// references
+		if (node instanceof ModReferenceLeaf) {
+			if (node.isVirtualFunctionRef()) {
+				return VIRTUAL_FUNCTION_REFERENCE_STYLE;
+			} else {
+				return REFERENCE_STYLE;
+			}
+		}
+		
+		// invalid hex
+		if ((node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE))) {
+			return INVALID_HEX_STYLE;
+		}
+
+		// operands
+		if ("OperandToken".equals(node.getName())) {
+			if (node.getFullText().toUpperCase().startsWith("0B")) {
+				return NOTHING_OPERAND_STYLE;
+			} else {
+				return OPERAND_STYLE;
+			}
+		}
+
+		// jump offsets
+		if (node instanceof ModOffsetLeaf) {
+			ModOffsetLeaf offsetLeaf = (ModOffsetLeaf) node;
+			if (offsetLeaf.getOperand() == null) {
+				// absolute jump offset
+				boolean isValid = false;
+
+				// FIXME: the logic for determining offset validity should be located inside the node itself and ideally would need to be run once per tree change
+				ModTreeNode root = node;
+				while (root.getParentNode() != null) {
+					root = root.getParentNode();
+				}
+				Enumeration<ModTreeNode> children = root.children();
+				while (children.hasMoreElements()) {
+					ModTreeNode child = children.nextElement();
+					if (offsetLeaf.getOffset() == child.getMemoryPosition()) {
+						isValid = true;
+						break;
+					}
+					
+				}
+				
+				if (isValid) {
+					return VALID_OFFSET_STYLE;
+				} else {
+					return INVALID_OFFSET_STYLE;
+				}
+			} else {
+				// relative jump offset
+				return RELATIVE_OFFSET_STYLE;
+			}
+		}
+		
+		// fall-back value
+		return DEFAULT_STYLE;
 	}
 
 }

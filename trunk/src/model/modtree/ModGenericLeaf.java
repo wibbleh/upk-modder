@@ -25,11 +25,11 @@ public class ModGenericLeaf extends ModTreeLeaf {
 	 */
 	@Override
 	public String toString(boolean expanded) {
-		if(expanded) {
-			if(this.isOperand) {
+		if (expanded) {
+			if (this.isOperand) {
 				return super.toString() + "  (Operand Token)";
 			} else {
-				if(this.text.startsWith("16") || this.text.startsWith("15")) {
+				if (this.text.startsWith("16") || this.text.startsWith("15")) {
 					return super.toString() + "  (Function terminator)";
 				} else {
 					return super.toString() + "  (Unknown)";

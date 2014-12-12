@@ -40,20 +40,21 @@ public class ModStringLeaf extends ModTreeLeaf {
 	
 	@Override
 	public String parseUnrealHex(String s, int num) {
-		if( !((s.split("\\s", 2)[0]).equals("00"))) {
-			int length = s.split("00")[0].length()/3;
+		if (!s.split("\\s", 2)[0].equals("00")) {
+			int length = s.split("00")[0].length() / 3;
 			byte[] bArray = new byte[length];
 			int count = 0;
 			while (!s.split("\\s", 2)[0].equals("00")) {
-				bArray[count] = (byte) (Integer.parseInt(s.split("\\s", 2)[0], 16) & 0xFF);
+				bArray[count] = (byte) (Integer.parseInt(s.split("\\s", 2)[0],
+						16) & 0xFF);
 				s = super.parseUnrealHex(s, 1);
 				if (s.isEmpty()) {
 					return "ERROR";
 				}
-				count ++;
-			stringData = new String(bArray);
+				count++;
+				stringData = new String(bArray);
 			}
-	}
+		}
 		return super.parseUnrealHex(s, 1);
 	}
 
