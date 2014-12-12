@@ -58,33 +58,55 @@ public class ModTreeRootNode extends ModTreeNode {
         do {
         	ModTreeNode child = this.getChildNodeAt(index);
         	index ++;
-			if (child.isPlainText()) {
-				if (!child.getFullText().isEmpty()) {
-					if (child.getFullText().contains("\n") && (index <= childCount)) {
-						String[] strings = child.getFullText().split("\n", 2);
-						if (!strings[1].isEmpty()) {
-        					strings[0] += "\n";
-        					childCount++;
-        					ModTreeNode grandChild = child.getChildNodeAt(0);
-        					grandChild.setText(strings[0]);
-        					int oldEndOffset = child.getEndOffset();
-        					int childEndOffset = child.getEndOffset() - strings[1].length();
-        					child.setRange(child.getStartOffset(), childEndOffset);
-        					int grandChildEndOffset = child.getEndOffset() - strings[1].length();
-        					grandChild.setRange(child.getStartOffset(), childEndOffset);
+			if ((index <= childCount) && child.isPlainText()) {
+				String fullText = child.getFullText();
+				if (!fullText.isEmpty() && fullText.contains("\n")) {
+					String[] strings = fullText.split("\n", 2);
+					if (!strings[1].isEmpty()) {
+//        					strings[0] += "\n";
+						strings[0] = strings[0].replace("\n", "").replace("\r", "") + "\n";
+						
+						int oldStartOffset = child.getStartOffset();
+						int oldEndOffset = child.getEndOffset();
+						int newEndOffset = oldEndOffset - strings[1].length();
+						
+						ModTreeNode grandChild = child.getChildNodeAt(0);
+						
+    					String[] split = strings[0].split("//", 2);
+    					if (split.length > 1) {
+    						// line contains comment
+    						String pre = split[0];
+    						String post = "//" + split[1];
+    						
+    						int splitOffset = newEndOffset - post.length();
+    						
+    						grandChild.setText(pre);
+							grandChild.setRange(oldStartOffset, splitOffset);
+    						
+    						ModTreeLeaf grandChildSibling = new ModTreeLeaf(child, post, true);
+    						child.addNode(grandChildSibling);
+    						grandChildSibling.setRange(splitOffset, newEndOffset);
+    					} else {
+    						grandChild.setText(strings[0]);
+    						grandChild.setRange(oldStartOffset, newEndOffset);
+    					}
+						
+						child.setRange(oldStartOffset, newEndOffset);
 
-        					ModTreeNode newElement = new ModTreeNode(this, true);
+						ModTreeNode newElement = new ModTreeNode(this, true);
 //							newElement.setUpdateFlag(true);
-        					ModTreeLeaf newToken = new ModTreeLeaf(newElement, strings[1], true);
-//							newToken.setUpdateFlag(true);
+						
+						ModTreeLeaf newToken = new ModTreeLeaf(newElement, strings[1], true);
+//    							newToken.setUpdateFlag(true);
+						newToken.setRange(newEndOffset, oldEndOffset);
 
-        					this.addNode(index, newElement);
-        					newElement.addNode(newToken);
-        					newElement.setRange(child.getEndOffset(), oldEndOffset);
-        					newToken.setRange(child.getEndOffset(), oldEndOffset);
-        				}
-        			}
-        		}
+						newElement.addNode(newToken);
+						newElement.setRange(newEndOffset, oldEndOffset);
+						
+						this.addNode(index, newElement);
+						childCount++;
+					}
+				}
         	}
         } while(index < childCount); 
     }

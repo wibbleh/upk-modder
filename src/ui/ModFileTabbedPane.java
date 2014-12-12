@@ -2,25 +2,39 @@ package ui;
 
 import java.awt.Component;
 import java.awt.Dimension;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.Icon;
-import javax.swing.JEditorPane;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTree;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
+import javax.swing.text.DefaultCaret;
+import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Document;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeNode;
 
@@ -31,11 +45,13 @@ import model.modtree.ModReferenceLeaf;
 import model.modtree.ModStringLeaf;
 import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
+import model.modtree.ModTreeRootNode;
 import model.upk.UpkFile;
 
 import org.jdesktop.swingx.JXEditorPane;
 
 import ui.dialogs.ReferenceUpdateDialog;
+import ui.editor.ModContext;
 import ui.frames.MainFrame;
 import ui.trees.ProjectTreeModel.FileNode;
 import ui.trees.ProjectTreeModel.ModFileNode;
@@ -56,12 +72,19 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	{
 		logger.setLevel(Level.ALL);
 	}
+	
+	/**
+	 * The shared collection of styles for mod file editor pane contents inside tabs.
+	 */
+	private ModContext modContext;
 
 	/**
 	 * Constructs a mod file tabbed pane. 
 	 */
 	public ModFileTabbedPane() {
 		super(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
+		
+		this.modContext = new ModContext();
 	}
 	
 	@Override
@@ -90,7 +113,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				 try {
 					 thisTab.saveFile();
 				 } catch (IOException e) {
-					 logger.log(Level.SEVERE, "Failed to save mod file \'" + thisTab.getModFilePath() + "\'", e);
+					 logger.log(Level.SEVERE, "Failed to save mod file \'" + thisTab.getModFile() + "\'", e);
 				 }
 			 }
 		}
@@ -132,7 +155,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		for (int i = 0; i < this.getTabCount(); i++) {
 			ModFileTab tab = (ModFileTab) this.getComponentAt(i);
 //			if (modPath.equals(tab.getModFilePath())) {
-			if (tab.getModFilePath().equals(modPath)) {
+			if (tab.getModFile().equals(modPath)) {
 				return tab;
 			}
 		}
@@ -186,7 +209,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 	public Path getActiveModFile() {
 		Component selComp = this.getSelectedComponent();
 		if (selComp != null) {
-			Path modPath = ((ModFileTab) selComp).getModFilePath();
+			Path modPath = ((ModFileTab) selComp).getModFile();
 			if ((modPath == null) || Files.notExists(modPath)) {
 				modPath = Paths.get(BrowseAbstractAction.getLastSelectedFile().getParent(),
 						this.getTitleAt(this.getSelectedIndex()) + ".upk_mod");
@@ -203,7 +226,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		Component selComp = this.getSelectedComponent();
 		if (selComp != null) {
 			ModFileTab tab = (ModFileTab) selComp;
-			Path modPath = tab.getModFilePath();
+			Path modPath = tab.getModFile();
 			if (modPath != null) {
 				try {
 					tab.saveFile();
@@ -229,7 +252,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			ModFileTab tab = (ModFileTab) selComp;
 			// FIXME
 //			UpkModderProperties.removeOpenModFile(this.getActiveModFile());
-			tab.setModFilePath(targetPath);
+			tab.setModFile(targetPath);
 			// FIXME
 //			UpkModderProperties.addOpenModFile(modPath);
 			try {
@@ -374,18 +397,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		/**
 		 * The modfile editor instance.
 		 */
-		private JEditorPane modEditor;
+		private ModFileEditor modEditor;
 
-		/**
-		 * The modfile tree structure.
-		 */
-		private ModTree modTree;
-
-		/**
-		 * The modfile associated with this tab.
-		 */
-		private Path modFile;
-		
 		/**
 		 * Flag denoting whether the underlying mod file has been modified.
 		 */
@@ -412,30 +425,18 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public ModFileTab(Path modFile, ModFileNode modNode) throws Exception {
 			super(JSplitPane.HORIZONTAL_SPLIT);
-			this.modFile = modFile;
 			this.modNode = modNode;
 			
-			this.initComponents();
+			this.initComponents(modFile);
 		}
 
 		/**
 		 * Creates and lays out the components of the tab.
 		 * @param modFile
 		 */
-		private void initComponents() throws Exception {
+		private void initComponents(Path modFile) throws Exception {
 			// create right-hand editor pane
-			modEditor = new JXEditorPane();
-			modEditor.setFont(Constants.TEXT_PANE_FONT);
-			
-			// install editor kit
-			modEditor.setEditorKit(new ModStyledEditorKit());
-			
-                        modEditor.setDragEnabled(true);
-                        
-			// read provided file, if possible
-			if (modFile != null) {
-				modEditor.read(Files.newInputStream(modFile), null);
-			}
+			modEditor = new ModFileEditor(modFile);
 			
 			// wrap editor in scroll pane
 			JScrollPane modEditorScpn = new JScrollPane(modEditor,
@@ -468,14 +469,15 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			});
 			
 			// create tree view of right-hand mod editor
-			modTree = new ModTree(modDocument);
+//			modTree = new ModTree(modDocument);
+			ModTree modTree = modEditor.getModTree();
 			final JTree modElemTree = new JTree(modTree); // draw from ModTree
 			JScrollPane modElemTreeScpn = new JScrollPane(modElemTree,
 					JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 					JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 			modElemTreeScpn.setPreferredSize(new Dimension());
 			
-			modEditorScpn.setRowHeaderView(new TextLineNumber(modEditor, 4, this.modTree));
+			modEditorScpn.setRowHeaderView(new TextLineNumber(modEditor, 4, modTree));
 			// configure look and feel of tree view
 			modElemTree.setRootVisible(false);
 			
@@ -520,7 +522,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @throws IOException if an I/O error occurs
 		 */
 		public void saveFile() throws IOException {
-			modEditor.write(Files.newBufferedWriter(modFile, Charset.defaultCharset()));
+			modEditor.write(Files.newBufferedWriter(this.getModFile(), Charset.defaultCharset()));
 			if (this.modified) {
 				// modify tab title, remove leading asterisk
 				ModFileTabbedPane tabPane = ModFileTabbedPane.this;
@@ -539,10 +541,11 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 *      -- a few lines at the end of the function are changed, as well as the header
 		 */
 		public boolean applyChanges() {
-			boolean res = HexSearchAndReplace.applyRevertChanges(true, this.modTree);
-			//if a resize operation, reload the UPKFile
-			if(this.modTree.getResizeAmount() != 0) {
-				this.modTree.getTargetUpk().reload();
+			ModTree modTree = this.getModTree();
+			boolean res = HexSearchAndReplace.applyRevertChanges(true, modTree);
+			// if a resize operation, reload the UPKFile
+			if (modTree.getResizeAmount() != 0) {
+				modTree.getTargetUpk().reload();
 			}
 			return res;
 		}
@@ -553,10 +556,11 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @return true if changes reverted successfully, false otherwise
 		 */
 		public boolean revertChanges() {
-			boolean res = HexSearchAndReplace.applyRevertChanges(false, this.modTree);
-			//if a resize operation, reload the UPKFile
-			if(this.modTree.getResizeAmount() != 0) {
-				this.modTree.getTargetUpk().reload();
+			ModTree modTree = this.getModTree();
+			boolean res = HexSearchAndReplace.applyRevertChanges(false, modTree);
+			// if a resize operation, reload the UPKFile
+			if (modTree.getResizeAmount() != 0) {
+				modTree.getTargetUpk().reload();
 			}
 			return res;
 		}
@@ -566,7 +570,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * this tab.
 		 */
 		public void showReferenceUpdateDialog() {
-			new ReferenceUpdateDialog(modTree).setVisible(true);
+			new ReferenceUpdateDialog(this.getModTree()).setVisible(true);
 		}
 
 		/**
@@ -574,23 +578,23 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @return the mod file tree
 		 */
 		public ModTree getModTree() {
-			return modTree;
+			return modEditor.getModTree();
 		}
 		
 		/**
 		 * Returns the mod file reference of this tab.
 		 * @return the mod file
 		 */
-		public Path getModFilePath() {
-			return modFile;
+		public Path getModFile() {
+			return modEditor.getModFile();
 		}
 		
 		/**
 		 * Sets the mod file reference of this tab.
 		 * @param modFile the mod file to set
 		 */
-		public void setModFilePath(Path modFile) {
-			this.modFile = modFile;
+		public void setModFile(Path modFile) {
+			this.modEditor.setModFile(modFile);
 		}
 		
 		/**
@@ -607,7 +611,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @return the UPK file
 		 */
 		public UpkFile getUpkFile() {
-			return modTree.getTargetUpk();
+			return this.getModTree().getTargetUpk();
 		}
 
 		/**
@@ -615,13 +619,14 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 * @param upkFile the upk file to set
 		 */
 		public void setUpkFile(UpkFile upkFile) {
-			this.modTree.setTargetUpk(upkFile);
+			ModTree modTree = this.getModTree();
+			modTree.setTargetUpk(upkFile);
 			// update project UPK file associations
 			if (this.modNode != null) {
 				ProjectNode project = this.modNode.getProject();
 				if (project != null) {
 					Path upkPath = upkFile.getPath();
-					Path prevPath = project.addUpkPath(this.modTree.getUpkName(), upkPath);
+					Path prevPath = project.addUpkPath(modTree.getUpkName(), upkPath);
 					if (!upkPath.equals(prevPath)) {
 						// mapping has been changed, update all associations of
 						// other opened mod file tabs of the same project
@@ -677,6 +682,218 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				((FileNode) parent).determineStatus();
 				parent = parent.getParent();
 			}
+		}
+		
+		/**
+		 * Editor implementation for auto-styling mod file contents.
+		 * @author XMS
+		 */
+		private class ModFileEditor extends JXEditorPane {
+			
+			/**
+			 * The mod file associated with this editor.
+			 */
+			private Path modFile;
+			
+			/**
+			 * The mod file tree structure backing this editor.
+			 */
+			private ModTree modTree;
+			
+			/**
+			 * The reference to the 
+			 */
+			private StyleWorker worker;
+
+			/**
+			 * Creates a mod file editor initialized using the contents of the
+			 * mod file the provided path points to.
+			 * @param modFile the mod file to initially read from
+			 * @throws IOException if an I/O error occurs
+			 */
+			public ModFileEditor(Path modFile) throws IOException {
+				super();
+				this.modFile = modFile;
+				
+				// install editor kit
+				this.setEditorKit(new ModStyledEditorKit());
+
+				// read provided file, if possible
+				if (modFile != null) {
+					this.read(Files.newInputStream(modFile), null);
+				}
+				
+				// init mod tree from text contents
+				this.modTree = new ModTree(this.getText());
+				
+				// listen to tree changes
+				this.modTree.addTreeModelListener(new TreeModelListener() {
+					@Override
+					public void treeStructureChanged(TreeModelEvent evt) {
+						// check for existing and running worker
+						if ((worker != null) && !worker.isDone()) {
+							// terminate worker prematurely
+							worker.cancel(true);
+						}
+						// start new worker to restyle editor document
+						worker = new StyleWorker(ModFileEditor.this);
+						worker.execute();
+					}
+					/* unused overrides */
+					@Override public void treeNodesRemoved(TreeModelEvent evt) { }
+					@Override public void treeNodesInserted(TreeModelEvent evt) { }
+					@Override public void treeNodesChanged(TreeModelEvent evt) { }
+				});
+				
+				// listen to document changes
+				final DocumentListener docListener = new DocumentListener() {
+					@Override public void removeUpdate(DocumentEvent evt) { this.rebuildTree(); }
+					@Override public void insertUpdate(DocumentEvent evt) { this.rebuildTree(); }
+					@Override public void changedUpdate(DocumentEvent evt) { this.rebuildTree(); }
+					
+					private void rebuildTree() {
+						// TODO: move to background thread
+						ModFileEditor.this.modTree.parseText(ModFileEditor.this.getText());
+					}
+				};
+				this.getDocument().addDocumentListener(docListener);
+				
+				// listen to complete document replacements
+				this.addPropertyChangeListener("document", new PropertyChangeListener() {
+					@Override
+					public void propertyChange(PropertyChangeEvent evt) {
+						// re-install document listener on new document
+						Document newDoc = (Document) evt.getNewValue();
+						newDoc.addDocumentListener(docListener);
+					}
+				});
+				
+				// register undo/redo keystrokes
+				InputMap inputMap = this.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+				inputMap.put(KeyStroke.getKeyStroke("control Z"), "undo");
+				inputMap.put(KeyStroke.getKeyStroke("control Y"), "redo");
+				
+				// misc. configurations
+				this.setFont(Constants.TEXT_PANE_FONT);
+				this.setDragEnabled(true);
+				
+			}
+			
+			/**
+			 * Returns the mod file associated with this editor.
+			 * @return the mod file
+			 */
+			public Path getModFile() {
+				return modFile;
+			}
+			
+			/**
+			 * Sets the mod file associated with this editor.
+			 * @param modFile the mod file
+			 */
+			public void setModFile(Path modFile) {
+				this.modFile = modFile;
+			}
+			
+			/**
+			 * Returns the mod tree structure backing this editor.
+			 * @return the mod tree
+			 */
+			public ModTree getModTree() {
+				return modTree;
+			}
+			
+			/**
+			 * Background worker implementation for restyling editor documents.
+			 * @author XMS
+			 */
+			private class StyleWorker extends SwingWorker<Document, Object> {
+
+				/**
+				 * The mod file editor pane.
+				 */
+				private ModFileEditor modEditor;
+
+				/**
+				 * Creates a worker to style text contents of a mod file tree
+				 * structure and apply them to the specified mod file editor
+				 * component.
+				 * 
+				 * @param modEditor the mod file editor receiving the resulting
+				 *  styled document
+				 */
+				public StyleWorker(ModFileEditor modEditor) {
+					this.modEditor = modEditor;
+				}
+
+				@Override
+				protected Document doInBackground() throws Exception {
+					try {
+						long startTime = System.currentTimeMillis();
+						
+						// extract mod tree
+						ModTree modTree = modEditor.getModTree();
+						ModTreeRootNode root = modTree.getRoot();
+						
+						// init blank document using shared style cache
+						DefaultStyledDocument document = new DefaultStyledDocument(
+								ModFileTabbedPane.this.modContext);
+						
+						// recursively fill out document with styled node contents
+						this.insertNodeContents(root, document);
+						
+						logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
+						
+						return document;
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					return null;
+				}
+				
+				/**
+				 * Styles the text contents of the specified mod tree node
+				 * appends it to the provided document and recursively repeats
+				 * this process for all child nodes.
+				 * @param node the node to style and append
+				 * @param document the document to append to
+				 */
+				private void insertNodeContents(ModTreeNode node,
+						DefaultStyledDocument document) {
+					try {
+						String text = node.getText();
+						if (!text.isEmpty()) {
+							Style style = document.getStyle(
+									ModFileTabbedPane.this.modContext.getStyleNameByNode(node));
+							
+							document.insertString(document.getLength(), text, style);
+						}
+						
+						Enumeration<ModTreeNode> children = node.children();
+						while (children.hasMoreElements()) {
+							ModTreeNode child = children.nextElement();
+							this.insertNodeContents(child, document);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+						// ignore, can't happen
+					}
+				}
+				
+				@Override
+				protected void done() {
+					try {
+						// apply styled document to editor
+						int position = modEditor.getCaretPosition();
+						modEditor.setDocument(this.get());
+						modEditor.setCaretPosition(position);
+					} catch (Exception e) {
+						// ignore, can't happen
+					}
+				}
+				
+			}
+			
 		}
 
 	}

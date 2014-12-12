@@ -1,35 +1,12 @@
 package model.modtree;
 
-import static model.modtree.ModContext.ModContextType.AFTER_HEX;
-import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
-import static model.modtree.ModContext.ModContextType.FILE_HEADER;
-import static model.modtree.ModContext.ModContextType.HEX_CODE;
-import static model.modtree.ModContext.ModContextType.HEX_HEADER;
-import static model.modtree.ModContext.ModContextType.VALID_CODE;
-
-import java.awt.Color;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.SwingUtilities;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.Document;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 
@@ -49,26 +26,26 @@ public class ModTree implements TreeModel {
 		logger.setLevel(Level.ALL);
 	}
 	
-	/**
-	 * The tree's DocumentListener implementation.
-	 */
-	protected ModTreeDocumentListener mtListener = new ModTreeDocumentListener();
-	
-	/**
-	 * The tree's list (queue) of pending Document Events to be processed.
-	 */
-	protected final List<DocumentEvent> docEvents;
-	
-	/**
-	 * The tree's document it is listening to.
-	 */
-	protected Document doc = null;
+//	/**
+//	 * The tree's DocumentListener implementation.
+//	 */
+//	protected ModTreeDocumentListener mtListener = new ModTreeDocumentListener();
+//	
+//	/**
+//	 * The tree's list (queue) of pending Document Events to be processed.
+//	 */
+//	private final List<DocumentEvent> docEvents;
+//	
+//	/**
+//	 * The tree's document it is listening to.
+//	 */
+//	protected Document doc = null;
 	
 	/**
 	 * The tree's root nodes.
 	 */
     private ModTreeRootNode currRootNode; // current root node
-	private ModTreeRootNode prevRootNode; // copy of previous tree -- used to determine what styles to re-apply
+//	private ModTreeRootNode prevRootNode; // copy of previous tree -- used to determine what styles to re-apply
 	
 	/**
 	 * The version number of the document.
@@ -118,54 +95,59 @@ public class ModTree implements TreeModel {
 	 */
 	private UpkFile targetUpk = null;
 	
-	/**
-	 * Flag indicating whether the tree is listening to document updates
-	 */
-	private boolean updatingEnabled = true;
-	
-	/**
-	 * tracking counter used for debugging performance issues with document styling
-	 */
-	private static int restylingEvents;
+//	/**
+//	 * Flag indicating whether the tree is listening to document updates
+//	 */
+//	private boolean updatingEnabled = true;
+//	
+//	/**
+//	 * tracking counter used for debugging performance issues with document styling
+//	 */
+//	private static int restylingEvents;
 	
 	/**
 	 * The tree model listeners.
 	 */
 	private List<TreeModelListener> listeners;
 	
-	/**
-	 * ModTree constructor.
-	 * Initializes queue of DocumentEvents.
-	 * Registers a DocumentListener with the document.
-	 * @param document 
-	 * @throws BadLocationException 
-	 */
-	public ModTree(Document document) throws BadLocationException {
-		docEvents = new ArrayList<>();
-		this.listeners = new ArrayList<>();
-		this.setDocument(document);
-	}
-
-	/**
-	 * Alternative ModTree constructor for direct initialization.
-	 * This is used when the document is not to be displayed.
-	 * Directly reads the supplied text file and parses it.
-	 * @param modFilePath Path to the .upk_mod file to use to initialize the ModTree
-	 */
-	@Deprecated
-	public ModTree(Path modFilePath) {
-		docEvents = null;
-		this.listeners = null;
-		try {
-			long startTime = System.currentTimeMillis();
-			String s = new String(Files.readAllBytes(modFilePath));
-			ModTreeRootNode root = this.getRoot();
-			root.insertString(0, s, null);
-			root.reorganizeAfterInsertion();
-			logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
-		} catch(IOException ex) {
-			logger.log(Level.SEVERE, "Error when reading modfile", ex);
-		}
+//	/**
+//	 * ModTree constructor.
+//	 * Initializes queue of DocumentEvents.
+//	 * Registers a DocumentListener with the document.
+//	 * @param document 
+//	 * @throws BadLocationException 
+//	 */
+//	@Deprecated
+//	public ModTree(Document document) throws BadLocationException {
+//		docEvents = new ArrayList<>();
+//		this.listeners = new ArrayList<>();
+//		this.setDocument(document);
+//	}
+//
+//	/**
+//	 * Alternative ModTree constructor for direct initialization.
+//	 * This is used when the document is not to be displayed.
+//	 * Directly reads the supplied text file and parses it.
+//	 * @param modFilePath Path to the .upk_mod file to use to initialize the ModTree
+//	 */
+//	@Deprecated
+//	public ModTree(Path modFilePath) {
+//		docEvents = null;
+//		this.listeners = null;
+//		try {
+//			long startTime = System.currentTimeMillis();
+//			String s = new String(Files.readAllBytes(modFilePath));
+//			ModTreeRootNode root = this.getRoot();
+//			root.insertString(0, s, null);
+//			root.reorganizeAfterInsertion();
+//			logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
+//		} catch(IOException ex) {
+//			logger.log(Level.SEVERE, "Error when reading modfile", ex);
+//		}
+//	}
+	
+	public ModTree() {
+		this((String) null); 
 	}
 
 	
@@ -175,47 +157,37 @@ public class ModTree implements TreeModel {
 	 * @param modText the text used to initialize the modTree
 	 */
 	public ModTree(String modText) {
-		docEvents = null;
-		this.listeners = null;
-		long startTime = System.currentTimeMillis();
-		ModTreeRootNode root = this.getRoot();
-		root.insertString(0, modText, null);
-		root.reorganizeAfterInsertion();
-		logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
-	}
-	
-	/**
-	 * Associates a default document with the ModTree.
-	 * Only used for testing purposes.
-	 * @throws BadLocationException
-	 */
-	public ModTree() throws BadLocationException {
-		this(new DefaultStyledDocument());
+		this.parseText(modText);
 	}
 
-	// TODO : turning off the listener
-	public void disableUpdating() {
-		this.updatingEnabled = false;
-//		doc.removeDocumentListener(this.mtListener);
-	}
-	
-	// TODO : test turning on the listener
-	public void enableUpdating() {
-		this.updatingEnabled = true;
-//		doc.addDocumentListener(this.mtListener);
-	}
-	
 	/**
-	 * Notifies all registered listeners that tree nodes have been removed.
+	 * Parses the specified mod file text contents and rebuilds the tree
+	 * structure.
+	 * @param text the mod file contents to parse
 	 */
-	private void fireTreeStructureChanged() {
-		TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.currRootNode));
-		for (TreeModelListener listener : this.listeners) {
-			if(listener != null) {
-				listener.treeStructureChanged(evt);
-			}
-		}
+	public void parseText(String text) {
+		long startTime = System.currentTimeMillis();
+//		ModTreeRootNode root = this.getRoot();
+//		root.insertString(0, text, null);
+//		root.reorganizeAfterInsertion();
+		ModTreeRootNode root = new ModTreeRootNode(this);
+		root.insertString(0, text);
+		root.reorganizeAfterInsertion();
+		logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
+		this.setRoot(root);
 	}
+
+//	// TODO : turning off the listener
+//	public void disableUpdating() {
+//		this.updatingEnabled = false;
+////		doc.removeDocumentListener(this.mtListener);
+//	}
+//	
+//	// TODO : test turning on the listener
+//	public void enableUpdating() {
+//		this.updatingEnabled = true;
+////		doc.addDocumentListener(this.mtListener);
+//	}
 	
 	/**
 	 * Sets the target upk to use for apply/revert operations.
@@ -233,302 +205,302 @@ public class ModTree implements TreeModel {
 		return this.targetUpk;
 	}
 	
-	public void forceRefreshFromDocument() {
-		try {
-			setDocument(this.doc);
-		} catch(BadLocationException ex) {
-			logger.log(Level.SEVERE, "Error Setting Document", ex);
-		}
-	}
-
-	/**
-	 * Associates a document with the ModTree.
-	 * Registers a DocumentListener with the document.
-	 * @param doc StyledDocument to be registered.
-	 * @throws javax.swing.text.BadLocationException
-	 */
-	private void setDocument(Document doc) throws BadLocationException {
-		this.doc = doc;
-		if (doc.getLength() > 0) {
-			long startTime = System.currentTimeMillis();
-			String s = doc.getText(0, doc.getLength());
-			ModTreeRootNode root = this.getRoot();
-			root.insertString(0, s, null);
-			root.reorganizeAfterInsertion();
-			logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
-			if(updatingEnabled) {
-				startTime = System.currentTimeMillis();
-				this.updateDocument(0,0);
-				logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
-			}
-		}
-		doc.addDocumentListener(this.mtListener);
-	}
-	
-	/**
-	 * Retrieves current document associated with ModTree.
-	 * @return
-	 */
-	public Document getDocument() {
-		return doc;
-	}
-	
-	/**
-	 * Update the current document based on ModTree structure/content.
-	 * Initially will only perform styling.
-	 * Later may modify text to implement reference/offset corrections.
-	 * @param deltaLines lines inserted or removed
-	 * @param lineInsertPoint point where first line change occurs
-	 */
-	protected void updateDocument(int deltaLines, int lineInsertPoint) {
-		if (this.getDocument() == null) {
-			return;
-		}
-		restylingEvents = 0;
-		int count = 0;
-		int total = 0;
-		int oldLineIndex;
-		if((this.prevRootNode == null) || (this.currRootNode.getChildCount() <= 1) || (this.prevRootNode.getChildCount() <= 1)) {
-			this.updateNodeStyles(this.currRootNode);
-		} else if (this.currRootNode.getChildNodeCount() != this.prevRootNode.getChildCount()) {
-			for (int newLineIndex = 0; newLineIndex < this.currRootNode.getChildNodeCount(); newLineIndex++) {
-				// map newLineIndex to oldLineIndex
-				if(deltaLines > 0) { // text added
-					if(newLineIndex < lineInsertPoint) { // before the insertion point
-						oldLineIndex = newLineIndex;
-					} else if (newLineIndex > (lineInsertPoint + deltaLines)) { // after the insertion point
-						oldLineIndex = newLineIndex - deltaLines;
-					} else { // in the newly inserted text area -- no old lines
-						oldLineIndex = -1;
-			}
-				} else { // text removed
-					if (newLineIndex < lineInsertPoint) { // before the deletion area
-						oldLineIndex = newLineIndex;
-					} else { // above the deletion point
-						oldLineIndex = newLineIndex + deltaLines; // skip ahead this number of lines
-					}
-				}
-				if((oldLineIndex >= 0) && (oldLineIndex < this.prevRootNode.getChildCount())) {
-					if(lineHasChanged(this.currRootNode.getChildNodeAt(newLineIndex), this.prevRootNode.getChildNodeAt(oldLineIndex))) {
-							this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
-							count++;
-					} 
-		} else {
-					this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
-					count++;
-		}
-				total++;
-			}
-		} else {
-			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
-				if (lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(i))
-						|| (i == lineInsertPoint)) {
-						this.updateNodeStyles(this.currRootNode.getChildNodeAt(i));
-						count ++;
-				}
-				total ++;
-			}
-		}
-		this.fireTreeStructureChanged();
-
-		logger.log(Level.FINE, count + "/" + total + " line re-styled: " + restylingEvents + " total events");
-	}
-	
-	protected boolean lineHasChanged(ModTreeNode newLine, ModTreeNode oldLine) {
-		if((oldLine.getContextFlag(HEX_CODE) || newLine.getContextFlag(HEX_CODE))
-						&& newLine.getContextFlag(FILE_HEADER) != oldLine.getContextFlag(FILE_HEADER)) {
-							return true;
-		}
-		return (newLine.isPlainText() != oldLine.isPlainText()) 
-				|| ! newLine.getFullText().equals(oldLine.getFullText()) 
-				|| newLine.getContextFlag(HEX_CODE) != oldLine.getContextFlag(HEX_CODE) 
-				|| newLine.getContextFlag(VALID_CODE) != oldLine.getContextFlag(VALID_CODE) 
-				|| newLine.getContextFlag(FILE_HEADER) != oldLine.getContextFlag(FILE_HEADER) 
-				|| newLine.getContextFlag(AFTER_HEX) != oldLine.getContextFlag(AFTER_HEX) 
-				|| newLine.getContextFlag(BEFORE_HEX) != oldLine.getContextFlag(BEFORE_HEX) 
-				|| newLine.getContextFlag(HEX_HEADER) != oldLine.getContextFlag(HEX_HEADER);
-	}
-	
-	/**
-	 * Updates associated document for a single node.
-	 * Function is used recursively.
-	 * @param node The current node being updated for.
-	 */
-	protected void updateNodeStyles(ModTreeNode node) {
-		this.applyStyles(node);
-		for (int i = 0; i < node.getChildNodeCount(); i++) {
-			this.updateNodeStyles(node.getChildNodeAt(i));
-		}
-	}
-
-	/**
-	 * Applies any necessary styling for the current node to the document.
-	 * WARNING : Do not make unnecessary text changes to the document.
-	 * Attribute changes are ignored by ModTree.
-	 * @param node The ModTreeNode originating the style. 
-	 */
-	protected void applyStyles(ModTreeNode node) {
-		AttributeSet as = new SimpleAttributeSet(); 
-		int start = node.getStartOffset();
-		int end = node.getEndOffset();
-		boolean replace = true;
-
-		if(node.getParentNode() == null) {
-			return;
-		}
-		
-		if(!node.isLeaf()) {
-			if(this.prevRootNode == null) { // skip this processing on startup, as it isn't needed
-				return;
-			}
-			//reset entire line to basic font before restyling
-			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
-			//handle indentation of full line
-//			if(true) { // check for line-wrapping
-////				StyleContext sc = new StyleContext();
-////				Style defaultStyle = sc.getStyle(StyleContext.DEFAULT_STYLE);
-//				Style paraStyle = ((StyledDocument)this.getDocument()).getLogicalStyle(start);
-////				Style paraStyle = sc.addStyle("paraStyle", defaultStyle);
-//				String s = node.getFullText();
-//				int numTabs = 0;
-//				char[] cArray = s.toCharArray();
-//				while(cArray[numTabs] == '\t') {
-//					numTabs++;
-//				}
-//				StyleConstants.setLeftIndent(paraStyle, 1* numTabs * TAB_SIZE);
-//				StyleConstants.setFirstLineIndent(paraStyle, -5 * numTabs * TAB_SIZE);
-//				((StyledDocument) this.getDocument()).setParagraphAttributes(start, end-1, paraStyle , false);
-//			}
-		} else {
-
-			// perform attribute updates
-			// TODO perform node-to-style mapping in more customizable way
-			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
-			StyleConstants.setItalic((MutableAttributeSet) as, false);
-			// attempt to style comments separately. 
-			if(node.isPlainText()) {
-				// find comment marker
-				String s = node.getFullText();
-				if(s.contains("//")) {
-					int startComment = s.indexOf("//");
-					start = node.getStartOffset() + startComment;
-					end = node.getEndOffset();
-					StyleConstants.setForeground((MutableAttributeSet) as, new Color( 128, 128, 128));  // grey
-					StyleConstants.setItalic((MutableAttributeSet) as, replace);
-				}
-			}
-			if (node instanceof ModReferenceLeaf) {
-				if (node.isVirtualFunctionRef()) {
-					StyleConstants.setForeground((MutableAttributeSet) as, new Color(160, 140, 100)); //Color.MAGENTA);
-					StyleConstants.setUnderline((MutableAttributeSet) as, true);
-				} else {
-					StyleConstants.setForeground((MutableAttributeSet) as, new Color(220, 180, 50)); //Color.ORANGE);
-					StyleConstants.setUnderline((MutableAttributeSet) as, true);
-				}
-			}
-			// invalid code
-			if ((node.getContextFlag(HEX_CODE) &&  ! node.getContextFlag(VALID_CODE))) {
-				StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
-				StyleConstants.setStrikeThrough((MutableAttributeSet) as, replace);
-			}
-			if(node.getName().equals("OperandToken")) {
-				if(node.getFullText().toUpperCase().startsWith("0B")) {
-					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
-					StyleConstants.setBold((MutableAttributeSet) as, false);
-				} else {
-					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
-					StyleConstants.setBold((MutableAttributeSet) as, true);
-				}
-			}
-			if (node instanceof ModOffsetLeaf) {
-				if(((ModOffsetLeaf)node).getOperand() == null) { // is absolute jump offset
-					boolean foundValidOffset = false;
-						
-					for (int i = 0; i < this.getRoot().getChildNodeCount(); i++) {
-						if (((ModOffsetLeaf)node).getOffset() == this.getRoot().getChildNodeAt(i).getMemoryPosition()) {
-							foundValidOffset = true;
-						}
-					}
-					if(foundValidOffset) {  // jump is to valid line position
-						StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
-					} else {  // jump is not to valid line position
-						StyleConstants.setBackground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
-					}
-				} else { // is relative jump offset
-					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 255, 180));  // yellow
-				}
-			}
-		}
-		if(node.getFullText().endsWith(" ")) {
-			end--;
-		}
-		
-		((StyledDocument) this.getDocument()).setCharacterAttributes(start, end-start, as, replace);
-		restylingEvents ++;
-	}
-	
-	/**
-	 * Processes next DocumentEvent in the queue.
-	 * Updates the ModTree model, then updates the registered document
-	 * TODO -- Event/thread trigger on this when docEvents not empty
-	 * @throws BadLocationException 
-	 */
-	public void processNextEvent() throws BadLocationException {
-		if (!docEvents.isEmpty()) {
-			this.processDocumentEvent(docEvents.get(0));
-		}
-	}
-	
-	/**
-	 * Processes a single specified DocumentEvent.
-	 * Inserts or removes text and then reorganizes the tree.
-	 * @param de The DocumentEvent
-	 * @throws BadLocationException
-	 */
-	protected void processDocumentEvent(DocumentEvent de) throws BadLocationException {
-		if (de == null) {
-			return;
-		}
-//		int offset = de.getOffset();
-//		int length = de.getLength();
-//		String s = de.getDocument().getText(offset, length);
-//		ModTreeRootNode r = this.getRoot();
-//		r.initUpdateFlags(false);
-//		EventType type = de.getType();
-//		if (type == EventType.INSERT) {
-//			r.insertString(offset, s, null);
-//			r.reorganizeAfterInsertion();
-//		} else if (type == EventType.REMOVE) {
-//			r.remove(offset, length);
-//			r.reorganizeAfterDeletion();
+//	public void forceRefreshFromDocument() {
+//		try {
+//			setDocument(this.doc);
+//		} catch(BadLocationException ex) {
+//			logger.log(Level.SEVERE, "Error Setting Document", ex);
 //		}
-		docEvents.clear();
-		if(updatingEnabled) {
-			if (de.getDocument().getLength() > 0) {
-				// retrieve the new document text
-				String s = de.getDocument().getText(0, doc.getLength());
-				
-				// calculate information about new lines and the insertion point
-				String o = this.currRootNode.getFullText();
-				int nLines = s.length() - s.replace("\n", "").length();
-				int oLines = o.length() - o.replace("\n", "").length();
-				int deltaLines = nLines - oLines;
-
-				int lineInsertPoint = this.currRootNode.getNodeIndex(de.getOffset());
-				
-				this.prevRootNode = currRootNode;
-				this.currRootNode = new ModTreeRootNode(this);
-				long startTime = System.currentTimeMillis();
-				this.currRootNode.insertString(0, s, null);
-				this.currRootNode.reorganizeAfterInsertion();
-				logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
-
-				startTime = System.currentTimeMillis();
-				this.updateDocument(deltaLines, lineInsertPoint);
-				logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
-			}
-		}
-	}
+//	}
+//
+//	/**
+//	 * Associates a document with the ModTree.
+//	 * Registers a DocumentListener with the document.
+//	 * @param doc StyledDocument to be registered.
+//	 * @throws javax.swing.text.BadLocationException
+//	 */
+//	private void setDocument(Document doc) throws BadLocationException {
+//		this.doc = doc;
+//		if (doc.getLength() > 0) {
+//			long startTime = System.currentTimeMillis();
+//			String s = doc.getText(0, doc.getLength());
+//			ModTreeRootNode root = this.getRoot();
+//			root.insertString(0, s, null);
+//			root.reorganizeAfterInsertion();
+//			logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
+//			if(updatingEnabled) {
+//				startTime = System.currentTimeMillis();
+//				this.updateDocument(0,0);
+//				logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
+//			}
+//		}
+//		doc.addDocumentListener(this.mtListener);
+//	}
+//	
+//	/**
+//	 * Retrieves current document associated with ModTree.
+//	 * @return
+//	 */
+//	public Document getDocument() {
+//		return doc;
+//	}
+//	
+//	/**
+//	 * Update the current document based on ModTree structure/content.
+//	 * Initially will only perform styling.
+//	 * Later may modify text to implement reference/offset corrections.
+//	 * @param deltaLines lines inserted or removed
+//	 * @param lineInsertPoint point where first line change occurs
+//	 */
+//	protected void updateDocument(int deltaLines, int lineInsertPoint) {
+//		if (this.getDocument() == null) {
+//			return;
+//		}
+//		restylingEvents = 0;
+//		int count = 0;
+//		int total = 0;
+//		int oldLineIndex;
+//		if((this.prevRootNode == null) || (this.currRootNode.getChildCount() <= 1) || (this.prevRootNode.getChildCount() <= 1)) {
+//			this.updateNodeStyles(this.currRootNode);
+//		} else if (this.currRootNode.getChildNodeCount() != this.prevRootNode.getChildCount()) {
+//			for (int newLineIndex = 0; newLineIndex < this.currRootNode.getChildNodeCount(); newLineIndex++) {
+//				// map newLineIndex to oldLineIndex
+//				if(deltaLines > 0) { // text added
+//					if(newLineIndex < lineInsertPoint) { // before the insertion point
+//						oldLineIndex = newLineIndex;
+//					} else if (newLineIndex > (lineInsertPoint + deltaLines)) { // after the insertion point
+//						oldLineIndex = newLineIndex - deltaLines;
+//					} else { // in the newly inserted text area -- no old lines
+//						oldLineIndex = -1;
+//			}
+//				} else { // text removed
+//					if (newLineIndex < lineInsertPoint) { // before the deletion area
+//						oldLineIndex = newLineIndex;
+//					} else { // above the deletion point
+//						oldLineIndex = newLineIndex + deltaLines; // skip ahead this number of lines
+//					}
+//				}
+//				if((oldLineIndex >= 0) && (oldLineIndex < this.prevRootNode.getChildCount())) {
+//					if(lineHasChanged(this.currRootNode.getChildNodeAt(newLineIndex), this.prevRootNode.getChildNodeAt(oldLineIndex))) {
+//							this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
+//							count++;
+//					} 
+//		} else {
+//					this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
+//					count++;
+//		}
+//				total++;
+//			}
+//		} else {
+//			for (int i = 0; i < this.currRootNode.getChildNodeCount(); i++) {
+//				if (lineHasChanged(this.currRootNode.getChildNodeAt(i), this.prevRootNode.getChildNodeAt(i))
+//						|| (i == lineInsertPoint)) {
+//						this.updateNodeStyles(this.currRootNode.getChildNodeAt(i));
+//						count ++;
+//				}
+//				total ++;
+//			}
+//		}
+//		this.fireTreeStructureChanged();
+//
+//		logger.log(Level.FINE, count + "/" + total + " line re-styled: " + restylingEvents + " total events");
+//	}
+//	
+//	protected boolean lineHasChanged(ModTreeNode newLine, ModTreeNode oldLine) {
+//		if((oldLine.getContextFlag(HEX_CODE) || newLine.getContextFlag(HEX_CODE))
+//						&& newLine.getContextFlag(FILE_HEADER) != oldLine.getContextFlag(FILE_HEADER)) {
+//							return true;
+//		}
+//		return (newLine.isPlainText() != oldLine.isPlainText()) 
+//				|| ! newLine.getFullText().equals(oldLine.getFullText()) 
+//				|| newLine.getContextFlag(HEX_CODE) != oldLine.getContextFlag(HEX_CODE) 
+//				|| newLine.getContextFlag(VALID_CODE) != oldLine.getContextFlag(VALID_CODE) 
+//				|| newLine.getContextFlag(FILE_HEADER) != oldLine.getContextFlag(FILE_HEADER) 
+//				|| newLine.getContextFlag(AFTER_HEX) != oldLine.getContextFlag(AFTER_HEX) 
+//				|| newLine.getContextFlag(BEFORE_HEX) != oldLine.getContextFlag(BEFORE_HEX) 
+//				|| newLine.getContextFlag(HEX_HEADER) != oldLine.getContextFlag(HEX_HEADER);
+//	}
+//	
+//	/**
+//	 * Updates associated document for a single node.
+//	 * Function is used recursively.
+//	 * @param node The current node being updated for.
+//	 */
+//	protected void updateNodeStyles(ModTreeNode node) {
+//		this.applyStyles(node);
+//		for (int i = 0; i < node.getChildNodeCount(); i++) {
+//			this.updateNodeStyles(node.getChildNodeAt(i));
+//		}
+//	}
+//
+//	/**
+//	 * Applies any necessary styling for the current node to the document.
+//	 * WARNING : Do not make unnecessary text changes to the document.
+//	 * Attribute changes are ignored by ModTree.
+//	 * @param node The ModTreeNode originating the style. 
+//	 */
+//	protected void applyStyles(ModTreeNode node) {
+//		AttributeSet as = new SimpleAttributeSet(); 
+//		int start = node.getStartOffset();
+//		int end = node.getEndOffset();
+//		boolean replace = true;
+//
+//		if(node.getParentNode() == null) {
+//			return;
+//		}
+//		
+//		if(!node.isLeaf()) {
+//			if(this.prevRootNode == null) { // skip this processing on startup, as it isn't needed
+//				return;
+//			}
+//			//reset entire line to basic font before restyling
+//			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+//			//handle indentation of full line
+////			if(true) { // check for line-wrapping
+//////				StyleContext sc = new StyleContext();
+//////				Style defaultStyle = sc.getStyle(StyleContext.DEFAULT_STYLE);
+////				Style paraStyle = ((StyledDocument)this.getDocument()).getLogicalStyle(start);
+//////				Style paraStyle = sc.addStyle("paraStyle", defaultStyle);
+////				String s = node.getFullText();
+////				int numTabs = 0;
+////				char[] cArray = s.toCharArray();
+////				while(cArray[numTabs] == '\t') {
+////					numTabs++;
+////				}
+////				StyleConstants.setLeftIndent(paraStyle, 1* numTabs * TAB_SIZE);
+////				StyleConstants.setFirstLineIndent(paraStyle, -5 * numTabs * TAB_SIZE);
+////				((StyledDocument) this.getDocument()).setParagraphAttributes(start, end-1, paraStyle , false);
+////			}
+//		} else {
+//
+//			// perform attribute updates
+//			// TODO perform node-to-style mapping in more customizable way
+//			StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+//			StyleConstants.setItalic((MutableAttributeSet) as, false);
+//			// attempt to style comments separately. 
+//			if(node.isPlainText()) {
+//				// find comment marker
+//				String s = node.getFullText();
+//				if(s.contains("//")) {
+//					int startComment = s.indexOf("//");
+//					start = node.getStartOffset() + startComment;
+//					end = node.getEndOffset();
+//					StyleConstants.setForeground((MutableAttributeSet) as, new Color( 128, 128, 128));  // grey
+//					StyleConstants.setItalic((MutableAttributeSet) as, replace);
+//				}
+//			}
+//			if (node instanceof ModReferenceLeaf) {
+//				if (node.isVirtualFunctionRef()) {
+//					StyleConstants.setForeground((MutableAttributeSet) as, new Color(160, 140, 100)); //Color.MAGENTA);
+//					StyleConstants.setUnderline((MutableAttributeSet) as, true);
+//				} else {
+//					StyleConstants.setForeground((MutableAttributeSet) as, new Color(220, 180, 50)); //Color.ORANGE);
+//					StyleConstants.setUnderline((MutableAttributeSet) as, true);
+//				}
+//			}
+//			// invalid code
+//			if ((node.getContextFlag(HEX_CODE) &&  ! node.getContextFlag(VALID_CODE))) {
+//				StyleConstants.setForeground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
+//				StyleConstants.setStrikeThrough((MutableAttributeSet) as, replace);
+//			}
+//			if(node.getName().equals("OperandToken")) {
+//				if(node.getFullText().toUpperCase().startsWith("0B")) {
+//					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
+//					StyleConstants.setBold((MutableAttributeSet) as, false);
+//				} else {
+//					StyleConstants.setForeground((MutableAttributeSet) as, Color.BLUE);
+//					StyleConstants.setBold((MutableAttributeSet) as, true);
+//				}
+//			}
+//			if (node instanceof ModOffsetLeaf) {
+//				if(((ModOffsetLeaf)node).getOperand() == null) { // is absolute jump offset
+//					boolean foundValidOffset = false;
+//						
+//					for (int i = 0; i < this.getRoot().getChildNodeCount(); i++) {
+//						if (((ModOffsetLeaf)node).getOffset() == this.getRoot().getChildNodeAt(i).getMemoryPosition()) {
+//							foundValidOffset = true;
+//						}
+//					}
+//					if(foundValidOffset) {  // jump is to valid line position
+//						StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 200, 100));  // orange
+//					} else {  // jump is not to valid line position
+//						StyleConstants.setBackground((MutableAttributeSet) as, new Color(255, 128, 128)); // red
+//					}
+//				} else { // is relative jump offset
+//					StyleConstants.setBackground((MutableAttributeSet) as, new Color( 255, 255, 180));  // yellow
+//				}
+//			}
+//		}
+//		if(node.getFullText().endsWith(" ")) {
+//			end--;
+//		}
+//		
+//		((StyledDocument) this.getDocument()).setCharacterAttributes(start, end-start, as, replace);
+//		restylingEvents ++;
+//	}
+//	
+//	/**
+//	 * Processes next DocumentEvent in the queue.
+//	 * Updates the ModTree model, then updates the registered document
+//	 * TODO -- Event/thread trigger on this when docEvents not empty
+//	 * @throws BadLocationException 
+//	 */
+//	public void processNextEvent() throws BadLocationException {
+//		if (!docEvents.isEmpty()) {
+//			this.processDocumentEvent(docEvents.get(0));
+//		}
+//	}
+//	
+//	/**
+//	 * Processes a single specified DocumentEvent.
+//	 * Inserts or removes text and then reorganizes the tree.
+//	 * @param de The DocumentEvent
+//	 * @throws BadLocationException
+//	 */
+//	protected void processDocumentEvent(DocumentEvent de) throws BadLocationException {
+//		if (de == null) {
+//			return;
+//		}
+////		int offset = de.getOffset();
+////		int length = de.getLength();
+////		String s = de.getDocument().getText(offset, length);
+////		ModTreeRootNode r = this.getRoot();
+////		r.initUpdateFlags(false);
+////		EventType type = de.getType();
+////		if (type == EventType.INSERT) {
+////			r.insertString(offset, s, null);
+////			r.reorganizeAfterInsertion();
+////		} else if (type == EventType.REMOVE) {
+////			r.remove(offset, length);
+////			r.reorganizeAfterDeletion();
+////		}
+//		docEvents.clear();
+//		if(updatingEnabled) {
+//			if (de.getDocument().getLength() > 0) {
+//				// retrieve the new document text
+//				String s = de.getDocument().getText(0, doc.getLength());
+//				
+//				// calculate information about new lines and the insertion point
+//				String o = this.currRootNode.getFullText();
+//				int nLines = s.length() - s.replace("\n", "").length();
+//				int oLines = o.length() - o.replace("\n", "").length();
+//				int deltaLines = nLines - oLines;
+//
+//				int lineInsertPoint = this.currRootNode.getNodeIndex(de.getOffset());
+//				
+//				this.prevRootNode = currRootNode;
+//				this.currRootNode = new ModTreeRootNode(this);
+//				long startTime = System.currentTimeMillis();
+//				this.currRootNode.insertString(0, s, null);
+//				this.currRootNode.reorganizeAfterInsertion();
+//				logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
+//
+//				startTime = System.currentTimeMillis();
+//				this.updateDocument(deltaLines, lineInsertPoint);
+//				logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
+//			}
+//		}
+//	}
 
 	/**
 	 * Returns the root node of the document.
@@ -542,6 +514,40 @@ public class ModTree implements TreeModel {
 		}
 		return this.currRootNode;
 	}
+
+	/**
+	 * Sets the specified node as the new root node of the tree.
+	 * @param root the new root node to set
+	 */
+	public void setRoot(ModTreeRootNode root) {
+		this.currRootNode = root;
+		this.fireTreeStructureChanged();
+	}
+
+	//	// TODO : turning off the listener
+	//	public void disableUpdating() {
+	//		this.updatingEnabled = false;
+	////		doc.removeDocumentListener(this.mtListener);
+	//	}
+	//	
+	//	// TODO : test turning on the listener
+	//	public void enableUpdating() {
+	//		this.updatingEnabled = true;
+	////		doc.addDocumentListener(this.mtListener);
+	//	}
+		
+		/**
+		 * Notifies all registered listeners that tree nodes have been removed.
+		 */
+		private void fireTreeStructureChanged() {
+			TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.getRoot()));
+			if (this.listeners != null) {
+				for (TreeModelListener listener : this.listeners) {
+					listener.treeStructureChanged(evt);
+				}
+			}
+		}
+
 
 	/**
 	 * Returns the file version number.
@@ -707,45 +713,103 @@ public class ModTree implements TreeModel {
 
 	@Override
 	public void addTreeModelListener(TreeModelListener tl) {
-			this.listeners.add(tl);
+		if (tl == null) {
+			throw new IllegalArgumentException("Listener must not be null.");
+		}
+		if (listeners == null) {
+			// lazily instantiate listener list
+			listeners = new ArrayList<>();
+		}
+		listeners.add(tl);
 	}
 
 	@Override
 	public void removeTreeModelListener(TreeModelListener tl) {
-			this.listeners.remove(tl);
+		if ((listeners == null) || (tl == null)) {
+			return;
+		}
+		listeners.remove(tl);
 	}
 
-	/**
-	 * Implements the Listener to be registered with a StyledDocument
-	 * // TODO: stop spawning more threads if the first is already running
-	 * //		if new insert/remove update comes in could conceivably halt current styling
-	 */
-	protected class ModTreeDocumentListener implements DocumentListener {
-
-		private Thread deHandler;
-	
-		@Override
-		public void insertUpdate(DocumentEvent evt) {
-			this.update(evt);
-		}
-
-		@Override
-		public void removeUpdate(DocumentEvent evt) {
-			this.update(evt);
-		}
-
-		@Override
-		public void changedUpdate(DocumentEvent evt) {
-//			System.out.println("new event: " + evt.getType());
-			// do nothing for formatting changes
-		}
-		
-		private void update(DocumentEvent evt) {
-			docEvents.add(evt);
-			
-			// Amineri - my attempt to make the DocEvent processing more efficient -- doesn't work
-//			if(this.deHandler == null) {
-//				deHandler = new Thread() {
+//	/**
+//	 * Implements the Listener to be registered with a StyledDocument
+//	 * // TODO: stop spawning more threads if the first is already running
+//	 * //		if new insert/remove update comes in could conceivably halt current styling
+//	 */
+//	protected class ModTreeDocumentListener implements DocumentListener {
+//
+//		private Thread deHandler;
+//	
+//		@Override
+//		public void insertUpdate(DocumentEvent evt) {
+//			this.update(evt);
+//		}
+//
+//		@Override
+//		public void removeUpdate(DocumentEvent evt) {
+//			this.update(evt);
+//		}
+//
+//		@Override
+//		public void changedUpdate(DocumentEvent evt) {
+////			System.out.println("new event: " + evt.getType());
+//			// do nothing for formatting changes
+//		}
+//		
+//		private void update(DocumentEvent evt) {
+//			docEvents.add(evt);
+//			
+//			// Amineri - my attempt to make the DocEvent processing more efficient -- doesn't work
+////			if(this.deHandler == null) {
+////				deHandler = new Thread() {
+////				   public void run() {
+////					   try {
+////						   SwingUtilities.invokeAndWait(new Runnable() {
+////							   @Override
+////							   public void run() {
+////								   while (!docEvents.isEmpty()) {
+////									   try {
+////										   ModTree.this.processNextEvent();
+////									   } catch (BadLocationException e) {
+////										   e.printStackTrace();
+////									   }
+////								   }
+////							   }
+////						   });
+////					   } catch (Exception e) {
+////						   e.printStackTrace();
+////					   }
+////				   };
+////				};
+////				deHandler.start();
+////			} else if (this.deHandler.isAlive()) {
+////				this.deHandler.interrupt();
+////				deHandler = new Thread() {
+////				   public void run() {
+////					   try {
+////						   SwingUtilities.invokeAndWait(new Runnable() {
+////							   @Override
+////							   public void run() {
+////								   while (!docEvents.isEmpty()) {
+////									   try {
+////										   ModTree.this.processNextEvent();
+////									   } catch (BadLocationException e) {
+////										   e.printStackTrace();
+////									   }
+////								   }
+////							   }
+////						   });
+////					   } catch (Exception e) {
+////						   e.printStackTrace();
+////					   }
+////				   };
+////				};
+////				deHandler.start();
+////			}	
+//			
+//			
+//			new Thread() {
+//				   @Override
 //				   public void run() {
 //					   try {
 //						   SwingUtilities.invokeAndWait(new Runnable() {
@@ -755,65 +819,17 @@ public class ModTree implements TreeModel {
 //									   try {
 //										   ModTree.this.processNextEvent();
 //									   } catch (BadLocationException e) {
-//										   e.printStackTrace();
+//											logger.log(Level.SEVERE, "Failure in ModTree event processing: " + e);
 //									   }
 //								   }
 //							   }
 //						   });
-//					   } catch (Exception e) {
-//						   e.printStackTrace();
+//					   } catch (InterruptedException | InvocationTargetException e) {
+//							logger.log(Level.SEVERE, "Failure in ModTree event processing threading: " + e);
 //					   }
 //				   };
-//				};
-//				deHandler.start();
-//			} else if (this.deHandler.isAlive()) {
-//				this.deHandler.interrupt();
-//				deHandler = new Thread() {
-//				   public void run() {
-//					   try {
-//						   SwingUtilities.invokeAndWait(new Runnable() {
-//							   @Override
-//							   public void run() {
-//								   while (!docEvents.isEmpty()) {
-//									   try {
-//										   ModTree.this.processNextEvent();
-//									   } catch (BadLocationException e) {
-//										   e.printStackTrace();
-//									   }
-//								   }
-//							   }
-//						   });
-//					   } catch (Exception e) {
-//						   e.printStackTrace();
-//					   }
-//				   };
-//				};
-//				deHandler.start();
-//			}	
-			
-			
-			new Thread() {
-				   @Override
-				   public void run() {
-					   try {
-						   SwingUtilities.invokeAndWait(new Runnable() {
-							   @Override
-							   public void run() {
-								   while (!docEvents.isEmpty()) {
-									   try {
-										   ModTree.this.processNextEvent();
-									   } catch (BadLocationException e) {
-											logger.log(Level.SEVERE, "Failure in ModTree event processing: " + e);
-									   }
-								   }
-							   }
-						   });
-					   } catch (InterruptedException | InvocationTargetException e) {
-							logger.log(Level.SEVERE, "Failure in ModTree event processing threading: " + e);
-					   }
-				   };
-				}.start();
-		}
-	}
+//				}.start();
+//		}
+//	}
 
 }

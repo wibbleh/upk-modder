@@ -376,9 +376,9 @@ public class ReferenceUpdateDialog extends JDialog {
 	private boolean convertToRefDestValues() throws BadLocationException {
 		boolean res = true;
 		String findString;
-		// since there are a lot of updates coming, disable the modTree updating temporarily
-		// will perform a single refresh at the end
-		modTree.disableUpdating();
+//		// since there are a lot of updates coming, disable the modTree updating temporarily
+//		// will perform a single refresh at the end
+//		modTree.disableUpdating();
 		
 		// the amount that the document offset has been adjusted
 		// tracking it this way is MUCH faster than trying to wait for the ModTree to update after each insertion
@@ -412,8 +412,8 @@ public class ReferenceUpdateDialog extends JDialog {
 			
 		}
 		// force modTree refresh from document and re-enable updating
-		modTree.forceRefreshFromDocument();
-		modTree.enableUpdating();
+//		modTree.forceRefreshFromDocument();
+//		modTree.enableUpdating();
 		return res;
 	}
 
@@ -424,9 +424,9 @@ public class ReferenceUpdateDialog extends JDialog {
 	 */
 	private boolean convertToRefNames() throws BadLocationException {
 		boolean res = true;
-		// since there are a lot of updates coming, disable the modTree updating temporarily
-		// will perform a single refresh at the end
-		modTree.disableUpdating();
+//		// since there are a lot of updates coming, disable the modTree updating temporarily
+//		// will perform a single refresh at the end
+//		modTree.disableUpdating();
 		
 		// the amount that the document offset has been adjusted
 		// tracking it this way is MUCH faster than trying to wait for the ModTree to update after each insertion
@@ -456,8 +456,8 @@ public class ReferenceUpdateDialog extends JDialog {
 			}
 		}
 		// force modTree refresh from document and re-enable updating
-		modTree.forceRefreshFromDocument();
-		modTree.enableUpdating();
+//		modTree.forceRefreshFromDocument();
+//		modTree.enableUpdating();
 		return res;
 	}
 
