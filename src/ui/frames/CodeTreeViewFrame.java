@@ -12,6 +12,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTree;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 
@@ -114,23 +116,28 @@ public class CodeTreeViewFrame extends JFrame{
 		renderer.setClosedIcon(null);
 		renderer.setOpenIcon(null);
 		modElemTree.setCellRenderer(renderer);	
-			
+		
 		// install document listener to refresh tree on changes to the document
-		modTree.getDocument().addDocumentListener(new DocumentListener() {
+//		modTree.getDocument().addDocumentListener(new DocumentListener() {
+		modTree.addTreeModelListener(new TreeModelListener() {
 			@Override
-			public void removeUpdate(DocumentEvent evt) {
+			public void treeNodesInserted(TreeModelEvent evt) {
 				this.updateTree(evt);
 			}
 			@Override
-			public void insertUpdate(DocumentEvent evt) {
+			public void treeNodesChanged(TreeModelEvent evt) {
 				this.updateTree(evt);
 			}
 			@Override
-			public void changedUpdate(DocumentEvent evt) {
+			public void treeNodesRemoved(TreeModelEvent evt) {
+				this.updateTree(evt);
+			}
+			@Override
+			public void treeStructureChanged(TreeModelEvent evt) {
 				this.updateTree(evt);
 			}
 			/** Updates the tree views on document changes */
-			private void updateTree(DocumentEvent evt) {
+			private void updateTree(TreeModelEvent evt) {
 				// reset mod tree
 				((DefaultTreeModel) modElemTree.getModel()).setRoot(
 						modTree.getRoot());

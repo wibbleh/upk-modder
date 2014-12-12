@@ -1,3 +1,7 @@
+v0.85 (working)
+Added Search capability to both project pane and modfile editors
+Optimizations to improve performance for loading of large modfiles
+
 v0.84 (r144)
 Fixed issues with Project Pane folders not sorting under Linux
 Added error-checking to jump offset highlighting so that jump offsets are colored red if not pointing to the start of a line

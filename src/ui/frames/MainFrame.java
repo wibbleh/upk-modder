@@ -906,24 +906,31 @@ public class MainFrame extends JFrame {
 			// this modTree is not hooked up to a document and so cannot be
 			// updated,
 			// create parsed ModTree directly from supplied path
-			ModTree modTree = new ModTree(modFilePath);
-
-			// find upk for tree, if possible
-			ProjectNode project = modNode.getProject();
-			if (project != null) {
-				// get targeted generic UPK file name
-				String upkName = modTree.getUpkName();
-				// look up path in project's UPK file associations
-				Path upkPath = project.getUpkPath(upkName);
-				if (upkPath != null) {
-					UpkFile upkFile = this.getUpkFile(upkPath);
-					//set the target upk in the ModTree
-					modTree.setTargetUpk(upkFile);
-				}
+			ModTree modTree = null;
+			try {
+				modTree = new ModTree(new String(Files.readAllBytes(modFilePath)));
+			} catch (IOException ex) {
+				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
 			}
+			
+			if(modTree != null) {
+				// find upk for tree, if possible
+				ProjectNode project = modNode.getProject();
+				if (project != null) {
+					// get targeted generic UPK file name
+					String upkName = modTree.getUpkName();
+					// look up path in project's UPK file associations
+					Path upkPath = project.getUpkPath(upkName);
+					if (upkPath != null) {
+						UpkFile upkFile = this.getUpkFile(upkPath);
+						//set the target upk in the ModTree
+						modTree.setTargetUpk(upkFile);
+					}
+				}
 
-			// perform the test on the file
-			modNode.setStatus(HexSearchAndReplace.testFileStatus(modTree));
+				// perform the test on the file
+				modNode.setStatus(HexSearchAndReplace.testFileStatus(modTree));
+			}
 		}
 	}
 	
@@ -953,31 +960,38 @@ public class MainFrame extends JFrame {
 			// if not opened, create a temporary ModTree for application,
 			// this modTree is not hooked up to a document and so cannot be
 			// updated, create parsed ModTree directly from supplied path
-			ModTree modTree = new ModTree(modFilePath);
-
-			// find UPK for tree, if possible
-			ProjectNode project = modNode.getProject();
-			if (project != null) {
-				// get targeted generic UPK file name
-				String upkName = modTree.getUpkName();
-				// look up path in project's UPK file associations
-				Path upkPath = project.getUpkPath(upkName);
-				if (upkPath != null) {
-					UpkFile upkFile = this.getUpkFile(upkPath);
-					//set the target upk in the ModTree
-					modTree.setTargetUpk(upkFile);
-				}
+			ModTree modTree = null;
+			try {
+				modTree = new ModTree(new String(Files.readAllBytes(modFilePath)));
+			} catch (IOException ex) {
+				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
 			}
 
-			if (apply) {
-				// attempt to apply
-				if (HexSearchAndReplace.applyRevertChanges(true, modTree)) {
-					modNode.setStatus(ApplyStatus.AFTER_HEX_PRESENT);
+			if (modTree != null) {
+				// find UPK for tree, if possible
+				ProjectNode project = modNode.getProject();
+				if (project != null) {
+					// get targeted generic UPK file name
+					String upkName = modTree.getUpkName();
+					// look up path in project's UPK file associations
+					Path upkPath = project.getUpkPath(upkName);
+					if (upkPath != null) {
+						UpkFile upkFile = this.getUpkFile(upkPath);
+						//set the target upk in the ModTree
+						modTree.setTargetUpk(upkFile);
+					}
 				}
-			} else {
-				// attempt to revert
-				if (HexSearchAndReplace.applyRevertChanges(false, modTree)) {
-					modNode.setStatus(ApplyStatus.BEFORE_HEX_PRESENT);
+
+				if (apply) {
+					// attempt to apply
+					if (HexSearchAndReplace.applyRevertChanges(true, modTree)) {
+						modNode.setStatus(ApplyStatus.AFTER_HEX_PRESENT);
+					}
+				} else {
+					// attempt to revert
+					if (HexSearchAndReplace.applyRevertChanges(false, modTree)) {
+						modNode.setStatus(ApplyStatus.BEFORE_HEX_PRESENT);
+					}
 				}
 			}
 		}		
