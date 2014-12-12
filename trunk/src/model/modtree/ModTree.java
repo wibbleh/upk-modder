@@ -152,6 +152,7 @@ public class ModTree implements TreeModel {
 	 * Directly reads the supplied text file and parses it.
 	 * @param modFilePath Path to the .upk_mod file to use to initialize the ModTree
 	 */
+	@Deprecated
 	public ModTree(Path modFilePath) {
 		docEvents = null;
 		this.listeners = null;
@@ -165,7 +166,22 @@ public class ModTree implements TreeModel {
 		} catch(IOException ex) {
 			logger.log(Level.SEVERE, "Error when reading modfile", ex);
 		}
-		
+	}
+
+	
+	/**
+	 * New unified ModTree constructor for direct initialization.
+	 * Directly reads the supplied text file and parses it.
+	 * @param modText the text used to initialize the modTree
+	 */
+	public ModTree(String modText) {
+		docEvents = null;
+		this.listeners = null;
+		long startTime = System.currentTimeMillis();
+		ModTreeRootNode root = this.getRoot();
+		root.insertString(0, modText, null);
+		root.reorganizeAfterInsertion();
+		logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 	}
 	
 	/**
@@ -284,7 +300,7 @@ public class ModTree implements TreeModel {
 						oldLineIndex = newLineIndex - deltaLines;
 					} else { // in the newly inserted text area -- no old lines
 						oldLineIndex = -1;
-					}
+			}
 				} else { // text removed
 					if (newLineIndex < lineInsertPoint) { // before the deletion area
 						oldLineIndex = newLineIndex;
@@ -297,10 +313,10 @@ public class ModTree implements TreeModel {
 							this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
 							count++;
 					} 
-				} else {
+		} else {
 					this.updateNodeStyles(this.currRootNode.getChildNodeAt(newLineIndex));
 					count++;
-				}
+		}
 				total++;
 			}
 		} else {
