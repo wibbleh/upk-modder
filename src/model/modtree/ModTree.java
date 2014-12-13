@@ -147,7 +147,7 @@ public class ModTree implements TreeModel {
 //	}
 	
 	public ModTree() {
-		this((String) null); 
+		this((String) null, false); 
 	}
 
 	
@@ -156,8 +156,8 @@ public class ModTree implements TreeModel {
 	 * Directly reads the supplied text file and parses it.
 	 * @param modText the text used to initialize the modTree
 	 */
-	public ModTree(String modText) {
-		this.parseText(modText);
+	public ModTree(String modText, boolean parse) {
+		this.parseText(modText, parse);
 	}
 
 	/**
@@ -165,14 +165,16 @@ public class ModTree implements TreeModel {
 	 * structure.
 	 * @param text the mod file contents to parse
 	 */
-	public void parseText(String text) {
+	public void parseText(String text, boolean parse) {
 		long startTime = System.currentTimeMillis();
 //		ModTreeRootNode root = this.getRoot();
 //		root.insertString(0, text, null);
 //		root.reorganizeAfterInsertion();
 		ModTreeRootNode root = new ModTreeRootNode(this);
 		root.insertString(0, text);
-		root.reorganizeAfterInsertion();
+		if (parse) {
+			root.reorganizeAfterInsertion();
+		}
 		logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 		this.setRoot(root);
 	}
@@ -539,7 +541,7 @@ public class ModTree implements TreeModel {
 		/**
 		 * Notifies all registered listeners that tree nodes have been removed.
 		 */
-		private void fireTreeStructureChanged() {
+		public void fireTreeStructureChanged() {
 			TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.getRoot()));
 			if (this.listeners != null) {
 				for (TreeModelListener listener : this.listeners) {

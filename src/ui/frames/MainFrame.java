@@ -908,7 +908,7 @@ public class MainFrame extends JFrame {
 			// create parsed ModTree directly from supplied path
 			ModTree modTree = null;
 			try {
-				modTree = new ModTree(new String(Files.readAllBytes(modFilePath)));
+				modTree = new ModTree(new String(Files.readAllBytes(modFilePath)), true);
 			} catch (IOException ex) {
 				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
 			}
@@ -962,7 +962,7 @@ public class MainFrame extends JFrame {
 			// updated, create parsed ModTree directly from supplied path
 			ModTree modTree = null;
 			try {
-				modTree = new ModTree(new String(Files.readAllBytes(modFilePath)));
+				modTree = new ModTree(new String(Files.readAllBytes(modFilePath)), true);
 			} catch (IOException ex) {
 				Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
 			}
