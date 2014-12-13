@@ -322,7 +322,7 @@ public class TextLineNumber extends JPanel
 			int nodeIndex = root.getNodeIndex(rowStartOffset);
 			ModTreeNode lineNode = root.getChildNodeAt(nodeIndex);
 			if (lineNode.isValidHexLine() && lineNode.getContextFlag(ModContext.ModContextType.HEX_CODE)) {
-			int memPos = lineNode.getMemoryPosition();
+				int memPos = lineNode.getMemoryPosition();
 				return String.format("%04X", memPos);
 			} else {
 				return "";

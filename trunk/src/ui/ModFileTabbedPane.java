@@ -724,12 +724,39 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				}
 				
 				// init mod tree from text contents
-				this.modTree = new ModTree(this.getText());
+				//this.modTree = new ModTree(this.getText(), false);
+				this.modTree = new ModTree();
 				
 				// listen to tree changes
-				this.modTree.addTreeModelListener(new TreeModelListener() {
-					@Override
-					public void treeStructureChanged(TreeModelEvent evt) {
+//				this.modTree.addTreeModelListener(new TreeModelListener() {
+//					@Override
+//					public void treeStructureChanged(TreeModelEvent evt) {
+//						// check for existing and running worker
+////						if ((worker != null) && !worker.isDone()) {
+////							// terminate worker prematurely
+////							worker.cancel(true);
+////						}
+////						// start new worker to restyle editor document
+////						worker = new StyleWorker(ModFileEditor.this);
+////						worker.execute();
+//					}
+//					/* unused overrides */
+//					@Override public void treeNodesRemoved(TreeModelEvent evt) { }
+//					@Override public void treeNodesInserted(TreeModelEvent evt) { }
+//					@Override public void treeNodesChanged(TreeModelEvent evt) { }
+//				});
+				
+				// listen to document changes
+				final DocumentListener docListener = new DocumentListener() {
+					@Override public void removeUpdate(DocumentEvent evt) { this.rebuildTree(); }
+					@Override public void insertUpdate(DocumentEvent evt) { this.rebuildTree(); }
+					//@Override public void changedUpdate(DocumentEvent evt) { this.rebuildTree(); } 
+					@Override public void changedUpdate(DocumentEvent evt) { } // NOTE : this only fires for styling changes, which shouldn't cause tree rebuilds (Gives notification that an attribute or set of attributes changed.)
+					
+					private void rebuildTree() {
+						// TODO: move to background thread - DONE
+						ModFileTab.this.setModified(true);
+						//ModFileEditor.this.modTree.parseText(ModFileEditor.this.getText());
 						// check for existing and running worker
 						if ((worker != null) && !worker.isDone()) {
 							// terminate worker prematurely
@@ -738,22 +765,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						// start new worker to restyle editor document
 						worker = new StyleWorker(ModFileEditor.this);
 						worker.execute();
-					}
-					/* unused overrides */
-					@Override public void treeNodesRemoved(TreeModelEvent evt) { }
-					@Override public void treeNodesInserted(TreeModelEvent evt) { }
-					@Override public void treeNodesChanged(TreeModelEvent evt) { }
-				});
-				
-				// listen to document changes
-				final DocumentListener docListener = new DocumentListener() {
-					@Override public void removeUpdate(DocumentEvent evt) { this.rebuildTree(); }
-					@Override public void insertUpdate(DocumentEvent evt) { this.rebuildTree(); }
-					@Override public void changedUpdate(DocumentEvent evt) { this.rebuildTree(); }
-					
-					private void rebuildTree() {
-						// TODO: move to background thread
-						ModFileEditor.this.modTree.parseText(ModFileEditor.this.getText());
 					}
 				};
 				this.getDocument().addDocumentListener(docListener);
@@ -776,7 +787,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				// misc. configurations
 				this.setFont(Constants.TEXT_PANE_FONT);
 				this.setDragEnabled(true);
-				
+
 			}
 			
 			/**
@@ -831,8 +842,10 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					try {
 						long startTime = System.currentTimeMillis();
 						
-						// extract mod tree
+						// extract and update mod tree
 						ModTree modTree = modEditor.getModTree();
+						modTree.parseText(ModFileEditor.this.getText(), true);
+
 						ModTreeRootNode root = modTree.getRoot();
 						
 						// init blank document using shared style cache
@@ -865,8 +878,12 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						if (!text.isEmpty()) {
 							Style style = document.getStyle(
 									ModFileTabbedPane.this.modContext.getStyleNameByNode(node));
-							
-							document.insertString(document.getLength(), text, style);
+							if(text.endsWith(" ")) {
+								document.insertString(document.getLength(), text.trim(), style);
+								document.insertString(document.getLength(), " ", null);
+							} else {
+								document.insertString(document.getLength(), text.replace("\r", ""), style);
+							}
 						}
 						
 						Enumeration<ModTreeNode> children = node.children();
