@@ -77,6 +77,11 @@ public class Constants {
 	/** <img src="../ui/resources/icons/revert16.png"/> */
 	public static final Icon REVERT_ACTION_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/revert16.png"));
 	
+	/** <img src="../ui/resources/icons/collapse_all16.png"/> */
+	public static final Icon COLLAPSE_ALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/collapse_all16.png"));
+	/** <img src="../ui/resources/icons/expand_all16.png"/> */
+	public static final Icon EXPAND_ALL_ICON = new ImageIcon(Constants.class.getResource("/ui/resources/icons/expand_all16.png"));
+	
 	// TODO: Make the font sizes, etc user-configurable
 	/**
 	 * Text Pane Tab fonts
