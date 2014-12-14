@@ -60,12 +60,11 @@ public class ModTreeRootNode extends ModTreeNode {
         	index ++;
 			if ((index <= childCount) && child.isPlainText()) {
 				String fullText = child.getFullText();
-				fullText = fullText.replace("\r", "");
 				if (!fullText.isEmpty() && fullText.contains("\n")) {
+					fullText = fullText.replace("\r", "");
 					String[] strings = fullText.split("\n", 2);
 					if (!strings[1].isEmpty()) {
-        				strings[0] += "\n";
-						//strings[0] = strings[0].replace("\n", "").replace("\r", "") + System.lineSeparator();
+						strings[0] += "\n";
 						
 						int oldStartOffset = child.getStartOffset();
 						int oldEndOffset = child.getEndOffset();

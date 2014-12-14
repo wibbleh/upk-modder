@@ -651,12 +651,14 @@ public class MainFrame extends JFrame {
 			Path filePath = fileNode.getFilePath();
 			// @Amineri surely renaming directories should be an option, too, maybe drop the file check?
 			if (Files.isRegularFile(filePath)) {
-				String res = JOptionPane.showInputDialog(this,
-						"Enter New Name of File", "Rename",
-						JOptionPane.INFORMATION_MESSAGE);
-				if ((res != null) && !res.isEmpty() && this.isValidName(res)) {
-					// rename file
-					Files.move(filePath, filePath.resolveSibling(res));
+				Object res = JOptionPane.showInputDialog(this, "Enter New Name of File", "Rename",
+						JOptionPane.INFORMATION_MESSAGE, null, null, filePath.getFileName().toString());
+				if (res != null) {
+					String name = res.toString();
+					if (!name.isEmpty() && this.isValidName(name)) {
+						// rename file
+						Files.move(filePath, filePath.resolveSibling(name));
+					}
 				}
 			}
 		} else {

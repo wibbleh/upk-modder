@@ -22,19 +22,12 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.TreeModelEvent;
-import javax.swing.event.TreeModelListener;
-import javax.swing.text.DefaultCaret;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Document;
 import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeNode;
 
@@ -45,7 +38,6 @@ import model.modtree.ModReferenceLeaf;
 import model.modtree.ModStringLeaf;
 import model.modtree.ModTree;
 import model.modtree.ModTreeNode;
-import model.modtree.ModTreeRootNode;
 import model.upk.UpkFile;
 
 import org.jdesktop.swingx.JXEditorPane;
@@ -445,29 +437,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 //			modEditorScpn.setRowHeaderView(new LineNumberMargin(modEditor));
 			modEditorScpn.setPreferredSize(new Dimension(650, 600));
 			
-			final Document modDocument = modEditor.getDocument();
-			// install listener to track modifications, do it after the mod file has been read
-			SwingUtilities.invokeLater(new Runnable() {
-				@Override
-				public void run() {
-					modDocument.addDocumentListener(new DocumentListener() {
-						// TODO: maybe store original document state to set flag back to false when user undoes changes
-						@Override
-						public void removeUpdate(DocumentEvent evt) {
-							setModified(true);
-						}
-						@Override
-						public void insertUpdate(DocumentEvent evt) {
-							setModified(true);
-						}
-						@Override
-						public void changedUpdate(DocumentEvent evt) {
-							setModified(true);
-						}
-					});
-				}
-			});
-			
 			// create tree view of right-hand mod editor
 //			modTree = new ModTree(modDocument);
 			ModTree modTree = modEditor.getModTree();
@@ -523,12 +492,12 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 		 */
 		public void saveFile() throws IOException {
 			modEditor.write(Files.newBufferedWriter(this.getModFile(), Charset.defaultCharset()));
-			if (this.modified) {
+			if (this.isModified()) {
 				// modify tab title, remove leading asterisk
 				ModFileTabbedPane tabPane = ModFileTabbedPane.this;
 				int index = tabPane.indexOfComponent(this);
 				tabPane.setTitleAt(index, tabPane.getTitleAt(index).substring(1));
-				this.modified = false;
+				this.setModified(false);
 			}
 		}
 		
@@ -723,40 +692,17 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					this.read(Files.newInputStream(modFile), null);
 				}
 				
-				// init mod tree from text contents
-				//this.modTree = new ModTree(this.getText(), false);
+				// init mod tree
 				this.modTree = new ModTree();
-				
-				// listen to tree changes
-//				this.modTree.addTreeModelListener(new TreeModelListener() {
-//					@Override
-//					public void treeStructureChanged(TreeModelEvent evt) {
-//						// check for existing and running worker
-////						if ((worker != null) && !worker.isDone()) {
-////							// terminate worker prematurely
-////							worker.cancel(true);
-////						}
-////						// start new worker to restyle editor document
-////						worker = new StyleWorker(ModFileEditor.this);
-////						worker.execute();
-//					}
-//					/* unused overrides */
-//					@Override public void treeNodesRemoved(TreeModelEvent evt) { }
-//					@Override public void treeNodesInserted(TreeModelEvent evt) { }
-//					@Override public void treeNodesChanged(TreeModelEvent evt) { }
-//				});
 				
 				// listen to document changes
 				final DocumentListener docListener = new DocumentListener() {
 					@Override public void removeUpdate(DocumentEvent evt) { this.rebuildTree(); }
 					@Override public void insertUpdate(DocumentEvent evt) { this.rebuildTree(); }
-					//@Override public void changedUpdate(DocumentEvent evt) { this.rebuildTree(); } 
-					@Override public void changedUpdate(DocumentEvent evt) { } // NOTE : this only fires for styling changes, which shouldn't cause tree rebuilds (Gives notification that an attribute or set of attributes changed.)
 					
 					private void rebuildTree() {
-						// TODO: move to background thread - DONE
+						// TODO: better to use a separate worker for tree rebuilding since from this point tree parsing cannot be interrupted properly
 						ModFileTab.this.setModified(true);
-						//ModFileEditor.this.modTree.parseText(ModFileEditor.this.getText());
 						// check for existing and running worker
 						if ((worker != null) && !worker.isDone()) {
 							// terminate worker prematurely
@@ -766,6 +712,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						worker = new StyleWorker(ModFileEditor.this);
 						worker.execute();
 					}
+					
+					@Override public void changedUpdate(DocumentEvent evt) { /* do nothing */ }
 				};
 				this.getDocument().addDocumentListener(docListener);
 				
@@ -778,6 +726,9 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						newDoc.addDocumentListener(docListener);
 					}
 				});
+				
+				// initialize styling
+				(worker = new StyleWorker(this)).execute();
 				
 				// register undo/redo keystrokes
 				InputMap inputMap = this.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
@@ -824,7 +775,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				 * The mod file editor pane.
 				 */
 				private ModFileEditor modEditor;
-
+				
 				/**
 				 * Creates a worker to style text contents of a mod file tree
 				 * structure and apply them to the specified mod file editor
@@ -844,16 +795,14 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						
 						// extract and update mod tree
 						ModTree modTree = modEditor.getModTree();
-						modTree.parseText(ModFileEditor.this.getText(), true);
+						modTree.parseText(modEditor.getText(), true);
 
-						ModTreeRootNode root = modTree.getRoot();
-						
 						// init blank document using shared style cache
 						DefaultStyledDocument document = new DefaultStyledDocument(
 								ModFileTabbedPane.this.modContext);
 						
 						// recursively fill out document with styled node contents
-						this.insertNodeContents(root, document);
+						this.insertNodeContents(modTree.getRoot(), document);
 						
 						logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
 						
@@ -874,25 +823,34 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				private void insertNodeContents(ModTreeNode node,
 						DefaultStyledDocument document) {
 					try {
+						if (this.isCancelled()) {
+							return;
+						}
+						// append styled node text contents
 						String text = node.getText();
 						if (!text.isEmpty()) {
+							// fetch style
 							Style style = document.getStyle(
 									ModFileTabbedPane.this.modContext.getStyleNameByNode(node));
-							if(text.endsWith(" ")) {
+							
+							if (text.endsWith(" ")) {
+								// don't style trailing spaces
 								document.insertString(document.getLength(), text.trim(), style);
 								document.insertString(document.getLength(), " ", null);
 							} else {
 								document.insertString(document.getLength(), text.replace("\r", ""), style);
 							}
 						}
-						
+						// recurse through node children
 						Enumeration<ModTreeNode> children = node.children();
 						while (children.hasMoreElements()) {
+							if (this.isCancelled()) {
+								return;
+							}
 							ModTreeNode child = children.nextElement();
 							this.insertNodeContents(child, document);
 						}
 					} catch (Exception e) {
-						e.printStackTrace();
 						// ignore, can't happen
 					}
 				}
@@ -900,9 +858,13 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				@Override
 				protected void done() {
 					try {
+						if (this.isCancelled()) {
+							return;
+						}
 						// apply styled document to editor
 						int position = modEditor.getCaretPosition();
 						modEditor.setDocument(this.get());
+						// FIXME: typing quickly messes up the caret position
 						modEditor.setCaretPosition(position);
 					} catch (Exception e) {
 						// ignore, can't happen
