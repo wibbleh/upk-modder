@@ -700,11 +700,13 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					@Override public void removeUpdate(DocumentEvent evt) { this.rebuildTree(); }
 					@Override public void insertUpdate(DocumentEvent evt) { this.rebuildTree(); }
 					
+					/**
+					 * Rebuild the mod tree and restyle the editor document.
+					 */
 					private void rebuildTree() {
-						// TODO: better to use a separate worker for tree rebuilding since from this point tree parsing cannot be interrupted properly
 						ModFileTab.this.setModified(true);
-						// check for existing and running worker
-						if ((worker != null) && !worker.isDone()) {
+						
+						if (worker != null) {
 							// terminate worker prematurely
 							worker.cancel(true);
 						}
@@ -795,6 +797,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						
 						// extract and update mod tree
 						ModTree modTree = modEditor.getModTree();
+						// TODO: better to use a separate worker for tree rebuilding since from this point tree parsing cannot be interrupted properly
 						modTree.parseText(modEditor.getText(), true);
 
 						// init blank document using shared style cache
@@ -805,6 +808,15 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						this.insertNodeContents(modTree.getRoot(), document);
 						
 						logger.log(Level.FINE, "Styled Document, took " + (System.currentTimeMillis() - startTime) + "ms");
+						
+						if (this.isCancelled()) {
+							return null;
+						}
+						// apply styled document to editor
+						int position = modEditor.getCaretPosition();
+						modEditor.setDocument(document);
+						// FIXME: typing quickly messes up the caret position
+						modEditor.setCaretPosition(position);
 						
 						return document;
 					} catch (Exception e) {
@@ -850,22 +862,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 							ModTreeNode child = children.nextElement();
 							this.insertNodeContents(child, document);
 						}
-					} catch (Exception e) {
-						// ignore, can't happen
-					}
-				}
-				
-				@Override
-				protected void done() {
-					try {
-						if (this.isCancelled()) {
-							return;
-						}
-						// apply styled document to editor
-						int position = modEditor.getCaretPosition();
-						modEditor.setDocument(this.get());
-						// FIXME: typing quickly messes up the caret position
-						modEditor.setCaretPosition(position);
 					} catch (Exception e) {
 						// ignore, can't happen
 					}
