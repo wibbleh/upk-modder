@@ -5,6 +5,7 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Image;
+import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -25,6 +26,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -179,7 +182,7 @@ public class MainFrame extends JFrame {
 		UIManager.put("TabbedPane:TabbedPaneTabArea.contentMargins", new InsetsUIResource(3, 0, 4, 0));
 		UIManager.put("TabbedPane:TabbedPaneTab.contentMargins", new InsetsUIResource(2, 8, 3, 3));
 		modTabPane = new ModFileTabbedPane();
-		if(appState.getModFileDimension() == null) {
+		if (appState.getModFileDimension() == null) {
 			modTabPane.setPreferredSize(new Dimension(500, 300));
 		} else {
 			modTabPane.setPreferredSize(appState.getModFileDimension());
@@ -213,19 +216,47 @@ public class MainFrame extends JFrame {
 				statusBar.setUpkPath(upkPath);
 			}
 		});
-                try {
-                    // create left-hand project pane
-                    projectTree = new ProjectTree();
-                } catch (IOException ex) {
-                    Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-                }
-		//JScrollPane projectScpn = new JScrollPane(projectTree);
+		
+		try {
+			// create left-hand project pane
+			projectTree = new ProjectTree();
+		} catch (IOException ex) {
+			Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		
 		projectScpn = new JScrollPane(projectTree);
-		if(appState.getProjectPaneDimension() == null) {
+		if (appState.getProjectPaneDimension() == null) {
 			projectScpn.setPreferredSize(new Dimension(160, 300));
 		} else {
 			projectScpn.setPreferredSize(appState.getProjectPaneDimension());
 		}
+		
+		// create toolbar for project tree
+		JToolBar projectBar = new JToolBar();
+		projectBar.setFloatable(false);
+		
+		AbstractAction expandAction = new AbstractAction(null, Constants.EXPAND_ALL_ICON) {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				projectTree.expandAll();
+			}
+		};
+		expandAction.putValue(Action.SHORT_DESCRIPTION, "Expand All");
+		
+		AbstractAction collapseAction = new AbstractAction(null, Constants.COLLAPSE_ALL_ICON) {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				projectTree.collapseAll();
+			}
+		};
+		collapseAction.putValue(Action.SHORT_DESCRIPTION, "Collapse All");
+		
+		projectBar.add(Box.createGlue());
+		projectBar.add(collapseAction);
+		projectBar.add(expandAction);
+		
+		projectScpn.setColumnHeaderView(projectBar);
+		
 		// wrap project pane and tabbed pane in a split pane
 		JSplitPane mainPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, projectScpn, modTabPane);
 		
