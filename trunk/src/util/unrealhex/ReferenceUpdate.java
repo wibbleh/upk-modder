@@ -644,10 +644,9 @@ public class ReferenceUpdate {
 	 * If upk is null replaces with "UNSPECIFIED"
 	 * @param tree tree provides direction to document
 	 * @param upk upk provides replacement guid
-	 * @return change in file length due to replacement operation
 	 */
-	public static int replaceGUID(ModTree tree, UpkFile upk) throws BadLocationException {
-		String originalLine = "", newLine = "";
+	public static void replaceGUID(ModTree tree, UpkFile upk) throws BadLocationException {
+		String originalLine = "", newLine = "", newComment = "";
 		// scan through lines in tree
 		for (int i = 0; i < tree.getRoot().getChildNodeCount() ; i++) {
 			ModTreeNode line = tree.getRoot().getChildNodeAt(i);
@@ -657,24 +656,27 @@ public class ReferenceUpdate {
 
 				// construct replacement line, using upk filename for comment
 				if(upk == null) {
-					newLine = "GUID=UNSPECIFIED // no hex references in file\n";
+					newLine = "GUID=UNSPECIFIED ";
+					newComment = "// no hex references in file\n";
 				} else {
 					String destGUID = convertByteArrayToHexString(upk.getHeader().getGUID()).trim();
-					newLine = "GUID=" + destGUID + " // " + upk.getPath().getFileName() + "\n";
+					newLine = "GUID=" + destGUID + " ";
+					newComment= "// " + upk.getPath().getFileName() + "\n";
 				}
 				
 				// FIXME: don't muck about in the document, keep changes to the tree and propagate them to the document via tree model listeners registered on the tree by the document
 //				tree.getDocument().remove(offset, originalLine.length());
 				
+				((ModTreeNode) line.getChildAt(0)).setText(newLine);
+				((ModTreeNode) line.getChildAt(1)).setText(newComment);
 				// arbitrary default AttributeSet
-				AttributeSet as = new SimpleAttributeSet(); 
-				StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
-				StyleConstants.setItalic((MutableAttributeSet) as, false);
+				//AttributeSet as = new SimpleAttributeSet(); 
+				//StyleConstants.setForeground((MutableAttributeSet) as, Color.BLACK);
+				//StyleConstants.setItalic((MutableAttributeSet) as, false);
 				
 //				tree.getDocument().insertString(offset, newLine, as);
 			}
 		}
-		return newLine.length() - originalLine.length();
 	}
 
 }

@@ -1,6 +1,12 @@
-v0.85 (working)
-Added Search capability to both project pane and modfile editors
-Optimizations to improve performance for loading of large modfiles
+v0.90 (r153)
+Added Search capability to both project pane and modfile editors (use Ctrl-F
+Optimizations to improve performance with large modfiles
+Optimized restyling code
+Restyling now takes place on background thread so as to not interrupt typing
+Restyling now occurs for entire document with any edit, so jump offset styling will be updated
+Jump offsets new coloring: Green for valid jump down, Lilac for valid jump up, Orange for invalid jump (including jump to own line)
+Fixed jump offset styling bug that was allowing memory locations in other section as valid
+Added expand all/collapse all buttons to project pane
 
 v0.84 (r144)
 Fixed issues with Project Pane folders not sorting under Linux

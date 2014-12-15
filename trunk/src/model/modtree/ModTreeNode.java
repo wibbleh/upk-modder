@@ -650,7 +650,7 @@ public class ModTreeNode implements TreeNode {
 		return newString;
 	}
 
-	protected ModTreeNode getLineParent()
+	public ModTreeNode getLineParent()
     {
 		if(getParentNode() == null) { return null;}
         if(getName().equals("ModTreeNode") || getParentNode().getParentNode() == null) {
@@ -916,10 +916,12 @@ public class ModTreeNode implements TreeNode {
 		this.filePosition = position;
 	}
 
+	@Deprecated
 	public ModTreeNode positionToNode(int pos){
 		return getChildNodeAt(getNodeIndex(pos));
 	}
 	
+	@Deprecated
 	public void replace(int offset, int length, ModTreeNode[] elems){
 		remove(offset, length);
 		int index = getParentNode().getNodeIndex(offset);

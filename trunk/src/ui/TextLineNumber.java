@@ -318,8 +318,10 @@ public class TextLineNumber extends JPanel
 	{
 		// FIXME: hook up user controls to determine which branch is taken
 		if(true) {  // branch to display Memory position
+			Element docRoot = component.getDocument().getDefaultRootElement();
+			int nodeIndex = docRoot.getElementIndex(rowStartOffset) + 1;
 			ModTreeRootNode root = this.tree.getRoot();
-			int nodeIndex = root.getNodeIndex(rowStartOffset);
+			//int nodeIndex = root.getNodeIndex(rowStartOffset);
 			ModTreeNode lineNode = root.getChildNodeAt(nodeIndex);
 			if (lineNode.isValidHexLine() && lineNode.getContextFlag(ModContext.ModContextType.HEX_CODE)) {
 				int memPos = lineNode.getMemoryPosition();
@@ -328,8 +330,10 @@ public class TextLineNumber extends JPanel
 				return "";
 			}
 		} else if (false) {  // branch to display File position
+			Element docRoot = component.getDocument().getDefaultRootElement();
+			int nodeIndex = docRoot.getElementIndex(rowStartOffset) + 1;
 			ModTreeRootNode root = this.tree.getRoot();
-			int nodeIndex = root.getNodeIndex(rowStartOffset);
+			//int nodeIndex = root.getNodeIndex(rowStartOffset);
 			ModTreeNode lineNode = root.getChildNodeAt(nodeIndex);
 			if (lineNode.isValidHexLine() && lineNode.getContextFlag(ModContext.ModContextType.HEX_CODE)) {
 			int filePos = lineNode.getFilePosition();

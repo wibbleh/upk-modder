@@ -375,17 +375,9 @@ public class ReferenceUpdateDialog extends JDialog {
 	 */
 	private boolean convertToRefDestValues() throws BadLocationException {
 		boolean res = true;
-		String findString;
-//		// since there are a lot of updates coming, disable the modTree updating temporarily
-//		// will perform a single refresh at the end
-//		modTree.disableUpdating();
-		
-		// the amount that the document offset has been adjusted
-		// tracking it this way is MUCH faster than trying to wait for the ModTree to update after each insertion
-		int offsetIncrease = 0;
-		
-		// replace GUID with destination upk GUID info
-		offsetIncrease += ReferenceUpdate.replaceGUID(modTree, destUpk);
+
+		// replace GUID with value from destination UPK
+		ReferenceUpdate.replaceGUID(modTree, destUpk);
 				
 		// iterate table rows
 		for (int row = 0; row < refTbl.getRowCount(); row++) {
@@ -395,25 +387,14 @@ public class ReferenceUpdateDialog extends JDialog {
 			String refDestValue = refTbl.getValueAt(row, DEST_REF_COLUMN).toString();
 			// extract reference name from UPK file
 			if(!refDestValue.isEmpty() && !refName.isEmpty() && !refDestValue.equals(REF_NOT_FOUND)) {
-				if(refNode.isName()) {
-					findString = ReferenceUpdate.tagReference(refName, refNode);
-				} else {
-					findString = HexStringLibrary.convertIntToHexString(refNode.getRefValue()).trim();
-				}
-				// TODO: improve error handling
-				// replace the string, retaining total offset change in file.
-				offsetIncrease += ReferenceUpdate.replaceRefStringInDocument(
-						findString + " ",
-						refDestValue,
-						refNode,
-						offsetIncrease
-				);
+				//update the reference hex and value
+				refNode.setText(refDestValue);  // hex string
+				refNode.setRefValue(HexStringLibrary.convertByteArrayToInt(HexStringLibrary.convertStringToByteArray(refDestValue))); // integer value
 			}
 			
 		}
-		// force modTree refresh from document and re-enable updating
-//		modTree.forceRefreshFromDocument();
-//		modTree.enableUpdating();
+		// force Refresh of UI elements the depend on ModTree
+		modTree.setRoot(modTree.getRoot());
 		return res;
 	}
 
@@ -424,16 +405,9 @@ public class ReferenceUpdateDialog extends JDialog {
 	 */
 	private boolean convertToRefNames() throws BadLocationException {
 		boolean res = true;
-//		// since there are a lot of updates coming, disable the modTree updating temporarily
-//		// will perform a single refresh at the end
-//		modTree.disableUpdating();
-		
-		// the amount that the document offset has been adjusted
-		// tracking it this way is MUCH faster than trying to wait for the ModTree to update after each insertion
-		int offsetIncrease = 0;
 
 		// replace GUID with "unknown"
-		offsetIncrease += ReferenceUpdate.replaceGUID(modTree, null);
+		ReferenceUpdate.replaceGUID(modTree, null);
 				
 		// iterate table rows
 		for (int row = 0; row < refTbl.getRowCount(); row++) {
@@ -444,20 +418,14 @@ public class ReferenceUpdateDialog extends JDialog {
 			if(!refNode.isName() && !refName.equals(REF_NOT_FOUND) && !refName.isEmpty()) {
 				// add reference tags to name
 				refName = ReferenceUpdate.tagReference(refName, refNode);
-				// TODO: improve error handling
-				// replace the string, retaining total offset change in file.
-				offsetIncrease += ReferenceUpdate.replaceRefStringInDocument(
-						HexStringLibrary.convertIntToHexString(refNode.getRefValue()).trim(),
-						refName,
-						refNode,
-						offsetIncrease
-				);
+				// replace the string
+				refNode.setText(refName + " ");
 				refTbl.setValueAt(REF_NOT_FOUND, row, SOURCE_REF_COLUMN);
 			}
 		}
-		// force modTree refresh from document and re-enable updating
-//		modTree.forceRefreshFromDocument();
-//		modTree.enableUpdating();
+		// force Refresh of UI elements the depend on ModTree
+		modTree.setRoot(modTree.getRoot());
+
 		return res;
 	}
 

@@ -170,9 +170,9 @@ public class ModTree implements TreeModel {
 //		root.insertString(0, text, null);
 //		root.reorganizeAfterInsertion();
 		ModTreeRootNode root = new ModTreeRootNode(this);
-		root.insertString(0, text);
+//		root.insertString(0, text);
 		if (parse) {
-			root.reorganizeAfterInsertion();
+			root.setText(text);
 		}
 		logger.log(Level.FINE, "Parsed Text, took " + (System.currentTimeMillis() - startTime) + "ms");
 		this.setRoot(root);

@@ -713,6 +713,10 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 								// terminate worker prematurely
 								treeWorker.cancel(true);
 							}
+							if (styleWorker != null) {
+								// terminate worker prematurely
+								styleWorker.cancel(true);
+							}
 							// start new worker to restyle editor document
 							treeWorker = new TreeWorker(ModFileEditor.this);
 							treeWorker.execute();
