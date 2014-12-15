@@ -41,16 +41,64 @@ public class ModTreeRootNode extends ModTreeNode {
     
 	/**
 	 * Splits multi-line tokens into single Line tokens.<br>
-	 * Re-computes contextsfor all elements and tokens.<br>
+	 * Re-computes contexts for all elements and tokens.<br>
+	 * Adds line-split text into tree structure
 	 * Re-parses any modified unrealhex.
+	 * @param text the text to set
 	 */
-	public void reorganizeAfterInsertion() {
+	@Override
+	public void setText(String text) {
 		this.resetContextFlags();
-		this.splitElementsOnNewline();
+		this.splitLinesAndAddToTree(text);
+		//this.splitElementsOnNewline();
 		this.buildContextsParseUnreal();
 		this.setMemoryPositions();
 	}
-    
+
+	private void splitLinesAndAddToTree(String fullText) {
+        // iterate through array of lines and break into lines
+		//String fullText = this.getFullText();
+		if (!fullText.isEmpty()) {
+			//this.removeAllChildNodes();
+			//this.removeChildNodeAt(0);
+			fullText = fullText.replace("\r", "");
+			String[] lines = fullText.split("\n");
+			int startOffset = 0;
+			ModTreeNode newLine;
+			ModTreeLeaf newLeaf, newLeafComment;
+			for(String line : lines) {
+				line += "\n";				
+				
+				String[] split = line.split("//", 2);
+				if (split.length > 1) {
+					// line contains comment
+					String pre = split[0];
+					String post = "//" + split[1];
+
+					newLine = new ModTreeNode(this, true);
+					newLeaf = new ModTreeLeaf(newLine, pre, true);
+					newLine.addNode(newLeaf);
+					newLeafComment = new ModTreeLeaf(newLine, post, true);
+					newLine.addNode(newLeafComment);
+
+					newLeaf.setRange(startOffset, pre.length());
+					newLeafComment.setRange(startOffset + pre.length(), startOffset + line.length());
+					
+				} else {
+					newLine = new ModTreeNode(this, true);
+					newLeaf = new ModTreeLeaf(newLine, line, true);
+					newLine.addNode(newLeaf);
+					newLeaf.setRange(startOffset, startOffset + line.length());
+				}
+				newLine.setRange(startOffset, startOffset + line.length());
+				startOffset += line.length();
+				
+				this.addNode(newLine);
+			}
+		}
+	}
+	
+
 	private void splitElementsOnNewline() {
         // iterate through array of lines and break into lines
         int index = 0;
@@ -231,16 +279,16 @@ public class ModTreeRootNode extends ModTreeNode {
 		}
 	}
 
-	@Override
-	public void setText(String text) {
-		// do nothing
-	}
+//	@Override
+//	public void setText(String text) {
+//		// do nothing
+//	}
 
-	@Override
-	public String getText() {
-		// return nothing
-		return "";
-	}
+//	@Override
+//	public String getText() {
+//		// return nothing
+//		return "";
+//	}
 
 	/**
 	 * Sets memory positions for each line 
