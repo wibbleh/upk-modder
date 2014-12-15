@@ -149,7 +149,6 @@ public class ModTree implements TreeModel {
 	public ModTree() {
 		this((String) null, false); 
 	}
-
 	
 	/**
 	 * New unified ModTree constructor for direct initialization.
@@ -538,18 +537,17 @@ public class ModTree implements TreeModel {
 	////		doc.addDocumentListener(this.mtListener);
 	//	}
 		
-		/**
-		 * Notifies all registered listeners that tree nodes have been removed.
-		 */
-		public void fireTreeStructureChanged() {
-			TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.getRoot()));
-			if (this.listeners != null) {
-				for (TreeModelListener listener : this.listeners) {
-					listener.treeStructureChanged(evt);
-				}
+	/**
+	 * Notifies all registered listeners that tree nodes have been removed.
+	 */
+	public void fireTreeStructureChanged() {
+		TreeModelEvent evt = new TreeModelEvent(this, new TreePath(this.getRoot()));
+		if (this.listeners != null) {
+			for (TreeModelListener listener : this.listeners) {
+				listener.treeStructureChanged(evt);
 			}
 		}
-
+	}
 
 	/**
 	 * Returns the file version number.

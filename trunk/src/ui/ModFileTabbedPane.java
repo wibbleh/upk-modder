@@ -2,6 +2,8 @@ package ui;
 
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
@@ -23,8 +25,11 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Document;
 import javax.swing.text.Style;
@@ -626,8 +631,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				ModFileTabbedPane tabPane = ModFileTabbedPane.this;
 				int index = tabPane.indexOfComponent(this);
 				tabPane.setTitleAt(index, "*" + tabPane.getTitleAt(index));
-				this.modified = modified;
 			}
+			this.modified = modified;
 		}
 		
 		/**
@@ -670,9 +675,14 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			private ModTree modTree;
 			
 			/**
-			 * The reference to the 
+			 * The reference to the mod tree structure updating background worker.
 			 */
-			private StyleWorker worker;
+			private TreeWorker treeWorker;
+			
+			/**
+			 * The reference to the mod editor document restyling background worker. 
+			 */
+			private StyleWorker styleWorker;
 
 			/**
 			 * Creates a mod file editor initialized using the contents of the
@@ -692,32 +702,68 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					this.read(Files.newInputStream(modFile), null);
 				}
 				
-				// init mod tree
-				this.modTree = new ModTree();
-				
 				// listen to document changes
 				final DocumentListener docListener = new DocumentListener() {
+					
+					/** Timer to delay updates until after document events cease coming in. */
+					private Timer timer = new Timer(1000, new ActionListener() {
+						@Override
+						public void actionPerformed(ActionEvent evt) {
+							if (treeWorker != null) {
+								// terminate worker prematurely
+								treeWorker.cancel(true);
+							}
+							// start new worker to restyle editor document
+							treeWorker = new TreeWorker(ModFileEditor.this);
+							treeWorker.execute();
+						}
+					});
+					
 					@Override public void removeUpdate(DocumentEvent evt) { this.rebuildTree(); }
 					@Override public void insertUpdate(DocumentEvent evt) { this.rebuildTree(); }
 					
 					/**
-					 * Rebuild the mod tree and restyle the editor document.
+					 * Rebuild the mod tree structure.
 					 */
 					private void rebuildTree() {
 						ModFileTab.this.setModified(true);
 						
-						if (worker != null) {
-							// terminate worker prematurely
-							worker.cancel(true);
-						}
-						// start new worker to restyle editor document
-						worker = new StyleWorker(ModFileEditor.this);
-						worker.execute();
+						timer.setRepeats(false);
+						timer.restart();
 					}
 					
 					@Override public void changedUpdate(DocumentEvent evt) { /* do nothing */ }
 				};
 				this.getDocument().addDocumentListener(docListener);
+				
+				// init mod tree
+				this.modTree = new ModTree(this.getText(), true);
+				
+				// listen to tree changes
+				modTree.addTreeModelListener(new TreeModelListener() {
+					
+					@Override public void treeStructureChanged(TreeModelEvent evt) { this.restyleDocument(); }
+					
+					/**
+					 * Restyle the mod editor document.
+					 */
+					private void restyleDocument() {
+						ModFileTab.this.setModified(true);
+						
+						if (styleWorker != null) {
+							// terminate worker prematurely
+							styleWorker.cancel(true);
+						}
+						// start new worker to restyle editor document
+						styleWorker = new StyleWorker(ModFileEditor.this);
+						styleWorker.execute();
+					}
+
+					/* unused overrides */
+					@Override public void treeNodesRemoved(TreeModelEvent evt) { }
+					@Override public void treeNodesInserted(TreeModelEvent evt) { }
+					@Override public void treeNodesChanged(TreeModelEvent evt) { }
+				});
 				
 				// listen to complete document replacements
 				this.addPropertyChangeListener("document", new PropertyChangeListener() {
@@ -729,8 +775,8 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 					}
 				});
 				
-				// initialize styling
-				(worker = new StyleWorker(this)).execute();
+				// initialize tree contents and document styling
+				(styleWorker = new StyleWorker(this)).execute();
 				
 				// register undo/redo keystrokes
 				InputMap inputMap = this.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
@@ -768,10 +814,43 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 			}
 			
 			/**
+			 * Background worker for rebuilding mod file tree structures.
+			 * @author XMS
+			 */
+			private class TreeWorker extends SwingWorker<Object, Object> {
+				
+				/**
+				 * The mod file editor pane.
+				 */
+				private ModFileEditor modEditor;
+
+				/**
+				 * Creates a worker to rebuild the mod file tree structure from
+				 * the document contents of the specified mod file editor
+				 * component.
+				 * @param modEditor the mod file editor
+				 */
+				public TreeWorker(ModFileEditor modEditor) {
+					this.modEditor = modEditor;
+				}
+
+				@Override
+				protected Object doInBackground() throws Exception {
+					// extract and update mod tree
+					ModTree modTree = modEditor.getModTree();
+					// TODO: better to use a separate worker for tree rebuilding since from this point tree parsing cannot be interrupted properly
+					modTree.parseText(modEditor.getText(), true);
+					
+					return null;
+				}
+				
+			}
+			
+			/**
 			 * Background worker implementation for restyling editor documents.
 			 * @author XMS
 			 */
-			private class StyleWorker extends SwingWorker<Document, Object> {
+			private class StyleWorker extends SwingWorker<Object, Object> {
 
 				/**
 				 * The mod file editor pane.
@@ -782,7 +861,6 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				 * Creates a worker to style text contents of a mod file tree
 				 * structure and apply them to the specified mod file editor
 				 * component.
-				 * 
 				 * @param modEditor the mod file editor receiving the resulting
 				 *  styled document
 				 */
@@ -791,14 +869,9 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 				}
 
 				@Override
-				protected Document doInBackground() throws Exception {
+				protected Object doInBackground() throws Exception {
 					try {
 						long startTime = System.currentTimeMillis();
-						
-						// extract and update mod tree
-						ModTree modTree = modEditor.getModTree();
-						// TODO: better to use a separate worker for tree rebuilding since from this point tree parsing cannot be interrupted properly
-						modTree.parseText(modEditor.getText(), true);
 
 						// init blank document using shared style cache
 						DefaultStyledDocument document = new DefaultStyledDocument(
@@ -818,7 +891,7 @@ public class ModFileTabbedPane extends ButtonTabbedPane {
 						// FIXME: typing quickly messes up the caret position
 						modEditor.setCaretPosition(position);
 						
-						return document;
+						return null;
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
