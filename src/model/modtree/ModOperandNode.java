@@ -67,7 +67,7 @@ public class ModOperandNode extends ModTreeNode {
 		int lastEnd = this.getStartOffset();
 		String currOperand = s.split("\\s")[0];
 		if (currOperand.isEmpty()) {
-			return "ERROR";
+			return "";
 		}
 		this.operand = currOperand;
 

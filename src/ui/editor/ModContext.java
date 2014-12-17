@@ -95,6 +95,11 @@ public class ModContext extends StyleContext {
 	
 	public String getStyleNameByNode(ModTreeNode node) {
 		
+		// invalid hex
+		if ((node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE))) {
+			return INVALID_HEX_STYLE;
+		}
+
 		// plain text, may be comment
 		if (node.isPlainText()) {
 			// find comment marker
@@ -115,11 +120,6 @@ public class ModContext extends StyleContext {
 			}
 		}
 		
-		// invalid hex
-		if ((node.getContextFlag(HEX_CODE) && !node.getContextFlag(VALID_CODE))) {
-			return INVALID_HEX_STYLE;
-		}
-
 		// operands
 		if ("OperandToken".equals(node.getName())) {
 			if (node.getFullText().toUpperCase().startsWith("0B")) {
