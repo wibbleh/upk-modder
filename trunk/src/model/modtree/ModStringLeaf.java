@@ -49,7 +49,7 @@ public class ModStringLeaf extends ModTreeLeaf {
 						16) & 0xFF);
 				s = super.parseUnrealHex(s, 1);
 				if (s.isEmpty()) {
-					return "ERROR";
+					return "";
 				}
 				count++;
 				stringData = new String(bArray);

@@ -1,3 +1,7 @@
+v0.91 (r154)
+Fixed issue where hex would sometimes have "ERROR" appended to the end by UPKmodder
+Fixed issue where invalid hex was not being marked correctly (red with strikethrough)
+
 v0.90 (r153)
 Added Search capability to both project pane and modfile editors (use Ctrl-F
 Optimizations to improve performance with large modfiles
