@@ -74,18 +74,26 @@ public class ModOffsetLeaf extends ModTreeLeaf {
 	
 	/**
 	 * Parse the unreal hex 
-	 * @param s
-	 * @return
+	 * @param s hex string to parse
+	 * @return remaining string of hex
+	 * @throws java.lang.Exception for parsing errors
 	 */
-	public String parseUnrealHex(String s) {
+	public String parseUnrealHex(String s) throws Exception {
 		return this.parseUnrealHex(s, 2);
 	}
 
+	/**
+	 * Parse the unreal hex 
+	 * @param s hex string to parse
+	 * @param num number of bytes to consume -- must be 2 for this class
+	 * @return remaining string of hex
+	 * @throws java.lang.Exception for parsing errors
+	 */
 	@Override
-	public String parseUnrealHex(String s, int num) {
+	public String parseUnrealHex(String s, int num) throws Exception {
 		String res = super.parseUnrealHex(s, num);
 		
-		// parse jump offset
+		// parse jump offset -- implicit exception casting if not enough elements or malformed hex
 		String[] split = this.getText().split("\\s");
 		int int0 = Integer.parseInt(split[0], 16);
 		int int1 = Integer.parseInt(split[1], 16);

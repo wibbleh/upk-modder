@@ -1,5 +1,7 @@
 package model.modtree;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import static model.modtree.ModContext.ModContextType.AFTER_HEX;
 import static model.modtree.ModContext.ModContextType.BEFORE_HEX;
 import static model.modtree.ModContext.ModContextType.FILE_HEADER;
@@ -236,11 +238,13 @@ public class ModTreeRootNode extends ModTreeNode {
                 child.setPlainText(true);
             }
             if (isCode && child.isPlainText()) {
-                child.parseUnrealHex(null, 0);
+				try {
+					child.parseUnrealHex(null, 0);
+				} catch (Exception ex) {
+					//Logger.getLogger(ModTreeRootNode.class.getName()).log(Level.SEVERE, "Unreal hex parsing failed at line " + i, ex);
+				}
             }
-            // (isCode && !isPlainText) means it was not update
-            // (!isCode && isPlainText) does not need reconsolidating
-        }
+		}
     }
     
     @Override

@@ -60,20 +60,23 @@ public class ModTreeLeaf extends ModTreeNode {
 	 * @param s -- the unreal bytecode as string
 	 * @param num -- number of bytecodes to remove
 	 * @return -- the remaining unreal bytecode string
+	 * @throws java.lang.Exception for hex parsing error
 	 */
 	@Override
-	public String parseUnrealHex(String s, int num) {
+	public String parseUnrealHex(String s, int num) throws Exception {
 		int endOffset = this.getEndOffset();
 		for (int i = 0; i < num; i++) {
 			if (s.contains(" ")) {
 				endOffset += 3;
 				text += s.split("\\s", 2)[0] + " ";
 				s = s.split("\\s", 2)[1];
-			} else {
+			} else if (!s.isEmpty()) {
 				endOffset += 2;
 				text += s;
 				s = "";
-			}
+			} else {
+				throw new Exception ("Insufficent remaining hex bytes.");
+			}				
 		}
 		this.setRange(this.getStartOffset(), endOffset);
 		return s;

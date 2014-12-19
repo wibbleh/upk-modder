@@ -56,18 +56,19 @@ public class ModOperandNode extends ModTreeNode {
      * TODO -- optimize this code
      * @param s
      * @return - the unparsed string remnant
+	 * @throws java.lang.Exception for error in Unreal parsing
      */
-	public String parseUnrealHex(String s) {
-		return this.parseUnrealHex(s, 0);
-	}
+	//public String parseUnrealHex(String s) {
+	//	return this.parseUnrealHex(s, 0);
+	//}
 	
 	@Override
-	public String parseUnrealHex(String s, int num) {
+	public String parseUnrealHex(String s, int num) throws Exception {
 		boolean isOperand = true;
 		int lastEnd = this.getStartOffset();
 		String currOperand = s.split("\\s")[0];
 		if (currOperand.isEmpty()) {
-			return "";
+			throw new Exception("No operand to parse.");
 		}
 		this.operand = currOperand;
 
@@ -96,33 +97,33 @@ public class ModOperandNode extends ModTreeNode {
 				ModOperandNode n = new ModOperandNode(this);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
-				s = n.parseUnrealHex(s);
+				s = n.parseUnrealHex(s, 0);
 				lastEnd = n.getEndOffset();
 			} else if (sParseItem.equals("P")) {
 				while (!s.split("\\s")[0].equals("16")) {
 					ModOperandNode n = new ModOperandNode(this);
 					n.setRange(lastEnd, lastEnd);
 					addNode(n);
-					s = n.parseUnrealHex(s);
+					s = n.parseUnrealHex(s, 0);
 					lastEnd = n.getEndOffset();
 				}
 			} else if (sParseItem.equals("R")) {
 				ModReferenceLeaf n = new ModReferenceLeaf(this, false);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
-				s = n.parseUnrealHex(s);
+				s = n.parseUnrealHex(s, 0);
 				lastEnd = n.getEndOffset();
 			} else if (sParseItem.equals("NR")) {
 				ModReferenceLeaf n = new ModReferenceLeaf(this, true);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
-				s = n.parseUnrealHex(s);
+				s = n.parseUnrealHex(s, 0);
 				lastEnd = n.getEndOffset();
 			} else if (sParseItem.equals("N")) {
 				ModStringLeaf n = new ModStringLeaf(this);
 				n.setRange(lastEnd, lastEnd);
 				addNode(n);
-				s = n.parseUnrealHex(s);
+				s = n.parseUnrealHex(s, 0);
 				lastEnd = n.getEndOffset();
 			} else if (sParseItem.startsWith("S")) {
 				ModOffsetLeaf n = new ModOffsetLeaf(this, sParseItem);
@@ -153,7 +154,7 @@ public class ModOperandNode extends ModTreeNode {
 					ModOperandNode n2 = new ModOperandNode(this);
 					n2.setRange(lastEnd, lastEnd);
 					addNode(n2);
-					s = n2.parseUnrealHex(s);
+					s = n2.parseUnrealHex(s, 0);
 					lastEnd = n2.getEndOffset();
 				}
 			}

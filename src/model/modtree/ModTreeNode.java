@@ -228,10 +228,11 @@ public class ModTreeNode implements TreeNode {
 	 * @param s
 	 * @param num
 	 * @return 
+	 * @throws java.lang.Exception if string not parsed as unreal hex
 	 */
-	public String parseUnrealHex(String s, int num) {
+	public String parseUnrealHex(String s, int num) throws Exception {
 		if (!this.isValidHexLine()) {
-			return null;
+			throw new Exception("Not valid hex line.");
 		}
 		String oldString = this.getFullText();
 		try {
@@ -262,7 +263,7 @@ public class ModTreeNode implements TreeNode {
 				// create operand token
 				ModOperandNode opElem = new ModOperandNode(this);
 				opElem.setRange(currOffset, this.getEndOffset());
-				hex = opElem.parseUnrealHex(hex);
+				hex = opElem.parseUnrealHex(hex, 0);
 				int lastLength = oldLength - hex.length();
 				opElem.setRange(currOffset, currOffset + lastLength);
 				this.addNode(opElem);
