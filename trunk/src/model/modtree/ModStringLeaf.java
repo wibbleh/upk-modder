@@ -32,14 +32,12 @@ public class ModStringLeaf extends ModTreeLeaf {
 	 * Parses a variable length string from the passed unreal bytecode string.
 	 * Parses until a 00 bytecode (string terminator) is encountered
 	 * @param s -- original bytecode string
+	 * @param num -- number of bytes to consume, or 0 if unknown
 	 * @return -- remaining unparsed bytecode string
+	 * @throws java.lang.Exception for errors parsing Unreal bytecode
 	 */
-	public String parseUnrealHex(String s) {
-		return this.parseUnrealHex(s, 0);
-	}
-	
 	@Override
-	public String parseUnrealHex(String s, int num) {
+	public String parseUnrealHex(String s, int num) throws Exception {
 		if (!s.split("\\s", 2)[0].equals("00")) {
 			int length = s.split("00")[0].length() / 3;
 			byte[] bArray = new byte[length];
@@ -49,7 +47,7 @@ public class ModStringLeaf extends ModTreeLeaf {
 						16) & 0xFF);
 				s = super.parseUnrealHex(s, 1);
 				if (s.isEmpty()) {
-					return "";
+					throw new Exception("Improperly terminated string.");
 				}
 				count++;
 				stringData = new String(bArray);

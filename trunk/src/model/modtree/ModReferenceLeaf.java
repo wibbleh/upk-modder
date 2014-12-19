@@ -91,14 +91,12 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 	 * Parses a string of unreal hex byte code (represented as a string)
 	 * removes the appropriate number of bytecodes and returns the remaining string portion
 	 * @param s - unreal bytecode as string
+	 * @param num - number of bytes to consume, or 0 if unknown
 	 * @return - remainder of bytecode as string
+	 * @throws java.lang.Exception for hex parsing error
 	 */
-	public String parseUnrealHex(String s) {
-		return this.parseUnrealHex(s, 0);
-	}
-	
 	@Override
-	public String parseUnrealHex(String s, int num) {
+	public String parseUnrealHex(String s, int num) throws Exception {
 		this.value = 0;
 		int endOffset;
 		if (s.startsWith("{|") || s.startsWith("<|")) {
@@ -117,6 +115,7 @@ public class ModReferenceLeaf extends ModTreeLeaf {
 		} else {
 			String[] tokens = s.split("\\s");
 			for (int i = 0; i < 4; i++) {
+				// implicitly throws exception if not enough tokens or malformed hex
 				this.value += Integer.parseInt(tokens[i], 16) << (8 * i);
 			}
 			this.isName = false;
